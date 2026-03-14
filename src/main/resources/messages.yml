@@ -1,0 +1,46 @@
+prefix: "§x§8§7§3§E§8§0§lᴄ§x§9§8§4§8§8§1§lᴀ§x§A§8§5§2§8§1§lꜱ§x§B§8§5§C§8§2§lᴇ§x§C§8§6§6§8§2§lꜱ"
+
+no-permission: "&cНет прав."
+unknown-command: "{prefix} &8| &fНеизвестная команда."
+only-player: "{prefix} &8| &fТолько для игроков."
+
+already-opening: "{prefix} &8| &fТы уже открываешь кейс."
+case-busy: "{prefix} &8| &fЭтот кейс сейчас открывает другой игрок."
+not-enough-levels: "{prefix} &8| &fНе хватает уровней. Нужно: &f{amount}"
+key-not-configured: "{prefix} &8| &fКлюч для этого кейса не настроен."
+not-enough-keys: "{prefix} &8| &fНужно ключей: &f{need} &c(у тебя: &f{have}&c)"
+
+reward-default: "{prefix} &8| &fНаграда: {reward}"
+reward-luckperms: "{prefix} &8| &fВыдана привилегия: {reward}"
+broadcast:
+  - ""
+  - "&8&m                                        "
+  - " &7Игрок &f{player} &7открыл кейс"
+  - " &7и получил: {reward}"
+  - "&8&m                                        "
+  - ""
+
+config-reloaded: "{prefix} &8| &fКонфиг перезагружен."
+
+givekey-usage: "{prefix} &8| &fИспользование: /pncases givekey <player|uuid> <key> <amount>"
+givekey-player-not-found: "{prefix} &8| &fИгрок не найден в кеше. Укажи UUID или пусть зайдёт хотя бы раз."
+givekey-amount-nan: "{prefix} &8| &fКол-во должно быть числом."
+givekey-amount-negative: "{prefix} &8| &fКол-во должно быть > 0."
+givekey-key-not-found: "{prefix} &8| &fКлюч '&f{key}&c' не найден в config.yml."
+givekey-success-sender: "{prefix} &8| &fВыдано &f{amount} &aключ(ей) &f{key_name} &aигроку &f{player}"
+givekey-success-target: "{prefix} &8| &fТебе выдали &f{amount} &aключ(ей) &f{key_name}&a. Баланс: &f{balance}"
+givekey-offline: "{prefix} &8| &fИгрок оффлайн. Начислено &f{amount} &aключ(ей) &f{key_name} &aдля &f{player}"
+
+setcase-usage: "{prefix} &8| &fИспользование: /pncases setcase <case>"
+setcase-look-at-block: "{prefix} &8| &fСмотри на блок (до 5 блоков)."
+setcase-success: "{prefix} &8| &fКейс '&f{case}&a' привязан к блоку: &f{world} {x} {y} {z}"
+
+animation-changed: "{prefix} &8| &fАнимация: {animation}"
+
+gui-buy-success: "§x§5§5§C§8§7§4Покупка завершена"
+gui-buy-unavailable: "§x§C§8§5§5§5§5Покупка недоступна"
+gui-buy-no-levels: "§x§C§8§5§5§5§5У вас недостаточно уровней"
+gui-keys-balance: "&7Ключи: &f{have}&7/&f{need}"
+gui-buy-xp-hint: "&7ЛКМ &8— &fкупить ключ за опыт: &8({levels} lvl)"
+gui-buy-xp-disabled: "&7ЛКМ &8— &cпокупка за опыт отключена"
+gui-open-hint: "&7ПКМ &8— &aоткрыть кейс"

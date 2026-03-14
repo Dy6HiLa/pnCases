@@ -1,0 +1,14 @@
+name: pnCases
+version: '1.0-SNAPSHOT'
+main: ru.privatenull.pnCases
+api-version: '1.21'
+authors: [ privatenull ]
+softdepend: [LuckPerms, FancyHolograms]
+commands:
+  pncases:
+    description: dohcases admin commands
+    usage: /pncases setcase <case> | /pncases givekey <player> <key> <amount> | /pncases reload
+    permission: pncases.admin
+permissions:
+  pncases.admin:
+    default: op
