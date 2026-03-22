@@ -4,8 +4,8 @@ import org.bukkit.*;
 import org.bukkit.entity.*;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.joml.AxisAngle4f;
 import org.joml.Vector3f;
 import ru.privatenull.cases.model.CaseDefinition;
@@ -18,10 +18,13 @@ import java.util.Random;
 
 public class PortalAnimation extends CaseAnimation {
 
-    private static final int PHASE1_END = 50;
-    private static final int PHASE2_END = 110;
-    private static final int PHASE3_END = 155;
-    private static final int PHASE4_END = 230;
+    private static final int EXPLOSION_END = 42;
+    private static final int VORTEX_END = 88;
+    private static final int SUCTION_END = 130;
+    private static final int COLLAPSE_END = 152;
+    private static final int REVEAL_END = 225;
+
+    private static final int ITEM_COUNT = 10;
 
     public PortalAnimation(pnCases plugin) {
         super(plugin);
@@ -34,67 +37,60 @@ public class PortalAnimation extends CaseAnimation {
 
         Random rng = new Random();
         ItemStack rewardVisual = buildRewardVisual(reward, def);
-        Location portalCenter = base.clone().add(0, 1.7, 0);
 
-        ItemDisplay rewardDisplay = (ItemDisplay) w.spawnEntity(portalCenter.clone(), EntityType.ITEM_DISPLAY);
+        Location centre = base.clone().add(0, 2.0, 0);
+
+        Material[] mats = {
+                Material.EMERALD, Material.GOLD_INGOT, Material.AMETHYST_SHARD,
+                Material.LAPIS_LAZULI, Material.QUARTZ, Material.PRISMARINE_CRYSTALS,
+                Material.NETHERITE_INGOT, Material.DIAMOND, Material.BLAZE_POWDER,
+                Material.NETHER_STAR
+        };
+
+        double[] px = new double[ITEM_COUNT];
+        double[] py = new double[ITEM_COUNT];
+        double[] pz = new double[ITEM_COUNT];
+        double[] vx = new double[ITEM_COUNT];
+        double[] vy = new double[ITEM_COUNT];
+        double[] vz = new double[ITEM_COUNT];
+        boolean[] alive = new boolean[ITEM_COUNT];
+
+        List<ItemDisplay> items = new ArrayList<>();
+
+        for (int i = 0; i < ITEM_COUNT; i++) {
+            ItemDisplay id = (ItemDisplay) w.spawnEntity(base.clone().add(0, 1.0, 0), EntityType.ITEM_DISPLAY);
+            id.setItemStack(new ItemStack(mats[i]));
+            id.setBillboard(Display.Billboard.VERTICAL);
+            setItemScale(id, 0f);
+            items.add(id);
+            track(id);
+            alive[i] = false;
+
+            px[i] = base.getX() + 0.5;
+            py[i] = base.getY() + 1.0;
+            pz[i] = base.getZ() + 0.5;
+        }
+
+        BlockDisplay singularity = (BlockDisplay) w.spawnEntity(centre.clone(), EntityType.BLOCK_DISPLAY);
+        singularity.setBlock(Material.BLACK_CONCRETE.createBlockData());
+        setSingularityScale(singularity, 0f);
+        track(singularity);
+
+        ItemDisplay rewardDisplay = (ItemDisplay) w.spawnEntity(centre.clone(), EntityType.ITEM_DISPLAY);
         rewardDisplay.setItemStack(rewardVisual);
         rewardDisplay.setBillboard(Display.Billboard.FIXED);
-        setScale(rewardDisplay, 0f);
+        setItemScale(rewardDisplay, 0f);
         track(rewardDisplay);
 
-        TextDisplay label = (TextDisplay) w.spawnEntity(base.clone().add(0, 4.2, 0), EntityType.TEXT_DISPLAY);
+        TextDisplay label = (TextDisplay) w.spawnEntity(base.clone().add(0, 4.8, 0), EntityType.TEXT_DISPLAY);
         label.setBillboard(Display.Billboard.CENTER);
         label.setSeeThrough(true);
         label.setDefaultBackground(false);
-        label.setTextOpacity((byte) 230);
         label.setText("");
         track(label);
 
-        Material[] fakeMats = {
-                Material.EMERALD, Material.GOLD_INGOT, Material.AMETHYST_SHARD,
-                Material.LAPIS_LAZULI, Material.QUARTZ, Material.PRISMARINE_CRYSTALS,
-                Material.NETHERITE_INGOT, Material.DIAMOND
-        };
-        int fakeCount = 8;
-        List<ItemDisplay> fakeItems = new ArrayList<>();
-        double[] fakeAngle  = new double[fakeCount];
-        double[] fakeSpeed  = new double[fakeCount];
-        double[] fakeRadius = new double[fakeCount];
-
-        for (int i = 0; i < fakeCount; i++) {
-            ItemDisplay fd = (ItemDisplay) w.spawnEntity(portalCenter.clone(), EntityType.ITEM_DISPLAY);
-            fd.setItemStack(new ItemStack(fakeMats[i % fakeMats.length]));
-            fd.setBillboard(Display.Billboard.FIXED);
-            setScale(fd, 0f);
-            fakeItems.add(fd);
-            track(fd);
-            fakeAngle[i]  = (2 * Math.PI * i) / fakeCount;
-            fakeSpeed[i]  = 0.04 + rng.nextDouble() * 0.03;
-            fakeRadius[i] = 0.9 + rng.nextDouble() * 0.4;
-        }
-
-        List<BlockDisplay> pillars = new ArrayList<>();
-        int pillarCount = 6;
-        for (int i = 0; i < pillarCount; i++) {
-            double angle = (2 * Math.PI * i) / pillarCount;
-            double px = base.getX() + 1.8 * Math.cos(angle);
-            double pz = base.getZ() + 1.8 * Math.sin(angle);
-            BlockDisplay pillar = (BlockDisplay) w.spawnEntity(
-                    new Location(w, px, base.getY() - 0.3, pz), EntityType.BLOCK_DISPLAY);
-            pillar.setBlock(Material.PURPUR_PILLAR.createBlockData());
-            org.bukkit.util.Transformation tf = pillar.getTransformation();
-            pillar.setTransformation(new org.bukkit.util.Transformation(
-                    new Vector3f(-0.15f, 0f, -0.15f),
-                    tf.getLeftRotation(),
-                    new Vector3f(0.3f, 0f, 0.3f),
-                    tf.getRightRotation()
-            ));
-            pillars.add(pillar);
-            track(pillar);
-        }
-
-        BukkitTask[] taskHolder = new BukkitTask[1];
-        taskHolder[0] = new BukkitRunnable() {
+        BukkitTask[] holder = new BukkitTask[1];
+        holder[0] = new BukkitRunnable() {
             int t = 0;
             float rewardYaw = 0f;
 
@@ -102,277 +98,271 @@ public class PortalAnimation extends CaseAnimation {
             public void run() {
                 if (!player.isOnline()) { cleanup(); return; }
                 t++;
-
-                if (t <= PHASE1_END) {
-                    double progress = (double) t / PHASE1_END;
-                    double eased = progress * progress;
-                    double ringR = 1.5 * eased;
-
-                    float pillarH = (float)(3.5 * eased);
-                    for (int i = 0; i < pillars.size(); i++) {
-                        BlockDisplay pillar = pillars.get(i);
-                        org.bukkit.util.Transformation tf = pillar.getTransformation();
-                        pillar.setTransformation(new org.bukkit.util.Transformation(
-                                new Vector3f(-0.15f, 0f, -0.15f),
-                                tf.getLeftRotation(),
-                                new Vector3f(0.3f, pillarH, 0.3f),
-                                tf.getRightRotation()
-                        ));
-                        double angle = (2 * Math.PI * i) / pillars.size();
-                        double px = base.getX() + 1.8 * Math.cos(angle + t * 0.012);
-                        double pz = base.getZ() + 1.8 * Math.sin(angle + t * 0.012);
-                        pillar.teleport(new Location(w, px, base.getY() - 0.3, pz));
-
-                        if (t % 4 == 0) {
-                            Location top = new Location(w, px, base.getY() + pillarH * 0.9, pz);
-                            w.spawnParticle(Particle.END_ROD, top, 1, 0.03, 0.05, 0.03, 0.02);
-                        }
-                    }
-
-                    int pts = 40;
-                    for (int i = 0; i < pts; i++) {
-                        if (rng.nextInt(3) != 0) continue;
-                        double a = (2 * Math.PI * i) / pts + t * 0.2;
-                        w.spawnParticle(Particle.PORTAL,
-                                portalCenter.getX() + ringR * Math.cos(a),
-                                portalCenter.getY() + (rng.nextDouble() - 0.5) * 0.12,
-                                portalCenter.getZ() + ringR * Math.sin(a),
-                                1, 0, 0, 0, 0);
-                        if (rng.nextInt(4) == 0)
-                            w.spawnParticle(Particle.REVERSE_PORTAL,
-                                    portalCenter.getX() + ringR * 0.7 * Math.cos(a + 0.15),
-                                    portalCenter.getY() + (rng.nextDouble() - 0.5) * 0.2,
-                                    portalCenter.getZ() + ringR * 0.7 * Math.sin(a + 0.15),
-                                    1, 0, 0, 0, 0);
-                    }
-
-                    for (int i = 0; i < 4; i++) {
-                        double innerR = ringR * 0.5 * rng.nextDouble();
-                        double a = rng.nextDouble() * 2 * Math.PI;
-                        w.spawnParticle(Particle.PORTAL,
-                                portalCenter.getX() + innerR * Math.cos(a),
-                                portalCenter.getY() + (rng.nextDouble() - 0.5) * 0.6,
-                                portalCenter.getZ() + innerR * Math.sin(a),
-                                1, 0, 0, 0, 0);
-                    }
-
-                    if (t % 7 == 0) w.playSound(base, Sound.BLOCK_PORTAL_AMBIENT, 0.4f, 0.45f + (float) eased * 0.5f);
-                    if (t % 14 == 0) w.playSound(base, Sound.ENTITY_ENDERMAN_TELEPORT, 0.3f, 0.65f);
+                if (t <= EXPLOSION_END) {
 
                     if (t == 1) {
-                        w.playSound(base, Sound.BLOCK_BEACON_ACTIVATE, 0.9f, 0.35f);
-                        w.playSound(base, Sound.ENTITY_ELDER_GUARDIAN_AMBIENT, 0.5f, 0.4f);
+                        for (int i = 0; i < ITEM_COUNT; i++) {
+                            alive[i] = true;
+                            double angle  = (2 * Math.PI * i) / ITEM_COUNT + rng.nextDouble() * 0.5;
+                            double hSpeed = 0.13 + rng.nextDouble() * 0.19;
+                            vx[i] = Math.cos(angle) * hSpeed;
+                            vy[i] = 0.16 + rng.nextDouble() * 0.24;
+                            vz[i] = Math.sin(angle) * hSpeed;
+                            setItemScale(items.get(i), 0.35f);
+                        }
+
+                        Location boom = base.clone().add(0.5, 1.0, 0.5);
+                        w.spawnParticle(Particle.EXPLOSION,    boom, 2, 0.1, 0.1, 0.1, 0);
+                        w.spawnParticle(Particle.SMOKE,        boom, 55, 0.45, 0.3, 0.45, 0.09);
+                        w.spawnParticle(Particle.LAVA,         boom, 25, 0.3, 0.2, 0.3, 0.0);
+                        w.spawnParticle(Particle.ELECTRIC_SPARK, boom, 40, 0.4, 0.2, 0.4, 0.12);
+                        for (int ring = 0; ring < 20; ring++) {
+                            double a = (2 * Math.PI * ring) / 20;
+                            w.spawnParticle(Particle.SMOKE,
+                                    base.getX() + 0.5 + 0.7 * Math.cos(a), base.getY() + 0.5,
+                                    base.getZ() + 0.5 + 0.7 * Math.sin(a),
+                                    2, 0, 0.05, 0, 0.07);
+                        }
+                        w.playSound(base, Sound.ENTITY_GENERIC_EXPLODE, 1.2f, 0.75f);
+                        w.playSound(base, Sound.BLOCK_RESPAWN_ANCHOR_DEPLETE, 0.8f, 0.5f);
+                        player.playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.9f, 0.8f);
                     }
-                }
 
-                if (t > PHASE1_END && t <= PHASE2_END) {
-                    double progress = (double)(t - PHASE1_END) / (PHASE2_END - PHASE1_END);
+                    double floor = base.getY() + 0.25;
+                    for (int i = 0; i < ITEM_COUNT; i++) {
+                        if (!alive[i]) continue;
+                        vy[i] -= 0.018;
+                        px[i] += vx[i]; py[i] += vy[i]; pz[i] += vz[i];
 
-                    for (int i = 0; i < pillars.size(); i++) {
-                        BlockDisplay pillar = pillars.get(i);
-                        double angle = (2 * Math.PI * i) / pillars.size();
-                        double px = base.getX() + 1.8 * Math.cos(angle + t * 0.012);
-                        double pz = base.getZ() + 1.8 * Math.sin(angle + t * 0.012);
-                        pillar.teleport(new Location(w, px, base.getY() - 0.3, pz));
+                        if (py[i] < floor) {
+                            py[i] = floor;
+                            vy[i] = -vy[i] * 0.30;
+                            vx[i] *= 0.80; vz[i] *= 0.80;
+                            if (Math.abs(vy[i]) < 0.015) vy[i] = 0;
+                            w.spawnParticle(Particle.BLOCK,
+                                    new Location(w, px[i], floor, pz[i]),
+                                    5, 0.1, 0, 0.1, 0.03, Material.GRAVEL.createBlockData());
+                        }
 
-                        float glow = (float)(0.5 + 0.5 * Math.sin(t * 0.18 + i));
-                        if (t % 2 == 0) {
-                            Location top = new Location(w, px, base.getY() + 3.0, pz);
-                            w.spawnParticle(Particle.END_ROD, top, (int)(glow * 2 + 1), 0.05, 0.1, 0.05, 0.03);
+                        ItemDisplay id = items.get(i);
+                        if (!id.isDead()) {
+                            id.teleport(new Location(w, px[i], py[i], pz[i]));
+                            id.setRotation(id.getLocation().getYaw() + 9f, 0f);
                         }
                     }
 
-                    double ringR = 1.5;
-                    for (int i = 0; i < 56; i++) {
-                        double a = (2 * Math.PI * i) / 56 + t * 0.24;
-                        double wobble = 0.09 * Math.sin(t * 0.28 + i * 0.8);
-                        double r = ringR + wobble;
+                    if (t % 4 == 0)
+                        w.spawnParticle(Particle.SMOKE, base.clone().add(0.5, 0.8, 0.5), 3, 0.5, 0.1, 0.5, 0.02);
+                }
+
+                if (t > EXPLOSION_END && t <= VORTEX_END) {
+                    double progress = (double)(t - EXPLOSION_END) / (VORTEX_END - EXPLOSION_END);
+                    double eased    = progress * progress;
+
+                    setSingularityScale(singularity, (float)(eased * 0.42));
+
+                    double ringR = 1.45 - eased * 0.55;
+                    int pts = (int)(progress * 30 + 10);
+                    for (int i = 0; i < pts; i++) {
+                        if (rng.nextInt(2) == 0) continue;
+                        double a = (2 * Math.PI * i) / pts + t * 0.28;
                         w.spawnParticle(Particle.PORTAL,
-                                portalCenter.getX() + r * Math.cos(a),
-                                portalCenter.getY() + (rng.nextDouble() - 0.5) * 0.14,
-                                portalCenter.getZ() + r * Math.sin(a),
+                                centre.getX() + ringR * Math.cos(a),
+                                centre.getY() + (rng.nextDouble() - 0.5) * 0.12,
+                                centre.getZ() + ringR * Math.sin(a),
                                 1, 0, 0, 0, 0);
                         if (i % 3 == 0)
                             w.spawnParticle(Particle.REVERSE_PORTAL,
-                                    portalCenter.getX() + r * 0.85 * Math.cos(a + 0.1),
-                                    portalCenter.getY() + (rng.nextDouble() - 0.5) * 0.2,
-                                    portalCenter.getZ() + r * 0.85 * Math.sin(a + 0.1),
+                                    centre.getX() + ringR * 0.65 * Math.cos(a + 0.22),
+                                    centre.getY() + (rng.nextDouble() - 0.5) * 0.18,
+                                    centre.getZ() + ringR * 0.65 * Math.sin(a + 0.22),
                                     1, 0, 0, 0, 0);
                     }
+                    if (t % 2 == 0)
+                        w.spawnParticle(Particle.SMOKE, centre, 3, 0.12, 0.08, 0.12, 0.015);
 
-                    for (int i = 0; i < 12; i++) {
-                        double a = (2 * Math.PI * i) / 12 - t * 0.3;
-                        double r = ringR * (0.1 + 0.9 * ((double) i / 12));
-                        w.spawnParticle(Particle.PORTAL,
-                                portalCenter.getX() + r * Math.cos(a),
-                                portalCenter.getY() + (rng.nextDouble() - 0.5) * 0.4,
-                                portalCenter.getZ() + r * Math.sin(a),
-                                1, 0, 0, 0, 0.04);
+                    double earthGrav = 0.018 * (1.0 - eased * 0.92);
+                    double pullStr   = 0.002 + eased * 0.026;
+
+                    double floor = base.getY() + 0.25;
+                    for (int i = 0; i < ITEM_COUNT; i++) {
+                        if (!alive[i]) continue;
+
+                        vy[i] -= earthGrav;
+                        if (py[i] < floor) { py[i] = floor; vy[i] = Math.abs(vy[i]) * 0.22; }
+
+                        double dx = centre.getX() - px[i];
+                        double dy = centre.getY() - py[i];
+                        double dz = centre.getZ() - pz[i];
+                        double dist = Math.max(0.01, Math.sqrt(dx*dx + dy*dy + dz*dz));
+
+                        double pull = pullStr / Math.max(0.30, dist);
+                        vx[i] += dx/dist * pull;
+                        vy[i] += dy/dist * pull;
+                        vz[i] += dz/dist * pull;
+
+                        double tang = 0.009 * (1.0 - eased);
+                        vx[i] += -dz/dist * tang;
+                        vz[i] +=  dx/dist * tang;
+
+                        double speed = Math.sqrt(vx[i]*vx[i] + vy[i]*vy[i] + vz[i]*vz[i]);
+                        if (speed > 0.40) { double s = 0.40/speed; vx[i]*=s; vy[i]*=s; vz[i]*=s; }
+
+                        px[i] += vx[i]; py[i] += vy[i]; pz[i] += vz[i];
+
+                        ItemDisplay id = items.get(i);
+                        if (!id.isDead()) {
+                            id.teleport(new Location(w, px[i], py[i], pz[i]));
+                            id.setRotation(id.getLocation().getYaw() + 14f, 0f);
+                        }
                     }
 
-                    for (int i = 0; i < fakeCount; i++) {
-                        fakeAngle[i] += fakeSpeed[i];
-                        double r = fakeRadius[i] + 0.25 * Math.sin(t * 0.09 + i * 1.3);
-                        double oy = 0.35 * Math.sin(t * 0.14 + i * 1.1);
-                        double fx = portalCenter.getX() + r * Math.cos(fakeAngle[i]);
-                        double fy = portalCenter.getY() + oy;
-                        double fz = portalCenter.getZ() + r * Math.sin(fakeAngle[i]);
-
-                        ItemDisplay fd = fakeItems.get(i);
-                        fd.teleport(new Location(w, fx, fy, fz, (float)(t * 10 * (i % 2 == 0 ? 1 : -1)), 0));
-                        setScale(fd, 0.38f);
-
-                        if (t % 5 == 0)
-                            w.spawnParticle(Particle.END_ROD, fx, fy, fz, 1, 0.03, 0.03, 0.03, 0.02);
-                        if (t % 11 == i % 11)
-                            w.spawnParticle(Particle.PORTAL, fx, fy, fz, 2, 0.05, 0.05, 0.05, 0.06);
+                    if (t == EXPLOSION_END + 1) {
+                        w.playSound(base, Sound.ENTITY_WITHER_AMBIENT, 0.6f, 0.4f);
+                        w.playSound(base, Sound.BLOCK_PORTAL_AMBIENT, 1.0f, 0.3f);
                     }
-
-                    if (t == PHASE1_END + 1) {
-                        w.playSound(base, Sound.BLOCK_PORTAL_TRAVEL, 0.5f, 0.4f);
-                        w.playSound(base, Sound.ENTITY_ELDER_GUARDIAN_CURSE, 0.4f, 0.5f);
-                    }
-                    if (t % 5 == 0) w.playSound(base, Sound.BLOCK_PORTAL_AMBIENT, 0.7f, 0.8f + (float) progress * 0.45f);
+                    if (t % 10 == 0)
+                        w.playSound(base, Sound.BLOCK_PORTAL_AMBIENT, 0.5f, 0.35f + (float)eased * 0.35f);
                 }
 
-                if (t == PHASE2_END + 1) {
-                    for (ItemDisplay fd : fakeItems) {
-                        safeRemove(fd);
-                        untrack(fd);
-                    }
-                    fakeItems.clear();
+                if (t > VORTEX_END && t <= SUCTION_END) {
+                    double progress = (double)(t - VORTEX_END) / (SUCTION_END - VORTEX_END);
 
-                    for (int layer = 0; layer < 3; layer++) {
-                        double layerR = 0.4 + layer * 0.45;
-                        int cnt = 20 + layer * 15;
-                        for (int i = 0; i < cnt; i++) {
-                            double a = rng.nextDouble() * 2 * Math.PI;
-                            double r = rng.nextDouble() * layerR;
-                            w.spawnParticle(Particle.PORTAL,
-                                    portalCenter.getX() + r * Math.cos(a),
-                                    portalCenter.getY() + (rng.nextDouble() - 0.5) * 0.7,
-                                    portalCenter.getZ() + r * Math.sin(a),
-                                    1, 0, 0, 0, 0.14);
-                        }
-                        for (int i = 0; i < cnt / 2; i++) {
-                            double a = rng.nextDouble() * 2 * Math.PI;
-                            double r = rng.nextDouble() * layerR;
-                            w.spawnParticle(Particle.REVERSE_PORTAL,
-                                    portalCenter.getX() + r * Math.cos(a),
-                                    portalCenter.getY() + (rng.nextDouble() - 0.5) * 0.5,
-                                    portalCenter.getZ() + r * Math.sin(a),
-                                    1, 0.04, 0.04, 0.04, 0.07);
-                        }
-                    }
-                    for (int ring = 0; ring < 32; ring++) {
-                        double a = (2 * Math.PI * ring) / 32;
-                        w.spawnParticle(Particle.END_ROD,
-                                portalCenter.getX() + 1.6 * Math.cos(a),
-                                portalCenter.getY(),
-                                portalCenter.getZ() + 1.6 * Math.sin(a),
-                                3, 0, 0.08, 0, 0.07);
-                    }
 
-                    for (int i = 0; i < pillars.size(); i++) {
-                        double angle = (2 * Math.PI * i) / pillars.size();
-                        double px = base.getX() + 1.8 * Math.cos(angle + t * 0.012);
-                        double pz = base.getZ() + 1.8 * Math.sin(angle + t * 0.012);
-                        for (int j = 0; j < 5; j++) {
-                            w.spawnParticle(Particle.END_ROD,
-                                    px, base.getY() + j * 0.7, pz,
-                                    3, 0.06, 0.02, 0.06, 0.05);
-                        }
-                    }
+                    setSingularityScale(singularity, 0.42f + (float)(0.08 * Math.sin(t * 0.45)));
 
-                    w.playSound(base, Sound.ENTITY_WITHER_SPAWN, 0.6f, 1.9f);
-                    w.playSound(base, Sound.BLOCK_PORTAL_TRAVEL, 1.0f, 1.7f);
-                    w.playSound(base, Sound.ENTITY_ENDER_DRAGON_FLAP, 0.7f, 1.4f);
-                }
-
-                if (t > PHASE2_END && t <= PHASE3_END) {
-                    double progress = (double)(t - PHASE2_END) / (PHASE3_END - PHASE2_END);
-                    double eased = 1.0 - Math.pow(1.0 - progress, 3);
-                    double collapseR = 1.5 * (1.0 - eased);
-
-                    for (int i = 0; i < pillars.size(); i++) {
-                        BlockDisplay pillar = pillars.get(i);
-                        double angle = (2 * Math.PI * i) / pillars.size();
-                        double px = base.getX() + 1.8 * Math.cos(angle + t * 0.012);
-                        double pz = base.getZ() + 1.8 * Math.sin(angle + t * 0.012);
-                        pillar.teleport(new Location(w, px, base.getY() - 0.3, pz));
-                        float sc = Math.max(0f, 0.3f * (1.0f - (float) eased));
-                        org.bukkit.util.Transformation tf = pillar.getTransformation();
-                        pillar.setTransformation(new org.bukkit.util.Transformation(
-                                new Vector3f(-sc / 2, 0f, -sc / 2),
-                                tf.getLeftRotation(),
-                                new Vector3f(sc, 3.5f * (1.0f - (float) eased * 0.3f), sc),
-                                tf.getRightRotation()
-                        ));
-                    }
-
-                    int pts = 44;
-                    for (int i = 0; i < pts; i++) {
+                    double vortexR = 1.1 - progress * 0.55;
+                    for (int i = 0; i < 48; i++) {
                         if (rng.nextInt(2) != 0) continue;
-                        double a = (2 * Math.PI * i) / pts + t * 0.36;
+                        double a = (2 * Math.PI * i) / 48 + t * 0.44;
                         w.spawnParticle(Particle.PORTAL,
-                                portalCenter.getX() + collapseR * Math.cos(a),
-                                portalCenter.getY() + (rng.nextDouble() - 0.5) * 0.09,
-                                portalCenter.getZ() + collapseR * Math.sin(a),
-                                1, 0, 0, 0, 0);
-                        if (i % 5 == 0)
-                            w.spawnParticle(Particle.REVERSE_PORTAL,
-                                    portalCenter.getX() + collapseR * 0.8 * Math.cos(a),
-                                    portalCenter.getY() + (rng.nextDouble() - 0.5) * 0.25,
-                                    portalCenter.getZ() + collapseR * 0.8 * Math.sin(a),
-                                    1, 0, 0, 0, 0.03);
+                                centre.getX() + vortexR * Math.cos(a),
+                                centre.getY() + (rng.nextDouble() - 0.5) * 0.10,
+                                centre.getZ() + vortexR * Math.sin(a),
+                                1, 0, 0, 0, 0.03);
                     }
+                    if (t % 2 == 0)
+                        w.spawnParticle(Particle.SMOKE, centre, 4, 0.15, 0.10, 0.15, 0.02);
 
-                    if (t == PHASE2_END + 20) {
-                        setScale(rewardDisplay, 0.05f);
-                        rewardDisplay.teleport(portalCenter.clone());
-                        for (int ring = 0; ring < 28; ring++) {
-                            double a = (2 * Math.PI * ring) / 28;
-                            w.spawnParticle(Particle.END_ROD,
-                                    portalCenter.getX() + 0.2 * Math.cos(a),
-                                    portalCenter.getY(),
-                                    portalCenter.getZ() + 0.2 * Math.sin(a),
-                                    2, 0.02, 0.12, 0.02, 0.1);
+                    for (int i = 0; i < ITEM_COUNT; i++) {
+                        if (!alive[i]) continue;
+
+                        double dx   = centre.getX() - px[i];
+                        double dy   = centre.getY() - py[i];
+                        double dz   = centre.getZ() - pz[i];
+                        double dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+                        if (dist < 0.30) {
+                            alive[i] = false;
+                            safeRemove(items.get(i));
+                            w.spawnParticle(Particle.PORTAL,         centre, 18, 0.12, 0.10, 0.12, 0.18);
+                            w.spawnParticle(Particle.REVERSE_PORTAL, centre, 10, 0.10, 0.08, 0.10, 0.12);
+                            w.spawnParticle(Particle.SMOKE,          centre,  6, 0.08, 0.06, 0.08, 0.03);
+                            if (rng.nextInt(3) == 0)
+                                w.playSound(base, Sound.ENTITY_ENDERMAN_TELEPORT,
+                                        0.7f, 1.4f + rng.nextFloat() * 0.6f);
+                            continue;
                         }
-                        w.playSound(base, Sound.BLOCK_BEACON_POWER_SELECT, 1.0f, 1.6f);
-                        w.playSound(base, Sound.ENTITY_ENDER_EYE_LAUNCH, 0.8f, 0.6f);
+
+                        dist = Math.max(0.01, dist);
+                        double pull = 0.05 / Math.max(0.15, dist);
+                        vx[i] += dx/dist * pull;
+                        vy[i] += dy/dist * pull;
+                        vz[i] += dz/dist * pull;
+
+                        double tang = 0.016 / Math.max(0.20, dist);
+                        vx[i] += -dz/dist * tang;
+                        vz[i] +=  dx/dist * tang;
+
+                        double speed = Math.sqrt(vx[i]*vx[i] + vy[i]*vy[i] + vz[i]*vz[i]);
+                        double maxSp = 0.22 + progress * 0.38;
+                        if (speed > maxSp) { double s = maxSp/speed; vx[i]*=s; vy[i]*=s; vz[i]*=s; }
+
+                        px[i] += vx[i]; py[i] += vy[i]; pz[i] += vz[i];
+
+                        ItemDisplay id = items.get(i);
+                        if (!id.isDead()) {
+                            float sc = Math.min(0.35f, (float)(dist * 0.18f));
+                            setItemScale(id, sc);
+                            id.teleport(new Location(w, px[i], py[i], pz[i]));
+                            id.setRotation(id.getLocation().getYaw() + 22f, 0f);
+                        }
                     }
 
-                    if (t > PHASE2_END + 20) {
-                        double sub = (double)(t - PHASE2_END - 20) / (PHASE3_END - PHASE2_END - 20);
-                        float sc = Math.min(0.95f, 0.05f + (float) sub * 0.9f);
-                        rewardYaw += 13f - (float) sub * 6f;
-                        rewardDisplay.teleport(portalCenter.clone());
-                        rewardDisplay.setTransformation(new org.bukkit.util.Transformation(
-                                new Vector3f(0, 0, 0),
-                                new AxisAngle4f(0, 0, 1, 0),
-                                new Vector3f(sc, sc, sc),
-                                new AxisAngle4f((float) Math.toRadians(rewardYaw), 0, 1, 0)
-                        ));
-                        if (t % 2 == 0)
-                            w.spawnParticle(Particle.END_ROD, portalCenter, 2, 0.1, 0.08, 0.1, 0.04);
-                        if (t % 5 == 0)
-                            w.spawnParticle(Particle.PORTAL, portalCenter, 3, 0.15, 0.1, 0.15, 0.08);
-                    }
-
-                    if (t % 4 == 0) w.playSound(base, Sound.BLOCK_PORTAL_AMBIENT, 0.5f, 1.45f - (float) eased * 0.45f);
+                    if (t % 6 == 0)
+                        w.playSound(base, Sound.BLOCK_PORTAL_AMBIENT, 0.7f, 0.6f + (float)progress * 0.55f);
                 }
 
-                if (t > PHASE3_END && t <= PHASE4_END) {
-                    double progress = (double)(t - PHASE3_END) / (PHASE4_END - PHASE3_END);
-                    double eased = 1.0 - Math.pow(1.0 - progress, 2);
+                if (t > SUCTION_END && t <= COLLAPSE_END) {
+                    double progress = (double)(t - SUCTION_END) / (COLLAPSE_END - SUCTION_END);
 
-                    for (BlockDisplay pillar : pillars) safeRemove(pillar);
+                    if (t == SUCTION_END + 1) {
+                        for (int i = 0; i < ITEM_COUNT; i++)
+                            if (alive[i]) { safeRemove(items.get(i)); alive[i] = false; }
 
-                    double riseY = 1.7 + eased * 1.8;
-                    Location rewardLoc = base.clone().add(0, riseY, 0);
+                        w.spawnParticle(Particle.EXPLOSION,      centre, 1, 0, 0, 0, 0);
+                        w.spawnParticle(Particle.PORTAL,         centre, 90, 0.6, 0.4, 0.6, 0.18);
+                        w.spawnParticle(Particle.REVERSE_PORTAL, centre, 65, 0.5, 0.3, 0.5, 0.13);
+                        w.spawnParticle(Particle.END_ROD,        centre, 55, 0.5, 0.4, 0.5, 0.09);
+                        w.spawnParticle(Particle.SMOKE,          centre, 45, 0.5, 0.3, 0.5, 0.07);
+                        for (int ring = 0; ring < 36; ring++) {
+                            double a = (2 * Math.PI * ring) / 36;
+                            w.spawnParticle(Particle.END_ROD,
+                                    centre.getX() + 0.9 * Math.cos(a), centre.getY(),
+                                    centre.getZ() + 0.9 * Math.sin(a),
+                                    3, 0, 0.07, 0, 0.10);
+                        }
+                        w.playSound(base, Sound.ENTITY_WITHER_DEATH,     0.5f, 1.9f);
+                        w.playSound(base, Sound.BLOCK_PORTAL_TRAVEL,     0.9f, 1.6f);
+                        w.playSound(base, Sound.ENTITY_ENDER_DRAGON_GROWL, 0.5f, 1.8f);
+                        player.playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.8f, 0.6f);
+                    }
+
+                    float sc = Math.max(0f, 0.42f - (float)progress * 0.42f);
+                    setSingularityScale(singularity, sc);
+
+                    if (t > SUCTION_END + 8) {
+                        double sub = (t - SUCTION_END - 8.0) / (COLLAPSE_END - SUCTION_END - 8.0);
+                        setItemScale(rewardDisplay, (float)(sub * 0.9));
+                        rewardDisplay.teleport(centre.clone());
+                    }
+
+                    if (t % 2 == 0) {
+                        double r = 0.5 * (1.0 - progress);
+                        for (int i = 0; i < 8; i++) {
+                            double a = (2 * Math.PI * i) / 8 + t * 0.5;
+                            w.spawnParticle(Particle.PORTAL,
+                                    centre.getX() + r * Math.cos(a), centre.getY(),
+                                    centre.getZ() + r * Math.sin(a),
+                                    1, 0, 0, 0, 0.06);
+                        }
+                    }
+                }
+
+                if (t > COLLAPSE_END && t <= REVEAL_END) {
+                    double progress = (double)(t - COLLAPSE_END) / (REVEAL_END - COLLAPSE_END);
+                    double eased    = 1.0 - Math.pow(1.0 - progress, 2);
+
+                    if (t == COLLAPSE_END + 1) {
+                        safeRemove(singularity);
+                        w.spawnParticle(Particle.END_ROD, centre, 65, 0.4, 0.35, 0.4, 0.09);
+                        for (int ring = 0; ring < 40; ring++) {
+                            double a = (2 * Math.PI * ring) / 40;
+                            w.spawnParticle(Particle.REVERSE_PORTAL,
+                                    centre.getX() + 0.8 * Math.cos(a), centre.getY(),
+                                    centre.getZ() + 0.8 * Math.sin(a),
+                                    2, 0, 0.05, 0, 0.08);
+                        }
+                        w.playSound(base, Sound.ENTITY_PLAYER_LEVELUP,    1.0f, 1.5f);
+                        w.playSound(base, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.9f, 1.2f);
+                        player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 1.1f);
+                    }
+
+                    Location rewardLoc = base.clone().add(0, 2.0 + eased * 1.8, 0);
                     rewardDisplay.teleport(rewardLoc);
+                    rewardDisplay.setBillboard(Display.Billboard.FIXED);
 
-                    rewardYaw += 3.0f + (float)((1.0 - eased) * 6.0f);
+                    rewardYaw += 4.0f + (float)((1.0 - eased) * 5.5f);
                     if (rewardYaw >= 360f) rewardYaw -= 360f;
                     rewardDisplay.setTransformation(new org.bukkit.util.Transformation(
                             new Vector3f(0, 0, 0),
@@ -381,120 +371,76 @@ public class PortalAnimation extends CaseAnimation {
                             new AxisAngle4f((float) Math.toRadians(rewardYaw), 0, 1, 0)
                     ));
 
-                    double auraR = 0.5 + 0.18 * Math.sin(t * 0.2);
-                    int auraCount = 24;
-                    for (int i = 0; i < auraCount; i++) {
-                        double a = (2 * Math.PI * i) / auraCount + t * 0.14;
-                        double py = rewardLoc.getY() + 0.22 * Math.sin(t * 0.19 + i);
+                    double auraR = 0.52 + 0.13 * Math.sin(t * 0.21);
+                    for (int i = 0; i < 22; i++) {
+                        double a  = (2 * Math.PI * i) / 22 + t * 0.11;
+                        double py2 = rewardLoc.getY() + 0.18 * Math.sin(t * 0.17 + i);
                         w.spawnParticle(Particle.PORTAL,
-                                rewardLoc.getX() + auraR * Math.cos(a), py,
+                                rewardLoc.getX() + auraR * Math.cos(a), py2,
                                 rewardLoc.getZ() + auraR * Math.sin(a),
                                 1, 0, 0, 0, 0);
                     }
                     double outerR = auraR * 1.6;
-                    for (int i = 0; i < 16; i++) {
-                        double a = (2 * Math.PI * i) / 16 - t * 0.1;
+                    for (int i = 0; i < 14; i++) {
+                        double a = (2 * Math.PI * i) / 14 - t * 0.09;
                         w.spawnParticle(Particle.REVERSE_PORTAL,
                                 rewardLoc.getX() + outerR * Math.cos(a),
-                                rewardLoc.getY() + 0.1 * Math.sin(t * 0.22 + i),
+                                rewardLoc.getY() + 0.1 * Math.sin(t * 0.21 + i),
                                 rewardLoc.getZ() + outerR * Math.sin(a),
                                 1, 0, 0, 0, 0);
                     }
+                    if (t % 3 == 0)
+                        w.spawnParticle(Particle.END_ROD, rewardLoc, 2, 0.15, 0.10, 0.15, 0.04);
 
-                    if (t % 3 == 0) w.spawnParticle(Particle.END_ROD, rewardLoc, 2, 0.14, 0.1, 0.14, 0.04);
-
-                    if (t == PHASE3_END + 14) {
+                    if (t == COLLAPSE_END + 15)
                         setLabel(label, rewardVisual);
-                        w.playSound(base, Sound.ENTITY_ENDER_DRAGON_GROWL, 0.5f, 1.95f);
-                        w.playSound(base, Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.5f);
-                        w.playSound(base, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.9f, 1.1f);
 
-                        for (int ring = 0; ring < 40; ring++) {
-                            double a = (2 * Math.PI * ring) / 40;
-                            w.spawnParticle(Particle.END_ROD,
-                                    rewardLoc.getX() + 0.9 * Math.cos(a), rewardLoc.getY(),
-                                    rewardLoc.getZ() + 0.9 * Math.sin(a),
-                                    2, 0, 0.06, 0, 0.07);
-                        }
-                        for (int i = 0; i < 70; i++) {
-                            double a = rng.nextDouble() * 2 * Math.PI;
-                            double r = rng.nextDouble() * 0.8;
-                            w.spawnParticle(Particle.REVERSE_PORTAL,
-                                    rewardLoc.getX() + r * Math.cos(a),
-                                    rewardLoc.getY() + (rng.nextDouble() - 0.5) * 0.5,
-                                    rewardLoc.getZ() + r * Math.sin(a),
-                                    1, 0.02, 0.1, 0.02, 0.1);
-                        }
-                        for (int i = 0; i < 50; i++) {
-                            double a = rng.nextDouble() * 2 * Math.PI;
-                            double r = rng.nextDouble() * 0.6;
-                            w.spawnParticle(Particle.PORTAL,
-                                    rewardLoc.getX() + r * Math.cos(a),
-                                    rewardLoc.getY() + (rng.nextDouble() - 0.5) * 0.4,
-                                    rewardLoc.getZ() + r * Math.sin(a),
-                                    1, 0, 0.06, 0, 0.12);
-                        }
-                    }
-
-                    if (t % 6 == 0) w.playSound(base, Sound.BLOCK_PORTAL_AMBIENT, 0.3f, 1.9f);
+                    if (t % 8 == 0)
+                        w.playSound(base, Sound.BLOCK_PORTAL_AMBIENT, 0.25f, 1.8f);
                 }
 
-                if (t >= PHASE4_END) {
-                    Location finalLoc = base.clone().add(0, 3.5, 0);
-
-                    for (int i = 0; i < 80; i++) {
-                        double a = rng.nextDouble() * 2 * Math.PI;
-                        double r = rng.nextDouble() * 0.9;
-                        w.spawnParticle(Particle.PORTAL,
-                                finalLoc.getX() + r * Math.cos(a),
-                                finalLoc.getY() + (rng.nextDouble() - 0.5) * 0.6,
-                                finalLoc.getZ() + r * Math.sin(a),
-                                1, 0, 0, 0, 0.14);
-                    }
-                    for (int i = 0; i < 55; i++) {
-                        double a = rng.nextDouble() * 2 * Math.PI;
-                        double r = rng.nextDouble() * 0.7;
-                        w.spawnParticle(Particle.REVERSE_PORTAL,
-                                finalLoc.getX() + r * Math.cos(a),
-                                finalLoc.getY() + (rng.nextDouble() - 0.5) * 0.4,
-                                finalLoc.getZ() + r * Math.sin(a),
-                                1, 0, 0.06, 0, 0.08);
-                    }
-                    for (int ring = 0; ring < 32; ring++) {
-                        double a = (2 * Math.PI * ring) / 32;
-                        w.spawnParticle(Particle.END_ROD,
-                                finalLoc.getX() + 0.8 * Math.cos(a), finalLoc.getY(),
-                                finalLoc.getZ() + 0.8 * Math.sin(a),
-                                2, 0, 0.05, 0, 0.07);
-                    }
-
-                    w.playSound(base, Sound.ENTITY_ENDER_DRAGON_DEATH, 0.4f, 1.7f);
+                if (t >= REVEAL_END) {
+                    Location finalLoc = base.clone().add(0, 3.8, 0);
+                    w.spawnParticle(Particle.PORTAL,         finalLoc, 70, 0.45, 0.30, 0.45, 0.12);
+                    w.spawnParticle(Particle.END_ROD,        finalLoc, 45, 0.35, 0.28, 0.35, 0.08);
+                    w.spawnParticle(Particle.REVERSE_PORTAL, finalLoc, 45, 0.40, 0.25, 0.40, 0.09);
                     w.playSound(base, Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 1.0f);
+                    w.playSound(base, Sound.ENTITY_PLAYER_LEVELUP, 0.9f, 1.5f);
                     player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.5f);
                     cleanup();
                 }
             }
 
             private void cleanup() {
-                for (ItemDisplay fd : fakeItems) { safeRemove(fd); untrack(fd); }
-                fakeItems.clear();
-                for (BlockDisplay p : pillars) { safeRemove(p); untrack(p); }
-                pillars.clear();
+                for (int i = 0; i < ITEM_COUNT; i++) if (alive[i]) safeRemove(items.get(i));
+                for (ItemDisplay id : items) untrack(id);
+                safeRemove(singularity);   untrack(singularity);
                 safeRemove(rewardDisplay); untrack(rewardDisplay);
-                safeRemove(label); untrack(label);
-                if (taskHolder[0] != null) untrack(taskHolder[0]);
+                safeRemove(label);         untrack(label);
+                if (holder[0] != null) untrack(holder[0]);
                 onFinish.run();
                 cancel();
             }
         }.runTaskTimer(plugin, 0L, 1L);
-        track(taskHolder[0]);
+        track(holder[0]);
     }
 
-    private static void setScale(ItemDisplay id, float scale) {
+    private static void setItemScale(ItemDisplay id, float scale) {
         org.bukkit.util.Transformation tf = id.getTransformation();
         id.setTransformation(new org.bukkit.util.Transformation(
                 tf.getTranslation(), tf.getLeftRotation(),
                 new Vector3f(scale, scale, scale), tf.getRightRotation()
+        ));
+    }
+
+    private static void setSingularityScale(BlockDisplay bd, float scale) {
+        float half = scale / 2f;
+        org.bukkit.util.Transformation tf = bd.getTransformation();
+        bd.setTransformation(new org.bukkit.util.Transformation(
+                new Vector3f(-half, -half, -half),
+                tf.getLeftRotation(),
+                new Vector3f(scale, scale, scale),
+                tf.getRightRotation()
         ));
     }
 

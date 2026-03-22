@@ -28,13 +28,12 @@ public class CasesCMD implements CommandExecutor {
             sender.sendMessage(plugin.getMessages().get("no-permission"));
             return true;
         }
-
         if (args.length == 0) {
             sender.sendMessage(plugin.getMessages().get("givekey-usage"));
+            sender.sendMessage("§7/pncases takekey <игрок> <ключ> <кол-во>");
             sender.sendMessage(plugin.getMessages().get("setcase-usage"));
             return true;
         }
-
         if (args[0].equalsIgnoreCase("reload")) {
             plugin.reloadConfig();
             plugin.getMessages().load();
@@ -42,19 +41,16 @@ public class CasesCMD implements CommandExecutor {
             sender.sendMessage(plugin.getMessages().get("config-reloaded"));
             return true;
         }
-
         if (args[0].equalsIgnoreCase("givekey")) {
             if (args.length < 4) {
                 sender.sendMessage(plugin.getMessages().get("givekey-usage"));
                 return true;
             }
-
             OfflinePlayer target = resolveOfflinePlayer(args[1]);
             if (target == null) {
                 sender.sendMessage(plugin.getMessages().get("givekey-player-not-found"));
                 return true;
             }
-
             String keyId = args[2].toLowerCase();
             int amount;
             try {
@@ -67,15 +63,12 @@ public class CasesCMD implements CommandExecutor {
                 sender.sendMessage(plugin.getMessages().get("givekey-amount-negative"));
                 return true;
             }
-
             if (!caseManager.keyExists(keyId)) {
                 sender.sendMessage(plugin.getMessages().get("givekey-key-not-found", "key", keyId));
                 return true;
             }
-
             plugin.getKeyStorage().add(target.getUniqueId(), keyId, amount);
             String keyName = caseManager.getKeyDisplayName(keyId);
-
             if (target.isOnline() && target.getPlayer() != null) {
                 Player p = target.getPlayer();
                 int bal = plugin.getKeyStorage().get(p.getUniqueId(), keyId);
@@ -96,7 +89,51 @@ public class CasesCMD implements CommandExecutor {
             }
             return true;
         }
-
+        if (args[0].equalsIgnoreCase("takekey")) {
+            if (args.length < 4) {
+                sender.sendMessage("§7/pncases takekey <игрок> <ключ> <кол-во>");
+                return true;
+            }
+            OfflinePlayer target = resolveOfflinePlayer(args[1]);
+            if (target == null) {
+                sender.sendMessage(plugin.getMessages().get("givekey-player-not-found"));
+                return true;
+            }
+            String keyId = args[2].toLowerCase();
+            int amount;
+            try {
+                amount = Integer.parseInt(args[3]);
+            } catch (NumberFormatException e) {
+                sender.sendMessage(plugin.getMessages().get("givekey-amount-nan"));
+                return true;
+            }
+            if (amount <= 0) {
+                sender.sendMessage(plugin.getMessages().get("givekey-amount-negative"));
+                return true;
+            }
+            if (!caseManager.keyExists(keyId)) {
+                sender.sendMessage(plugin.getMessages().get("givekey-key-not-found", "key", keyId));
+                return true;
+            }
+            String keyName = caseManager.getKeyDisplayName(keyId);
+            String playerName = target.getName() != null ? target.getName() : target.getUniqueId().toString();
+            boolean taken = plugin.getKeyStorage().take(target.getUniqueId(), keyId, amount);
+            if (!taken) {
+                int have = plugin.getKeyStorage().get(target.getUniqueId(), keyId);
+                sender.sendMessage("§cУ игрока §f" + playerName + " §cнедостаточно ключей §f" + keyName
+                        + "§c: есть §f" + have + "§c, нужно §f" + amount);
+                return true;
+            }
+            sender.sendMessage("§aУ игрока §f" + playerName + " §aзабрано §f" + amount
+                    + " §aключ(ей) §f" + keyName);
+            if (target.isOnline() && target.getPlayer() != null) {
+                Player p = target.getPlayer();
+                int bal = plugin.getKeyStorage().get(p.getUniqueId(), keyId);
+                p.sendMessage("§cАдминистратор забрал у вас §f" + amount + " §cключ(ей) §f" + keyName
+                        + "§c. Остаток: §f" + bal);
+            }
+            return true;
+        }
         if (args[0].equalsIgnoreCase("setcase")) {
             if (!(sender instanceof Player p)) {
                 sender.sendMessage(plugin.getMessages().get("only-player"));
@@ -106,14 +143,12 @@ public class CasesCMD implements CommandExecutor {
                 p.sendMessage(plugin.getMessages().get("setcase-usage"));
                 return true;
             }
-
             String caseName = args[1].toLowerCase();
             Block target = p.getTargetBlockExact(5);
             if (target == null) {
                 p.sendMessage(plugin.getMessages().get("setcase-look-at-block"));
                 return true;
             }
-
             caseManager.bindCaseToBlock(caseName, target);
             p.sendMessage(plugin.getMessages().get("setcase-success",
                     "case", caseName,
@@ -123,7 +158,6 @@ public class CasesCMD implements CommandExecutor {
                     "z", String.valueOf(target.getZ())));
             return true;
         }
-
         sender.sendMessage(plugin.getMessages().get("unknown-command"));
         return true;
     }
