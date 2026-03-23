@@ -25,20 +25,20 @@ public class CaseManager {
     private final pnCases plugin;
 
     private final Map<String, CaseDefinition> casesByName = new HashMap<>();
-    private final Map<BlockKey, String>       caseByBlock = new HashMap<>();
-    private final Map<String, String>         keyNames    = new HashMap<>();
+    private final Map<BlockKey, String> caseByBlock = new HashMap<>();
+    private final Map<String, String> keyNames = new HashMap<>();
 
-    private final Set<UUID>          openingPlayers = ConcurrentHashMap.newKeySet();
-    private final Map<BlockKey, UUID> busyCases      = new ConcurrentHashMap<>();
+    private final Set<UUID> openingPlayers = ConcurrentHashMap.newKeySet();
+    private final Map<BlockKey, UUID> busyCases = new ConcurrentHashMap<>();
     private final Map<UUID, AnimationType> playerAnimations = new ConcurrentHashMap<>();
 
     private final AnimationRegistry animationRegistry;
     private final PlayerPrefsStorage playerPrefs;
 
     public CaseManager(pnCases plugin) {
-        this.plugin           = plugin;
+        this.plugin = plugin;
         this.animationRegistry = new AnimationRegistry(plugin);
-        this.playerPrefs       = new PlayerPrefsStorage(plugin);
+        this.playerPrefs = new PlayerPrefsStorage(plugin);
     }
 
     public pnCases getPlugin() { return plugin; }
@@ -113,7 +113,7 @@ public class CaseManager {
             an.set("spin_degrees_per_tick", 18);
             an.set("items", List.of(
                     Map.of("material", "DIAMOND_PICKAXE", "name", "&bАлмазная кирка"),
-                    Map.of("material", "NETHERITE_AXE",   "name", "&dНезеритовый топор")
+                    Map.of("material", "NETHERITE_AXE", "name", "&dНезеритовый топор")
             ));
         }
 
@@ -164,7 +164,7 @@ public class CaseManager {
             Location blockLoc = new Location(wld, bs.getInt("x"), bs.getInt("y"), bs.getInt("z"));
 
             ConfigurationSection gui = cs.getConfigurationSection("gui");
-            String title    = gui != null ? gui.getString("title", "&8Case") : "&8Case";
+            String title = gui != null ? gui.getString("title", "&8Case") : "&8Case";
             ItemStack openBtn = ItemFactory.fromSection(gui != null ? gui.getConfigurationSection("open-item") : null);
             if (openBtn == null) openBtn = new ItemStack(Material.CHEST);
 
@@ -173,8 +173,8 @@ public class CaseManager {
             CaseDefinition.CostType costType;
             try { costType = CaseDefinition.CostType.valueOf(typeStr.toUpperCase(Locale.ROOT)); }
             catch (Exception ex) { costType = CaseDefinition.CostType.NONE; }
-            int    costAmount = cost != null ? cost.getInt("amount", 0) : 0;
-            String costKeyId  = cost != null ? cost.getString("key", null) : null;
+            int costAmount = cost != null ? cost.getInt("amount", 0) : 0;
+            String costKeyId = cost != null ? cost.getString("key", null) : null;
             if (costKeyId != null) costKeyId = costKeyId.toLowerCase(Locale.ROOT);
             int buyXp = 0;
             if (cost != null) {
@@ -183,10 +183,10 @@ public class CaseManager {
             }
 
             ConfigurationSection an = cs.getConfigurationSection("animation");
-            int    duration   = an != null ? an.getInt("duration_ticks",      80)  : 80;
-            int    cycleEvery = an != null ? an.getInt("cycle_every_ticks",    2)   : 2;
-            double rise       = an != null ? an.getDouble("rise_blocks",       1.2) : 1.2;
-            float  spin       = an != null ? (float) an.getDouble("spin_degrees_per_tick", 18) : 18f;
+            int duration   = an != null ? an.getInt("duration_ticks", 80) : 80;
+            int cycleEvery = an != null ? an.getInt("cycle_every_ticks", 2) : 2;
+            double rise    = an != null ? an.getDouble("rise_blocks", 1.2) : 1.2;
+            float spin     = an != null ? (float) an.getDouble("spin_degrees_per_tick", 18) : 18f;
 
             List<ItemStack> animItems = new ArrayList<>();
             if (an != null && an.isList("items")) {
@@ -203,8 +203,8 @@ public class CaseManager {
                 List<?> rawRewards = cs.getList("rewards");
                 if (rawRewards != null) for (Object rr : rawRewards) {
                     if (!(rr instanceof Map<?, ?> map)) continue;
-                    int    chance = asInt(map.get("chance"), 0);
-                    String typeS  = String.valueOf(map.containsKey("type") ? map.get("type") : "ITEM");
+                    int chance = asInt(map.get("chance"), 0);
+                    String typeS = String.valueOf(map.containsKey("type") ? map.get("type") : "ITEM");
                     Reward.Type rType;
                     try { rType = Reward.Type.valueOf(typeS.toUpperCase(Locale.ROOT)); }
                     catch (Exception e) { rType = Reward.Type.ITEM; }
@@ -262,8 +262,8 @@ public class CaseManager {
     }
 
     public ItemStack buildGuiOpenItem(Player p, CaseDefinition def) {
-        ItemStack it   = def.openButton().clone();
-        ItemMeta  meta = it.getItemMeta();
+        ItemStack it = def.openButton().clone();
+        ItemMeta meta = it.getItemMeta();
         if (meta == null) return it;
 
         List<String> lore = meta.hasLore()
@@ -273,8 +273,8 @@ public class CaseManager {
 
         if (def.costType() == CaseDefinition.CostType.KEY) {
             String keyId = def.costKeyId();
-            int need  = Math.max(1, def.costAmount());
-            int have  = (keyId == null) ? 0 : plugin.getKeyStorage().get(p.getUniqueId(), keyId);
+            int need = Math.max(1, def.costAmount());
+            int have = (keyId == null) ? 0 : plugin.getKeyStorage().get(p.getUniqueId(), keyId);
             lore.add(plugin.getMessages().get("gui-keys-balance",
                     "have", String.valueOf(have),
                     "need", String.valueOf(need)));
@@ -295,8 +295,8 @@ public class CaseManager {
 
     public ItemStack buildAnimationSelectorItem(Player p) {
         AnimationType current = getPlayerAnimation(p.getUniqueId());
-        ItemStack     it      = new ItemStack(current.icon());
-        ItemMeta      meta    = it.getItemMeta();
+        ItemStack it = new ItemStack(current.icon());
+        ItemMeta meta = it.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(color("&bАнимация: " + current.displayName()));
             List<String> lore = new ArrayList<>();
@@ -387,14 +387,10 @@ public class CaseManager {
         if (fh != null) fh.hideCase(def);
 
         Reward finalReward = pickReward(def.rewards());
-
-        plugin.getPendingRewards().save(p.getUniqueId(), finalReward);
-
         AnimationType animType = getPlayerAnimation(p.getUniqueId());
 
         animationRegistry.get(animType).play(p, def, finalReward, base, () -> {
             giveReward(p, finalReward);
-            plugin.getPendingRewards().clear(p.getUniqueId());
             openingPlayers.remove(p.getUniqueId());
             unlockCase(p, def);
             if (fh != null) fh.showCase(def);
@@ -410,11 +406,11 @@ public class CaseManager {
         return keyNames.getOrDefault(keyId.toLowerCase(Locale.ROOT), keyId);
     }
 
-    public void giveReward(Player p, Reward reward) {
+    private void giveReward(Player p, Reward reward) {
         String rewardLabel = color(reward.displayName() != null ? reward.displayName() : "&fНаграда");
 
         if (reward.type() == Reward.Type.ITEM) {
-            if (reward.item() != null) giveToInventoryOrDrop(p, reward.item().clone());
+            giveToInventoryOrDrop(p, reward.item().clone());
             String msg = reward.message();
             if (msg != null && !msg.isBlank()) {
                 p.sendMessage(color(msg));
@@ -426,17 +422,17 @@ public class CaseManager {
 
         if (reward.type() == Reward.Type.LUCKPERMS) {
             String subject = p.getUniqueId().toString();
-            String dur     = reward.lpDuration();
+            String dur = reward.lpDuration();
             if (reward.lpGroup() != null && !reward.lpGroup().isBlank()) {
                 String cmd = (dur != null && !dur.isBlank())
                         ? "lp user " + subject + " parent addtemp " + reward.lpGroup() + " " + dur
-                        : "lp user " + subject + " parent add "     + reward.lpGroup();
+                        : "lp user " + subject + " parent add " + reward.lpGroup();
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
             }
             if (reward.lpNode() != null && !reward.lpNode().isBlank()) {
                 String cmd = (dur != null && !dur.isBlank())
                         ? "lp user " + subject + " permission settemp " + reward.lpNode() + " true " + dur
-                        : "lp user " + subject + " permission set "      + reward.lpNode() + " true";
+                        : "lp user " + subject + " permission set " + reward.lpNode() + " true";
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
             }
             String msg = reward.message();
@@ -456,8 +452,7 @@ public class CaseManager {
 
     private void giveToInventoryOrDrop(Player p, ItemStack item) {
         Map<Integer, ItemStack> leftover = p.getInventory().addItem(item);
-        if (!leftover.isEmpty())
-            leftover.values().forEach(rest -> p.getWorld().dropItemNaturally(p.getLocation(), rest));
+        if (!leftover.isEmpty()) leftover.values().forEach(rest -> p.getWorld().dropItemNaturally(p.getLocation(), rest));
     }
 
     private Reward pickReward(List<Reward> rewards) {
