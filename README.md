@@ -6,7 +6,7 @@
 
 `pnCases` - бесплатный плагин кейсов для Paper 1.21.x с красивыми анимациями, GUI, историей открытий, голограммами и LuckPerms-наградами.
 
-[Скачать pnCases 1.3](https://github.com/Dy6HiLa/pnCases/raw/master/release/pnCases-1.3.jar)
+[Скачать pnCases 1.3](https://github.com/Dy6HiLa/pnCases/releases/download/v1.3/pnCases-1.3.jar)
 
 ## pnCases 1.3
 

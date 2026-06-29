@@ -16,6 +16,6 @@
 
 ## Скачать
 
-[Скачать pnCases 1.3](https://github.com/Dy6HiLa/pnCases/raw/master/release/pnCases-1.3.jar)
+[Скачать pnCases 1.3](https://github.com/Dy6HiLa/pnCases/releases/download/v1.3/pnCases-1.3.jar)
 
 После замены JAR перезапустите сервер.
