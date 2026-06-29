@@ -1,42 +1,42 @@
 <p align="center">
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.3">
-    <img src="assets/pncases-cover.png" alt="pnCases 1.3" width="100%">
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4">
+    <img src="assets/pncases-cover.png" alt="pnCases 1.4" width="100%">
   </a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.3/pnCases-1.3.jar">
-    <img src="https://img.shields.io/badge/%D0%A1%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-1.3-429F91?style=for-the-badge&labelColor=17241F" alt="Скачать pnCases 1.3">
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4/pnCases-1.4.jar">
+    <img src="https://img.shields.io/badge/%D0%A1%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-1.4-429F91?style=for-the-badge&labelColor=17241F" alt="Скачать pnCases 1.4">
   </a>
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.3">
-    <img src="https://img.shields.io/badge/Changelog-1.3-D8DF9D?style=for-the-badge&labelColor=17241F" alt="Changelog pnCases 1.3">
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4">
+    <img src="https://img.shields.io/badge/Changelog-1.4-D8DF9D?style=for-the-badge&labelColor=17241F" alt="Changelog pnCases 1.4">
   </a>
 </p>
 
 # pnCases
 
-`pnCases` - бесплатный плагин кейсов для Paper 1.21.x с красивыми анимациями, GUI, историей открытий, голограммами и LuckPerms-наградами.
+`pnCases` - бесплатный плагин кейсов для Paper 1.21.x с анимациями, GUI, историей открытий, preview наград, голограммами, LuckPerms, Vault и PlayerPoints-наградами.
 
-## pnCases 1.3
+## pnCases 1.4
 
-Извините за столь долгое ожидание. В версии `1.3` плагин стал удобнее, красивее и стабильнее. Если будет еще больше актива и обратной связи, обновлений будет еще больше.
+Версия `1.4` делает pnCases удобнее для игроков и безопаснее для админов: больше вариантов наград, нормальный preview содержимого кейса, единое SQLite-хранилище и новая анимация открытия.
 
 Что нового:
 
-- Вернули выбор анимации открытия: Наковальня, Динамит, Портал и Отравление.
-- Добавили красивое GUI-меню выбора анимации.
-- Добавили отдельные тихие звуки для каждой анимации.
-- Добавили историю последних открытий прямо в GUI кейса.
-- Исправили отображение донат-наград: теперь каждая награда может иметь свой `base64`.
-- Улучшили broadcast после открытия кейса.
-- Добавили красивые уведомления об обновлениях с кликабельной ссылкой на скачивание.
-- Добавили fallback-голограммы через `TextDisplay`, если FancyHolograms недоступен.
-- Добавили настройку направления слайма для анимации Отравление.
-- Убрали лишние Discord/metrics/bStats-связки.
+- Добавлена новая анимация открытия: **Астральный разлом**.
+- Добавлен preview наград в GUI: игрок видит награды, шансы, вес шанса и редкость.
+- Добавлены награды через Vault и PlayerPoints.
+- Добавлена редкость наград: `COMMON`, `UNCOMMON`, `RARE`, `EPIC`, `LEGENDARY`, `MYTHIC`.
+- Данные ключей, предпочтений, истории и pending-наград перенесены в SQLite `data.db`.
+- Добавлена миграция старых `keys.yml`, `player_prefs.yml`, `open_history.yml`, `pending_rewards.yml`.
+- Добавлена поддержка FancyHolograms, DecentHolograms и fallback-голограмм через TextDisplay.
+- Исправлен `visual:` для денежных, поинтовых и LuckPerms-наград: визуальный предмет больше не выдается игроку вместо валюты или группы.
+- Улучшена валидация старых конфигов.
+- Анимации стали тише и плавнее.
 
 ## Установка
 
-1. Скачайте `pnCases-1.3.jar`.
+1. Скачайте `pnCases-1.4.jar`.
 2. Положите файл в папку `plugins/`.
 3. Перезапустите сервер.
 4. Настройте `plugins/pnCases/config.yml` и `messages.yml`.
@@ -44,15 +44,18 @@
 Зависимости:
 
 - Paper 1.21.x - обязательно.
-- LuckPerms - опционально, для выдачи групп/прав.
-- FancyHolograms - опционально, если нужны голограммы через этот плагин. Без него pnCases умеет создавать fallback-голограммы через `TextDisplay`.
+- LuckPerms - опционально, для выдачи групп и прав.
+- Vault - опционально, для денежных наград.
+- PlayerPoints - опционально, для поинтовых наград.
+- FancyHolograms - опционально, для голограмм на новых версиях.
+- DecentHolograms - опционально, для голограмм на старых версиях.
 
 ## Команды
 
 | Команда | Описание |
 |---|---|
-| `/pncases` | Показать список команд |
-| `/pncases reload` | Перезагрузить config.yml и messages.yml |
+| `/pncases` | Показать список команд, версию и статус обновления |
+| `/pncases reload` | Перезагрузить `config.yml` и `messages.yml` |
 | `/pncases setcase <кейс>` | Привязать кейс к блоку |
 | `/pncases givekey <игрок> <ключ> <кол-во>` | Выдать ключи |
 | `/pncases takekey <игрок> <ключ> <кол-во>` | Забрать ключи |
@@ -63,36 +66,40 @@
 pncases.admin
 ```
 
-## Пример настройки ключей
+## Пример наград
 
-```yaml
-keys:
-  donate_key:
-    name: '&aДонат кейс'
-  tools_key:
-    name: '&aКлюч: &fИнструменты'
-```
-
-## Пример награды с base64
-
-Для донат-наград можно указать отдельный визуальный предмет. Он будет показан в анимации и не будет заменяться первым предметом из `animation.items`.
+`type: ITEM` выдает предмет игроку:
 
 ```yaml
 rewards:
-  - chance: 25
-    type: LUCKPERMS
+  - chance: 45
+    rarity: COMMON
+    type: ITEM
     item:
-      base64: "eyJ0ZXh0dXJlcyI6..."
-      name: "&aRanger"
-    luckperms:
-      group: ranger
-      display_name: "&aRanger"
-    message: "&aТы получил привилегию Ranger!"
+      material: DIAMOND
+      amount: 8
+      name: '&bАлмазы &8x8'
+```
+
+`type: VAULT`, `PLAYERPOINTS` и `LUCKPERMS` используют `visual:` только для отображения в GUI и анимациях:
+
+```yaml
+rewards:
+  - chance: 30
+    rarity: RARE
+    type: VAULT
+    vault:
+      amount: 2500
+      display_name: '&e2500 монет'
+    visual:
+      material: GOLD_INGOT
+      name: '&e2500 монет'
+    message: '&aВы получили &f{amount}&a на баланс!'
 ```
 
 ## Анимации
 
-Игрок выбирает анимацию через GUI кейса. Выбор сохраняется в `player_prefs.yml`.
+Игрок выбирает анимацию через GUI кейса. Выбор сохраняется в SQLite.
 
 | Анимация | Описание |
 |---|---|
@@ -100,6 +107,7 @@ rewards:
 | Динамит | Полет TNT, взрыв и выдача награды |
 | Портал | Эффекты портала и появление приза |
 | Отравление | Ядовитый слайм, частицы и награда |
+| Астральный разлом | Магический разлом с вращением наград |
 
 Настройка направления слайма для Отравления:
 
@@ -122,7 +130,7 @@ hologram:
     - "&7ПКМ, чтобы открыть"
 ```
 
-Если FancyHolograms установлен, pnCases попробует использовать его. Если нет или API не подошел, будет создан обычный `TextDisplay`.
+pnCases выбирает доступный провайдер голограмм автоматически: FancyHolograms, DecentHolograms или встроенный TextDisplay fallback.
 
 ## Обновления
 
@@ -135,7 +143,7 @@ pnCases проверяет:
 - git tags;
 - версию в `plugin.yml`.
 
-Если найдена версия выше установленной, админы с `pncases.admin` увидят красивое сообщение с кликабельной ссылкой на скачивание.
+Если найдена версия выше установленной, админы с `pncases.admin` увидят сообщение со ссылкой на скачивание.
 
 ## Файлы
 
@@ -143,12 +151,11 @@ pnCases проверяет:
 plugins/pnCases/
 ├── config.yml
 ├── messages.yml
-├── keys.yml
-├── open_history.yml
-├── pending_rewards.yml
-└── player_prefs.yml
+└── data.db
 ```
+
+Старые YAML-файлы данных мигрируются в SQLite автоматически.
 
 ## Поддержка
 
-Пишите идеи, баги и предложения. Чем больше актива, тем быстрее будут выходить новые обновления.
+Пишите идеи, баги и предложения. Чем больше актива и обратной связи, тем быстрее будут выходить новые обновления.

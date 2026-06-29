@@ -18,11 +18,11 @@ import java.util.Random;
 
 public class PortalAnimation extends CaseAnimation {
 
-    private static final int EXPLOSION_END = 42;
-    private static final int VORTEX_END = 88;
-    private static final int SUCTION_END = 130;
-    private static final int COLLAPSE_END = 152;
-    private static final int REVEAL_END = 225;
+    private static final int EXPLOSION_END = 50;
+    private static final int VORTEX_END = 106;
+    private static final int SUCTION_END = 154;
+    private static final int COLLAPSE_END = 182;
+    private static final int REVEAL_END = 262;
 
     private static final int ITEM_COUNT = 10;
 
@@ -104,9 +104,9 @@ public class PortalAnimation extends CaseAnimation {
                         for (int i = 0; i < ITEM_COUNT; i++) {
                             alive[i] = true;
                             double angle  = (2 * Math.PI * i) / ITEM_COUNT + rng.nextDouble() * 0.5;
-                            double hSpeed = 0.13 + rng.nextDouble() * 0.19;
+                            double hSpeed = 0.08 + rng.nextDouble() * 0.13;
                             vx[i] = Math.cos(angle) * hSpeed;
-                            vy[i] = 0.16 + rng.nextDouble() * 0.24;
+                            vy[i] = 0.10 + rng.nextDouble() * 0.18;
                             vz[i] = Math.sin(angle) * hSpeed;
                             setItemScale(items.get(i), 0.35f);
                         }
@@ -123,9 +123,9 @@ public class PortalAnimation extends CaseAnimation {
                                     base.getZ() + 0.5 + 0.7 * Math.sin(a),
                                     2, 0, 0.05, 0, 0.07);
                         }
-                        w.playSound(base, Sound.ENTITY_GENERIC_EXPLODE, 1.2f, 0.75f);
-                        w.playSound(base, Sound.BLOCK_RESPAWN_ANCHOR_DEPLETE, 0.8f, 0.5f);
-                        player.playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.9f, 0.8f);
+                        w.playSound(base, Sound.ENTITY_GENERIC_EXPLODE, 0.34f, 0.75f);
+                        w.playSound(base, Sound.BLOCK_RESPAWN_ANCHOR_DEPLETE, 0.26f, 0.5f);
+                        player.playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.24f, 0.8f);
                     }
 
                     double floor = base.getY() + 0.25;
@@ -147,7 +147,7 @@ public class PortalAnimation extends CaseAnimation {
                         ItemDisplay id = items.get(i);
                         if (!id.isDead()) {
                             id.teleport(new Location(w, px[i], py[i], pz[i]));
-                            id.setRotation(id.getLocation().getYaw() + 9f, 0f);
+                            id.setRotation(id.getLocation().getYaw() + 5f, 0f);
                         }
                     }
 
@@ -213,16 +213,16 @@ public class PortalAnimation extends CaseAnimation {
                         ItemDisplay id = items.get(i);
                         if (!id.isDead()) {
                             id.teleport(new Location(w, px[i], py[i], pz[i]));
-                            id.setRotation(id.getLocation().getYaw() + 14f, 0f);
+                            id.setRotation(id.getLocation().getYaw() + 8f, 0f);
                         }
                     }
 
                     if (t == EXPLOSION_END + 1) {
-                        w.playSound(base, Sound.ENTITY_WITHER_AMBIENT, 0.6f, 0.4f);
-                        w.playSound(base, Sound.BLOCK_PORTAL_AMBIENT, 1.0f, 0.3f);
+                        w.playSound(base, Sound.ENTITY_WITHER_AMBIENT, 0.18f, 0.4f);
+                        w.playSound(base, Sound.BLOCK_PORTAL_AMBIENT, 0.24f, 0.3f);
                     }
                     if (t % 10 == 0)
-                        w.playSound(base, Sound.BLOCK_PORTAL_AMBIENT, 0.5f, 0.35f + (float)eased * 0.35f);
+                        w.playSound(base, Sound.BLOCK_PORTAL_AMBIENT, 0.16f, 0.35f + (float)eased * 0.35f);
                 }
 
                 if (t > VORTEX_END && t <= SUCTION_END) {
@@ -260,7 +260,7 @@ public class PortalAnimation extends CaseAnimation {
                             w.spawnParticle(Particle.SMOKE,          centre,  6, 0.08, 0.06, 0.08, 0.03);
                             if (rng.nextInt(3) == 0)
                                 w.playSound(base, Sound.ENTITY_ENDERMAN_TELEPORT,
-                                        0.7f, 1.4f + rng.nextFloat() * 0.6f);
+                                        0.18f, 1.4f + rng.nextFloat() * 0.6f);
                             continue;
                         }
 
@@ -285,12 +285,12 @@ public class PortalAnimation extends CaseAnimation {
                             float sc = Math.min(0.35f, (float)(dist * 0.18f));
                             setItemScale(id, sc);
                             id.teleport(new Location(w, px[i], py[i], pz[i]));
-                            id.setRotation(id.getLocation().getYaw() + 22f, 0f);
+                            id.setRotation(id.getLocation().getYaw() + 12f, 0f);
                         }
                     }
 
                     if (t % 6 == 0)
-                        w.playSound(base, Sound.BLOCK_PORTAL_AMBIENT, 0.7f, 0.6f + (float)progress * 0.55f);
+                        w.playSound(base, Sound.BLOCK_PORTAL_AMBIENT, 0.18f, 0.6f + (float)progress * 0.55f);
                 }
 
                 if (t > SUCTION_END && t <= COLLAPSE_END) {
@@ -312,10 +312,10 @@ public class PortalAnimation extends CaseAnimation {
                                     centre.getZ() + 0.9 * Math.sin(a),
                                     3, 0, 0.07, 0, 0.10);
                         }
-                        w.playSound(base, Sound.ENTITY_WITHER_DEATH,     0.5f, 1.9f);
-                        w.playSound(base, Sound.BLOCK_PORTAL_TRAVEL,     0.9f, 1.6f);
-                        w.playSound(base, Sound.ENTITY_ENDER_DRAGON_GROWL, 0.5f, 1.8f);
-                        player.playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.8f, 0.6f);
+                        w.playSound(base, Sound.ENTITY_WITHER_DEATH, 0.16f, 1.9f);
+                        w.playSound(base, Sound.BLOCK_PORTAL_TRAVEL, 0.24f, 1.6f);
+                        w.playSound(base, Sound.ENTITY_ENDER_DRAGON_GROWL, 0.14f, 1.8f);
+                        player.playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.20f, 0.6f);
                     }
 
                     float sc = Math.max(0f, 0.42f - (float)progress * 0.42f);
@@ -353,9 +353,9 @@ public class PortalAnimation extends CaseAnimation {
                                     centre.getZ() + 0.8 * Math.sin(a),
                                     2, 0, 0.05, 0, 0.08);
                         }
-                        w.playSound(base, Sound.ENTITY_PLAYER_LEVELUP,    1.0f, 1.5f);
-                        w.playSound(base, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.9f, 1.2f);
-                        player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 1.1f);
+                        w.playSound(base, Sound.ENTITY_PLAYER_LEVELUP, 0.32f, 1.5f);
+                        w.playSound(base, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.30f, 1.2f);
+                        player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.32f, 1.1f);
                     }
 
                     Location rewardLoc = base.clone().add(0, 2.0 + eased * 1.8, 0);
@@ -396,7 +396,7 @@ public class PortalAnimation extends CaseAnimation {
                         setLabel(label, rewardVisual);
 
                     if (t % 8 == 0)
-                        w.playSound(base, Sound.BLOCK_PORTAL_AMBIENT, 0.25f, 1.8f);
+                        w.playSound(base, Sound.BLOCK_PORTAL_AMBIENT, 0.10f, 1.8f);
                 }
 
                 if (t >= REVEAL_END) {
@@ -404,9 +404,9 @@ public class PortalAnimation extends CaseAnimation {
                     w.spawnParticle(Particle.PORTAL,         finalLoc, 70, 0.45, 0.30, 0.45, 0.12);
                     w.spawnParticle(Particle.END_ROD,        finalLoc, 45, 0.35, 0.28, 0.35, 0.08);
                     w.spawnParticle(Particle.REVERSE_PORTAL, finalLoc, 45, 0.40, 0.25, 0.40, 0.09);
-                    w.playSound(base, Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 1.0f);
-                    w.playSound(base, Sound.ENTITY_PLAYER_LEVELUP, 0.9f, 1.5f);
-                    player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.5f);
+                    w.playSound(base, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.32f, 1.0f);
+                    w.playSound(base, Sound.ENTITY_PLAYER_LEVELUP, 0.30f, 1.5f);
+                    player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.32f, 1.5f);
                     cleanup();
                 }
             }
@@ -453,8 +453,8 @@ public class PortalAnimation extends CaseAnimation {
     }
 
     private static ItemStack buildRewardVisual(Reward reward, CaseDefinition def) {
-        return reward.item() != null
-                ? reward.item().clone()
+        return reward.visualItem() != null
+                ? reward.visualItem().clone()
                 : def.animationItems().get(0).clone();
     }
 

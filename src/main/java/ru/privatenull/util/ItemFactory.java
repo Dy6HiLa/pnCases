@@ -11,6 +11,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class ItemFactory {
@@ -22,8 +23,11 @@ public class ItemFactory {
     public static ItemStack fromSection(ConfigurationSection sec) {
         if (sec == null) return null;
 
-        String base64 = sec.getString("base64");
-        if (base64 != null && !base64.isBlank()) {
+        String base64 = normalizeBase64(sec.getString("base64"));
+        if (base64 == null) {
+            base64 = normalizeMaterialBase64(sec.getString("material"));
+        }
+        if (base64 != null) {
             ItemStack skull = SkullUtil.fromBase64(base64, c(sec.getString("name", "&fItem")));
             applyMeta(skull, sec.getString("name"), sec.getStringList("lore"), sec.getConfigurationSection("enchantments"));
             return skull;
@@ -37,11 +41,17 @@ public class ItemFactory {
     }
 
     public static ItemStack fromMap(Map<?, ?> map) {
-        Object b64 = map.get("base64");
+        String base64 = normalizeBase64(asString(map.get("base64"), null));
+        if (base64 == null) {
+            base64 = normalizeBase64(asString(map.get("texture"), null));
+        }
+        if (base64 == null) {
+            base64 = normalizeMaterialBase64(asString(map.get("material"), null));
+        }
         ItemStack it;
 
-        if (b64 instanceof String s && !s.isBlank()) {
-            it = SkullUtil.fromBase64(s, c(asString(map.get("name"), "&fItem")));
+        if (base64 != null) {
+            it = SkullUtil.fromBase64(base64, c(asString(map.get("name"), "&fItem")));
         } else {
             Material mat = Material.matchMaterial(asString(map.get("material"), "STONE"));
             if (mat == null) mat = Material.STONE;
@@ -105,6 +115,28 @@ public class ItemFactory {
 
     private static String asString(Object o, String def) {
         return o == null ? def : String.valueOf(o);
+    }
+
+    private static String normalizeBase64(String value) {
+        if (value == null || value.isBlank()) return null;
+        String normalized = value.trim();
+        String lower = normalized.toLowerCase(Locale.ROOT);
+        if (lower.startsWith("base64-")) {
+            normalized = normalized.substring("base64-".length()).trim();
+        } else if (lower.startsWith("base64:")) {
+            normalized = normalized.substring("base64:".length()).trim();
+        }
+        return normalized.isBlank() ? null : normalized;
+    }
+
+    private static String normalizeMaterialBase64(String material) {
+        if (material == null || material.isBlank()) return null;
+        String normalized = material.trim();
+        String lower = normalized.toLowerCase(Locale.ROOT);
+        if (!lower.startsWith("base64-") && !lower.startsWith("base64:")) {
+            return null;
+        }
+        return normalizeBase64(normalized);
     }
 
     private static int asInt(Object o, int def) {

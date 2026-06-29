@@ -1,19 +1,21 @@
 package ru.privatenull;
 
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import ru.privatenull.cases.CaseManager;
-import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.cases.model.Reward;
 import ru.privatenull.commands.CasesCMD;
 import ru.privatenull.commands.CasesCMDTabCompliter;
+import ru.privatenull.config.ConfigValidator;
 import ru.privatenull.config.MessagesConfig;
-import ru.privatenull.integrations.FancyHologramsHook;
+import ru.privatenull.hologram.HologramService;
+import ru.privatenull.integrations.PlayerPointsProvider;
+import ru.privatenull.integrations.VaultEconomyProvider;
 import ru.privatenull.storage.KeyStorage;
 import ru.privatenull.storage.PendingRewardStorage;
+import ru.privatenull.storage.SqliteDatabase;
 import ru.privatenull.update.UpdateChecker;
 
 import java.util.UUID;
@@ -22,24 +24,29 @@ public final class pnCases extends JavaPlugin {
 
     private CaseManager caseManager;
     private KeyStorage keyStorage;
-    private FancyHologramsHook fancyHolograms;
+    private HologramService holograms;
+    private VaultEconomyProvider vaultEconomy;
+    private PlayerPointsProvider playerPoints;
     private MessagesConfig messages;
+    private SqliteDatabase database;
     private PendingRewardStorage pendingRewards;
     private UpdateChecker updateChecker;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        validateCurrentConfig();
+
+        database = new SqliteDatabase(this);
+        keyStorage = new KeyStorage(database);
+        pendingRewards = new PendingRewardStorage(database);
 
         messages = new MessagesConfig(this);
-        fancyHolograms = new FancyHologramsHook(this);
+        holograms = new HologramService(this);
 
         caseManager = new CaseManager(this);
         caseManager.reloadFromConfig();
         setupUpdateChecker();
-
-        keyStorage = new KeyStorage(this);
-        pendingRewards = new PendingRewardStorage(this);
 
         for (UUID uuid : pendingRewards.getAll()) {
             var online = getServer().getPlayer(uuid);
@@ -106,12 +113,16 @@ public final class pnCases extends JavaPlugin {
             updateChecker.cancel();
         }
 
-        if (fancyHolograms != null) {
-            fancyHolograms.shutdown();
+        if (holograms != null) {
+            holograms.shutdown();
         }
 
         if (caseManager != null) {
             caseManager.shutdown();
+        }
+
+        if (database != null) {
+            database.close();
         }
 
         getLogger().info("██████╗░██████╗░██╗██╗░░░██╗░█████╗░████████╗███████╗███╗░░██╗██╗░░░██╗██╗░░░░░██╗░░░░░");
@@ -132,8 +143,34 @@ public final class pnCases extends JavaPlugin {
         return keyStorage;
     }
 
-    public FancyHologramsHook getFancyHolograms() {
-        return fancyHolograms;
+    public SqliteDatabase getDatabase() {
+        return database;
+    }
+
+    public HologramService getHolograms() {
+        return holograms;
+    }
+
+    public VaultEconomyProvider getVaultEconomy() {
+        if (vaultEconomy == null && getServer().getPluginManager().isPluginEnabled("Vault")) {
+            try {
+                vaultEconomy = new VaultEconomyProvider(this);
+            } catch (Throwable ignored) {
+                vaultEconomy = null;
+            }
+        }
+        return vaultEconomy;
+    }
+
+    public PlayerPointsProvider getPlayerPoints() {
+        if (playerPoints == null && getServer().getPluginManager().isPluginEnabled("PlayerPoints")) {
+            try {
+                playerPoints = new PlayerPointsProvider();
+            } catch (Throwable ignored) {
+                playerPoints = null;
+            }
+        }
+        return playerPoints;
     }
 
     public MessagesConfig getMessages() {
@@ -144,13 +181,18 @@ public final class pnCases extends JavaPlugin {
         return pendingRewards;
     }
 
+    public UpdateChecker getUpdateChecker() {
+        return updateChecker;
+    }
+
     public void reloadRuntimeConfig() {
         if (updateChecker != null) {
             updateChecker.reload();
         }
     }
 
-    public void recordCaseOpening(Player player, CaseDefinition def, Reward reward, String rewardLabel) {
+    public ConfigValidator.Result validateCurrentConfig() {
+        return ConfigValidator.validateAndPatch(this);
     }
 
     private void setupUpdateChecker() {

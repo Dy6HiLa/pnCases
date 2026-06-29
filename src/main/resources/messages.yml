@@ -15,6 +15,13 @@ command-help:
   - "§x§4§2§9§F§9§1§l▸ §x§4§2§9§F§9§1/pncases setcase <кейс> &8— &7привязать кейс к блоку"
   - ""
 
+command-version: "{prefix} &8| &fВерсия плагина: §x§4§2§9§F§9§1{version}"
+command-update-checking: "{prefix} &8| &7Проверка обновлений ещё выполняется."
+command-update-latest: "{prefix} &8| &aУстановлена последняя версия: &f{latest}"
+command-update-available: "{prefix} &8| &eДоступно обновление: &f{current} &8→ §x§D§8§D§F§9§D{latest}"
+command-update-download: "{prefix} &8| &fСкачать: §x§D§8§D§F§9§D{url}"
+command-update-error: "{prefix} &8| &cНе удалось проверить обновления: &f{error}"
+
 already-opening: "{prefix} &8| &fВы уже открываете кейс."
 case-busy: "{prefix} &8| &fЭтот кейс сейчас открывает другой игрок."
 not-enough-levels: "{prefix} &8| &fНедостаточно уровней. Нужно: §x§4§2§9§F§9§1{amount}"
@@ -23,6 +30,10 @@ not-enough-keys: "{prefix} &8| &fНужно ключей: §x§4§2§9§F§9§1{
 
 reward-default: "{prefix} &8| &fНаграда: {reward}"
 reward-luckperms: "{prefix} &8| &fВыдана привилегия: {reward}"
+reward-vault: "{prefix} &8| &fВы получили деньги: §x§4§2§9§F§9§1{amount}"
+reward-playerpoints: "{prefix} &8| &fВы получили поинты: §x§4§2§9§F§9§1{amount}"
+reward-provider-missing: "{prefix} &8| &cНаграда не выдана: не найден провайдер {provider}."
+reward-invalid: "{prefix} &8| &cНаграда не выдана: ошибка настройки предмета."
 broadcast:
   - ""
   - "§x§4§2§9§F§9§1§lК§x§6§8§A§F§9§4§lЕ§x§8§D§B§F§9§7§lЙ§x§B§3§C§F§9§A§lС§x§D§8§D§F§9§D§lЫ"

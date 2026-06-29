@@ -28,9 +28,9 @@ public class AnvilAnimation extends CaseAnimation {
 
         final double ANVIL_START_Y = 6.0;
         final double ANVIL_LAND_Y  = 1.01;
-        final int PHASE1_END = 20;
-        final int PHASE2_END = 80;
-        final int PHASE3_END = 120;
+        final int PHASE1_END = 28;
+        final int PHASE2_END = 92;
+        final int PHASE3_END = 142;
 
         ItemStack rewardVisual = buildRewardVisual(reward, def);
 
@@ -79,32 +79,32 @@ public class AnvilAnimation extends CaseAnimation {
 
                 if (t <= PHASE1_END) {
                     double progress = (double) t / PHASE1_END;
-                    double eased = progress * progress;
+                    double eased = easeInOut(progress);
                     double currentY = ANVIL_START_Y + (ANVIL_LAND_Y - ANVIL_START_Y) * eased;
                     anvil.teleport(base.clone().add(0, currentY, 0));
-                    if (t % 4 == 0) w.playSound(base, Sound.ENTITY_ARROW_SHOOT, 0.3f, 0.5f + (float) eased);
+                    if (t % 6 == 0) w.playSound(base, Sound.ENTITY_ARROW_SHOOT, 0.14f, 0.5f + (float) eased);
                 }
 
                 if (t == PHASE1_END) {
                     anvil.teleport(base.clone().add(0, ANVIL_LAND_Y, 0));
-                    w.playSound(base, Sound.BLOCK_ANVIL_LAND, 1.2f, 0.8f);
-                    w.playSound(base, Sound.ENTITY_GENERIC_EXPLODE, 0.4f, 1.8f);
-                    w.playSound(base, Sound.BLOCK_STONE_BREAK, 0.8f, 0.6f);
+                    w.playSound(base, Sound.BLOCK_ANVIL_LAND, 0.55f, 0.8f);
+                    w.playSound(base, Sound.ENTITY_GENERIC_EXPLODE, 0.16f, 1.8f);
+                    w.playSound(base, Sound.BLOCK_STONE_BREAK, 0.32f, 0.6f);
                     w.spawnParticle(Particle.BLOCK, base.clone().add(0, ANVIL_LAND_Y, 0),
                             60, 0.4, 0.1, 0.4, 0.15, Material.STONE.createBlockData());
                     w.spawnParticle(Particle.CLOUD, base.clone().add(0, ANVIL_LAND_Y, 0),
                             20, 0.5, 0.1, 0.5, 0.05);
-                    player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_LAND, 1.0f, 0.7f);
+                    player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_LAND, 0.38f, 0.7f);
                 }
 
                 if (t > PHASE1_END && t <= PHASE2_END) {
                     Location anvilTop = base.clone().add(0, ANVIL_LAND_Y + 0.5, 0);
                     if (hitTicks.contains(t)) {
-                        w.playSound(base, Sound.BLOCK_ANVIL_USE, 0.9f, 0.9f + rng.nextFloat() * 0.3f);
+                        w.playSound(base, Sound.BLOCK_ANVIL_USE, 0.28f, 0.9f + rng.nextFloat() * 0.3f);
                         w.spawnParticle(Particle.LAVA, anvilTop, 8, 0.3, 0.1, 0.3, 0.0);
                         w.spawnParticle(Particle.ELECTRIC_SPARK, anvilTop, 15, 0.25, 0.15, 0.25, 0.05);
                         w.spawnParticle(Particle.CRIT, anvilTop, 10, 0.3, 0.2, 0.3, 0.1);
-                        double jitter = (rng.nextDouble() - 0.5) * 0.04;
+                        double jitter = (rng.nextDouble() - 0.5) * 0.018;
                         anvil.teleport(base.clone().add(jitter, ANVIL_LAND_Y, jitter));
                     } else {
                         anvil.teleport(base.clone().add(0, ANVIL_LAND_Y, 0));
@@ -148,16 +148,16 @@ public class AnvilAnimation extends CaseAnimation {
                         w.spawnParticle(Particle.ENCHANT, rewardLoc, 5, 0.1, 0.1, 0.1, 0.2);
                         w.spawnParticle(Particle.ELECTRIC_SPARK, rewardLoc, 3, 0.15, 0.1, 0.15, 0.02);
                     }
-                    if (t % 8 == 0) w.playSound(base, Sound.BLOCK_ENCHANTMENT_TABLE_USE, 0.6f, 0.8f + (float) eased * 0.6f);
+                    if (t % 10 == 0) w.playSound(base, Sound.BLOCK_ENCHANTMENT_TABLE_USE, 0.22f, 0.8f + (float) eased * 0.6f);
                 }
 
                 if (t >= PHASE3_END) {
                     Location rewardLoc = base.clone().add(0, ANVIL_LAND_Y + 1.8, 0);
                     spawnFinalParticles(w, rewardLoc);
-                    w.playSound(base, Sound.ENTITY_FIREWORK_ROCKET_BLAST, 1.0f, 1.1f);
-                    w.playSound(base, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.9f, 1.0f);
-                    w.playSound(base, Sound.ENTITY_PLAYER_LEVELUP, 0.8f, 1.5f);
-                    player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, 0.7f, 1.5f);
+                    w.playSound(base, Sound.ENTITY_FIREWORK_ROCKET_BLAST, 0.34f, 1.1f);
+                    w.playSound(base, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.34f, 1.0f);
+                    w.playSound(base, Sound.ENTITY_PLAYER_LEVELUP, 0.30f, 1.5f);
+                    player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, 0.26f, 1.5f);
                     cleanup();
                 }
             }
@@ -194,9 +194,14 @@ public class AnvilAnimation extends CaseAnimation {
         td.setText(ChatColor.translateAlternateColorCodes('&', name));
     }
 
+    private static double easeInOut(double value) {
+        double x = Math.max(0.0, Math.min(1.0, value));
+        return x < 0.5 ? 2.0 * x * x : 1.0 - Math.pow(-2.0 * x + 2.0, 2.0) / 2.0;
+    }
+
     private static ItemStack buildRewardVisual(Reward reward, CaseDefinition def) {
-        return reward.item() != null
-                ? reward.item().clone()
+        return reward.visualItem() != null
+                ? reward.visualItem().clone()
                 : def.animationItems().get(0).clone();
     }
 

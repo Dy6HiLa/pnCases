@@ -26,7 +26,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class CaseManager {
 
-    private static final int[] HISTORY_SLOTS = {45, 46, 47, 48, 49, 50, 51, 52, 53};
+    public static final int PREVIEW_SLOT = 50;
+    public static final int ANIMATION_SLOT = 49;
+
+    private static final int[] HISTORY_SLOTS = {45, 46, 47, 48, 51, 52, 53};
     private static final int[] DECOR_SLOTS = {
             0, 1, 2, 3, 4, 5, 6, 7, 8,
             9, 17,
@@ -53,8 +56,8 @@ public class CaseManager {
     public CaseManager(pnCases plugin) {
         this.plugin = plugin;
         this.animationRegistry = new AnimationRegistry(plugin);
-        this.openHistoryStorage = new OpenHistoryStorage(plugin);
-        this.playerPrefs = new PlayerPrefsStorage(plugin);
+        this.openHistoryStorage = new OpenHistoryStorage(plugin.getDatabase());
+        this.playerPrefs = new PlayerPrefsStorage(plugin.getDatabase());
     }
 
     public pnCases getPlugin() { return plugin; }
@@ -74,42 +77,6 @@ public class CaseManager {
 
     public int getLoadedCaseCount() { return casesByName.size(); }
     public int getConfiguredKeyCount() { return keyNames.size(); }
-
-    public Map<String, Integer> getCostTypeCounts() {
-        Map<String, Integer> counts = new LinkedHashMap<>();
-        for (CaseDefinition def : casesByName.values()) {
-            counts.merge(def.costType().name().toLowerCase(Locale.ROOT), 1, Integer::sum);
-        }
-        return counts;
-    }
-
-    public Map<String, Integer> getRewardTypeCounts() {
-        Map<String, Integer> counts = new LinkedHashMap<>();
-        for (CaseDefinition def : casesByName.values()) {
-            for (Reward reward : def.rewards()) {
-                counts.merge(reward.type().name().toLowerCase(Locale.ROOT), 1, Integer::sum);
-            }
-        }
-        return counts;
-    }
-
-    public String getHologramUsage() {
-        for (CaseDefinition def : casesByName.values()) {
-            if (plugin.getConfig().getBoolean("cases." + def.name() + ".hologram.enabled", false)) {
-                return "enabled";
-            }
-        }
-        return "disabled";
-    }
-
-    public String getXpKeyPurchaseUsage() {
-        for (CaseDefinition def : casesByName.values()) {
-            if (def.buyKeyWithXpLevels() > 0) {
-                return "enabled";
-            }
-        }
-        return "disabled";
-    }
 
     public CaseDefinition getCaseByName(String name) { return casesByName.get(name.toLowerCase()); }
 
@@ -184,8 +151,8 @@ public class CaseManager {
     }
 
     public void reloadFromConfig() {
-        var fh = plugin.getFancyHolograms();
-        if (fh != null) fh.clearManaged();
+        var holograms = plugin.getHolograms();
+        if (holograms != null) holograms.clearManaged();
 
         casesByName.clear();
         caseByBlock.clear();
@@ -238,10 +205,10 @@ public class CaseManager {
             }
 
             ConfigurationSection an = cs.getConfigurationSection("animation");
-            int duration = an != null ? an.getInt("duration_ticks", 80) : 80;
-            int cycleEvery = an != null ? an.getInt("cycle_every_ticks", 2) : 2;
-            double rise = an != null ? an.getDouble("rise_blocks", 1.2) : 1.2;
-            float spin = an != null ? (float) an.getDouble("spin_degrees_per_tick", 18) : 18f;
+            int duration = getIntAlias(an, 80, "duration_ticks", "duration-ticks");
+            int cycleEvery = getIntAlias(an, 2, "cycle_every_ticks", "cycle-every-ticks");
+            double rise = getDoubleAlias(an, 1.2, "rise_blocks", "rise-blocks");
+            float spin = (float) getDoubleAlias(an, 18.0, "spin_degrees_per_tick", "spin-degrees-per-tick");
 
             List<ItemStack> animItems = new ArrayList<>();
             if (an != null && an.isList("items")) {
@@ -260,17 +227,19 @@ public class CaseManager {
                     if (!(rr instanceof Map<?, ?> map)) continue;
                     int chance = asInt(map.get("chance"), 0);
                     String typeS = String.valueOf(map.containsKey("type") ? map.get("type") : "ITEM");
-                    Reward.Type rType;
-                    try { rType = Reward.Type.valueOf(typeS.toUpperCase(Locale.ROOT)); }
-                    catch (Exception e) { rType = Reward.Type.ITEM; }
+                    Reward.Type rType = inferRewardType(typeS, map);
 
                     String message = map.containsKey("message") ? String.valueOf(map.get("message")) : null;
+                    Object rarityRaw = firstPresent(map, "rarity", "rare");
+                    Reward.Rarity rarity = Reward.Rarity.parse(rarityRaw == null ? null : String.valueOf(rarityRaw), chance);
                     String displayName = null;
                     ItemStack item = null;
                     String lpGroup = null, lpNode = null, lpDuration = null;
+                    double vaultAmount = 0.0;
+                    int playerPointsAmount = 0;
 
                     if (rType == Reward.Type.ITEM) {
-                        Object itemObj = map.get("item");
+                        Object itemObj = firstPresent(map, "item", "items");
                         if (itemObj instanceof Map<?, ?> itemMap) {
                             item = ItemFactory.fromMap(itemMap);
                             Object nameObj = itemMap.get("name");
@@ -288,20 +257,33 @@ public class CaseManager {
                             if (g != null) lpGroup = String.valueOf(g);
                             if (n != null) lpNode = String.valueOf(n);
                             if (d != null) lpDuration = String.valueOf(d);
-                            Object dn = lpMap.get("display_name");
+                            Object dn = firstPresent(lpMap, map, "display_name", "display-name", "displayName", "name");
                             displayName = dn != null ? String.valueOf(dn) : "&f" + (lpGroup != null ? lpGroup : lpNode);
                         }
                         item = buildRewardVisualItem(map, displayName);
+                    } else if (rType == Reward.Type.VAULT) {
+                        Map<?, ?> vaultMap = getNestedMap(map, "vault");
+                        vaultAmount = asDouble(firstPresent(vaultMap, map, "amount", "money", "value"), 0.0);
+                        Object display = firstPresent(vaultMap, map, "display_name", "display-name", "name");
+                        displayName = display != null ? String.valueOf(display) : "&a" + formatVaultAmount(vaultAmount);
+                        item = buildRewardVisualItem(map, displayName);
+                    } else if (rType == Reward.Type.PLAYERPOINTS) {
+                        Map<?, ?> pointsMap = getNestedMap(map, "playerpoints", "player_points", "player-points", "points");
+                        playerPointsAmount = Math.max(0, asInt(firstPresent(pointsMap, map, "amount", "points", "value"), 0));
+                        Object display = firstPresent(pointsMap, map, "display_name", "display-name", "name");
+                        displayName = display != null ? String.valueOf(display) : "&b" + formatPlayerPointsAmount(playerPointsAmount);
+                        item = buildRewardVisualItem(map, displayName);
                     }
 
-                    if (chance > 0 && (rType != Reward.Type.ITEM || item != null)) {
-                        rewards.add(new Reward(chance, rType, item, lpGroup, lpNode, lpDuration, message, displayName));
+                    if (isValidReward(chance, rType, item, lpGroup, lpNode, vaultAmount, playerPointsAmount)) {
+                        rewards.add(new Reward(chance, rType, item, lpGroup, lpNode, lpDuration,
+                                vaultAmount, playerPointsAmount, message, displayName, rarity));
                     }
                 }
             }
             if (rewards.isEmpty()) {
                 rewards.add(new Reward(100, Reward.Type.ITEM, new ItemStack(Material.DIAMOND),
-                        null, null, null, "&aТы получил алмаз!", "&bАлмаз"));
+                        null, null, null, "&aТы получил алмаз!", "&bАлмаз", Reward.Rarity.COMMON));
             }
 
             CaseDefinition def = new CaseDefinition(
@@ -313,7 +295,7 @@ public class CaseManager {
             caseByBlock.put(BlockKey.of(blockLoc), def.name());
         }
 
-        if (fh != null) fh.syncCases(casesByName.values());
+        if (holograms != null) holograms.syncCases(casesByName.values());
         plugin.getLogger().info("Loaded cases: " + casesByName.size() + ", keys: " + keyNames.size());
     }
 
@@ -368,6 +350,97 @@ public class CaseManager {
         return it;
     }
 
+    public ItemStack buildPreviewButton(CaseDefinition def) {
+        ItemStack item = new ItemStack(Material.BOOK);
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return item;
+
+        int rewards = def.rewards().size();
+        meta.setDisplayName(color("&x&4&2&9&F&9&1▸ &fСодержимое кейса"));
+        meta.setLore(List.of(
+                "",
+                color("&x&A&0&E&F&A&1 «Предпросмотр»"),
+                color(" &7- &fНаград: &x&4&2&9&F&9&1" + rewards),
+                color(" &7- &fПоказаны шансы и редкость"),
+                "",
+                color("&x&4&2&9&F&9&1▸ &fНажмите, чтобы открыть")
+        ));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    public ItemStack buildRewardPreviewItem(Reward reward, int totalChance) {
+        ItemStack item = buildRewardDisplayItem(reward);
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return item;
+
+        String rewardName = color(reward.displayName() != null ? reward.displayName() : getDisplayName(item));
+        meta.setDisplayName(reward.rarity().color() + "◆ " + rewardName);
+
+        List<String> lore = new ArrayList<>();
+        if (meta.hasLore() && meta.getLore() != null) {
+            lore.addAll(meta.getLore());
+            lore.add("");
+        }
+
+        lore.add(color("§x§A§0§E§F§A§1 «Информация»"));
+        lore.add(color(" §7- &fТип: §x§4§2§9§F§9§1" + formatRewardType(reward.type())));
+        lore.add(color(" §7- &fРедкость: " + reward.rarity().coloredName()));
+        lore.add(color(" §7- &fШанс: §x§4§2§9§F§9§1" + formatChancePercent(reward.chance(), totalChance)));
+        lore.add(color(" §7- &fВес шанса: §x§4§2§9§F§9§1" + reward.chance()));
+
+        if (reward.type() == Reward.Type.VAULT) {
+            lore.add(color(" §7- &fСумма: §x§4§2§9§F§9§1" + formatVaultAmount(reward.vaultAmount())));
+        } else if (reward.type() == Reward.Type.PLAYERPOINTS) {
+            lore.add(color(" §7- &fПоинты: §x§4§2§9§F§9§1" + formatPlayerPointsAmount(reward.playerPointsAmount())));
+        } else if (reward.type() == Reward.Type.LUCKPERMS) {
+            if (reward.lpGroup() != null && !reward.lpGroup().isBlank()) {
+                lore.add(color(" §7- &fГруппа: §x§4§2§9§F§9§1" + reward.lpGroup()));
+            }
+            if (reward.lpNode() != null && !reward.lpNode().isBlank()) {
+                lore.add(color(" §7- &fПраво: §x§4§2§9§F§9§1" + reward.lpNode()));
+            }
+            if (reward.lpDuration() != null && !reward.lpDuration().isBlank()) {
+                lore.add(color(" §7- &fСрок: §x§4§2§9§F§9§1" + reward.lpDuration()));
+            }
+        }
+        lore.add("");
+
+        meta.setLore(lore);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack buildRewardDisplayItem(Reward reward) {
+        if (reward.visualItem() != null) {
+            return reward.visualItem().clone();
+        }
+
+        Material material = switch (reward.type()) {
+            case VAULT -> Material.EMERALD;
+            case PLAYERPOINTS -> Material.AMETHYST_SHARD;
+            case LUCKPERMS -> Material.NETHER_STAR;
+            case ITEM -> Material.CHEST;
+        };
+
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            String name = reward.displayName();
+            if (name == null || name.isBlank()) {
+                name = switch (reward.type()) {
+                    case VAULT -> "&a" + formatVaultAmount(reward.vaultAmount());
+                    case PLAYERPOINTS -> "&b" + formatPlayerPointsAmount(reward.playerPointsAmount());
+                    case LUCKPERMS -> "&dLuckPerms";
+                    case ITEM -> "&fНаграда";
+                };
+            }
+            meta.setDisplayName(color(name));
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
     public void fillCaseGui(Inventory inv, Player p, CaseDefinition def) {
         for (int i = 0; i < inv.getSize(); i++) {
             inv.setItem(i, null);
@@ -375,7 +448,8 @@ public class CaseManager {
         fillDecor(inv);
         inv.setItem(22, buildGuiOpenItem(p, def));
         fillHistory(inv, def);
-        inv.setItem(49, buildAnimationSelectorItem(p));
+        inv.setItem(ANIMATION_SLOT, buildAnimationSelectorItem(p));
+        inv.setItem(PREVIEW_SLOT, buildPreviewButton(def));
     }
 
     private void fillDecor(Inventory inv) {
@@ -562,8 +636,8 @@ public class CaseManager {
             return;
         }
 
-        var fh = plugin.getFancyHolograms();
-        if (fh != null) fh.hideCase(def);
+        var holograms = plugin.getHolograms();
+        if (holograms != null) holograms.hideCase(def);
 
         Reward finalReward = pickReward(def.rewards());
 
@@ -572,7 +646,7 @@ public class CaseManager {
             giveReward(p, def, finalReward);
             openingPlayers.remove(p.getUniqueId());
             unlockCase(p, def);
-            if (fh != null) fh.showCase(def);
+            if (holograms != null) holograms.showCase(def);
         });
     }
 
@@ -591,16 +665,24 @@ public class CaseManager {
 
     public void giveReward(Player p, CaseDefinition def, Reward reward) {
         String rewardLabel = color(reward.displayName() != null ? reward.displayName() : "&fНаграда");
+        boolean delivered = false;
 
         if (reward.type() == Reward.Type.ITEM) {
-            giveToInventoryOrDrop(p, reward.item().clone());
+            ItemStack rewardItem = reward.item();
+            if (rewardItem == null) {
+                p.sendMessage(plugin.getMessages().getOr("reward.invalid", "reward-invalid"));
+                plugin.getLogger().warning("РќРµ СѓРґР°Р»РѕСЃСЊ РІС‹РґР°С‚СЊ ITEM-РЅР°РіСЂР°РґСѓ РёРіСЂРѕРєСѓ " + p.getName() + ": item РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.");
+                return;
+            }
+            giveToInventoryOrDrop(p, rewardItem.clone());
             String msg = reward.message();
             if (msg != null && !msg.isBlank()) {
-                p.sendMessage(color(msg));
+                p.sendMessage(formatRewardMessage(msg, rewardLabel, "", ""));
             } else {
                 p.sendMessage(plugin.getMessages().get("reward-default", "reward", rewardLabel));
             }
-            p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.6f, 1.6f);
+            p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.28f, 1.6f);
+            delivered = true;
         }
 
         if (reward.type() == Reward.Type.LUCKPERMS) {
@@ -620,15 +702,63 @@ public class CaseManager {
             }
             String msg = reward.message();
             if (msg != null && !msg.isBlank()) {
-                p.sendMessage(color(msg));
+                p.sendMessage(formatRewardMessage(msg, rewardLabel, "", ""));
             } else {
                 p.sendMessage(plugin.getMessages().get("reward-luckperms", "reward", rewardLabel));
             }
-            p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.9f, 1.2f);
+            p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.32f, 1.2f);
+            delivered = true;
+        }
+
+        if (reward.type() == Reward.Type.VAULT) {
+            var economy = plugin.getVaultEconomy();
+            String formattedAmount = formatVaultAmount(reward.vaultAmount());
+            if (economy == null || !economy.isAvailable() || !economy.deposit(p, reward.vaultAmount())) {
+                p.sendMessage(plugin.getMessages().getOr("reward.provider-missing", "reward-provider-missing",
+                        "provider", "Vault"));
+                plugin.getLogger().warning("Не удалось выдать Vault-награду игроку " + p.getName() + ": " + reward.vaultAmount());
+                return;
+            }
+
+            String msg = reward.message();
+            if (msg != null && !msg.isBlank()) {
+                p.sendMessage(formatRewardMessage(msg, rewardLabel, formattedAmount, ""));
+            } else {
+                p.sendMessage(plugin.getMessages().getOr("reward.vault", "reward-vault",
+                        "reward", rewardLabel,
+                        "amount", formattedAmount));
+            }
+            p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.28f, 1.7f);
+            delivered = true;
+        }
+
+        if (reward.type() == Reward.Type.PLAYERPOINTS) {
+            var points = plugin.getPlayerPoints();
+            String formattedAmount = formatPlayerPointsAmount(reward.playerPointsAmount());
+            if (points == null || !points.isAvailable() || !points.give(p.getUniqueId(), reward.playerPointsAmount())) {
+                p.sendMessage(plugin.getMessages().getOr("reward.provider-missing", "reward-provider-missing",
+                        "provider", "PlayerPoints"));
+                plugin.getLogger().warning("Не удалось выдать PlayerPoints-награду игроку " + p.getName() + ": " + reward.playerPointsAmount());
+                return;
+            }
+
+            String msg = reward.message();
+            if (msg != null && !msg.isBlank()) {
+                p.sendMessage(formatRewardMessage(msg, rewardLabel, "", formattedAmount));
+            } else {
+                p.sendMessage(plugin.getMessages().getOr("reward.playerpoints", "reward-playerpoints",
+                        "reward", rewardLabel,
+                        "amount", formattedAmount));
+            }
+            p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.30f, 1.45f);
+            delivered = true;
+        }
+
+        if (!delivered) {
+            return;
         }
 
         if (def != null) {
-            plugin.recordCaseOpening(p, def, reward, rewardLabel);
             openHistoryStorage.add(def.name(), p.getName(), rewardLabel);
         }
 
@@ -656,7 +786,7 @@ public class CaseManager {
     }
 
     private ItemStack buildRewardVisualItem(Map<?, ?> rewardMap, String displayName) {
-        Object itemObj = rewardMap.get("item");
+        Object itemObj = firstPresent(rewardMap, "visual", "visual_item", "visual-item", "display_item", "display-item", "item", "items");
         if (itemObj instanceof Map<?, ?> itemMap) {
             return ItemFactory.fromMap(itemMap);
         }
@@ -676,8 +806,143 @@ public class CaseManager {
         return ItemFactory.fromMap(visualMap);
     }
 
+    private static boolean isValidReward(int chance, Reward.Type type, ItemStack item, String lpGroup, String lpNode,
+                                         double vaultAmount, int playerPointsAmount) {
+        if (chance <= 0) return false;
+        return switch (type) {
+            case ITEM -> item != null;
+            case VAULT -> vaultAmount > 0.0;
+            case PLAYERPOINTS -> playerPointsAmount > 0;
+            case LUCKPERMS -> (lpGroup != null && !lpGroup.isBlank()) || (lpNode != null && !lpNode.isBlank());
+        };
+    }
+
+    private static Reward.Type parseRewardType(String value) {
+        if (value == null) return Reward.Type.ITEM;
+        return switch (value.trim().toUpperCase(Locale.ROOT)) {
+            case "LUCKPERMS" -> Reward.Type.LUCKPERMS;
+            case "VAULT", "MONEY", "ECONOMY", "ECO" -> Reward.Type.VAULT;
+            case "PLAYERPOINTS", "PLAYER_POINTS", "PLAYER-POINTS", "POINTS" -> Reward.Type.PLAYERPOINTS;
+            case "ITEM" -> Reward.Type.ITEM;
+            default -> Reward.Type.ITEM;
+        };
+    }
+
+    private static Reward.Type inferRewardType(String rawType, Map<?, ?> rewardMap) {
+        Reward.Type parsed = parseRewardType(rawType);
+
+        if (parsed == Reward.Type.ITEM && hasVaultRewardData(rewardMap)) {
+            return Reward.Type.VAULT;
+        }
+        if (parsed == Reward.Type.ITEM && hasPlayerPointsRewardData(rewardMap)) {
+            return Reward.Type.PLAYERPOINTS;
+        }
+
+        return parsed;
+    }
+
+    private static boolean hasVaultRewardData(Map<?, ?> rewardMap) {
+        Map<?, ?> vaultMap = getNestedMap(rewardMap, "vault", "money", "economy", "eco");
+        return firstPresent(vaultMap, rewardMap, "amount", "money", "value", "vault_amount", "vault-amount") != null;
+    }
+
+    private static boolean hasPlayerPointsRewardData(Map<?, ?> rewardMap) {
+        Map<?, ?> pointsMap = getNestedMap(rewardMap, "playerpoints", "player_points", "player-points", "points");
+        return firstPresent(pointsMap, rewardMap, "amount", "points", "value", "player_points", "player-points") != null;
+    }
+
+    private static Map<?, ?> getNestedMap(Map<?, ?> map, String... keys) {
+        if (map == null) return null;
+        for (String key : keys) {
+            Object value = map.get(key);
+            if (value instanceof Map<?, ?> nested) {
+                return nested;
+            }
+        }
+        return null;
+    }
+
+    private static Object firstPresent(Map<?, ?> primary, Map<?, ?> fallback, String... keys) {
+        Object value = firstPresent(primary, keys);
+        return value != null ? value : firstPresent(fallback, keys);
+    }
+
+    private static Object firstPresent(Map<?, ?> map, String... keys) {
+        if (map == null) return null;
+        for (String key : keys) {
+            if (map.containsKey(key)) {
+                return map.get(key);
+            }
+        }
+        return null;
+    }
+
+    private String getDisplayName(ItemStack item) {
+        if (item == null) return "Награда";
+
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null && meta.hasDisplayName()) {
+            return meta.getDisplayName();
+        }
+
+        String raw = item.getType().name().toLowerCase(Locale.ROOT).replace('_', ' ');
+        StringBuilder result = new StringBuilder(raw.length());
+        boolean upper = true;
+        for (int i = 0; i < raw.length(); i++) {
+            char ch = raw.charAt(i);
+            if (Character.isWhitespace(ch)) {
+                result.append(ch);
+                upper = true;
+            } else if (upper) {
+                result.append(Character.toUpperCase(ch));
+                upper = false;
+            } else {
+                result.append(ch);
+            }
+        }
+        return result.toString();
+    }
+
+    private String formatRewardType(Reward.Type type) {
+        return switch (type) {
+            case ITEM -> "Предмет";
+            case LUCKPERMS -> "LuckPerms";
+            case VAULT -> "Vault";
+            case PLAYERPOINTS -> "PlayerPoints";
+        };
+    }
+
+    private String formatChancePercent(int chance, int totalChance) {
+        if (totalChance <= 0 || chance <= 0) return "0%";
+
+        double percent = chance * 100.0D / totalChance;
+        if (Math.abs(percent - Math.rint(percent)) < 0.01D) {
+            return String.valueOf((int) Math.rint(percent)) + "%";
+        }
+        return String.format(Locale.US, "%.1f%%", percent);
+    }
+
     private String color(String s) {
         return ChatColor.translateAlternateColorCodes('&', s == null ? "" : s);
+    }
+
+    private String formatRewardMessage(String raw, String rewardLabel, String moneyAmount, String pointsAmount) {
+        String amount = !moneyAmount.isBlank() ? moneyAmount : pointsAmount;
+        return color(raw
+                .replace("{reward}", rewardLabel)
+                .replace("{amount}", amount)
+                .replace("{money}", moneyAmount)
+                .replace("{points}", pointsAmount));
+    }
+
+    private String formatVaultAmount(double amount) {
+        String symbol = plugin.getConfig().getString("reward-symbols.vault", "$");
+        return (symbol == null ? "$" : symbol) + formatAmount(amount);
+    }
+
+    private String formatPlayerPointsAmount(int amount) {
+        String symbol = plugin.getConfig().getString("reward-symbols.playerpoints", "✦");
+        return (symbol == null ? "✦" : symbol) + amount;
     }
 
     private String getCaseDisplayName(CaseDefinition def) {
@@ -702,6 +967,38 @@ public class CaseManager {
     private static int asInt(Object o, int def) {
         if (o instanceof Number n) return n.intValue();
         try { return Integer.parseInt(String.valueOf(o)); } catch (Exception e) { return def; }
+    }
+
+    private static int getIntAlias(ConfigurationSection section, int def, String... keys) {
+        if (section == null) return def;
+        for (String key : keys) {
+            if (section.contains(key)) {
+                return section.getInt(key, def);
+            }
+        }
+        return def;
+    }
+
+    private static double asDouble(Object o, double def) {
+        if (o instanceof Number n) return n.doubleValue();
+        try { return Double.parseDouble(String.valueOf(o)); } catch (Exception e) { return def; }
+    }
+
+    private static double getDoubleAlias(ConfigurationSection section, double def, String... keys) {
+        if (section == null) return def;
+        for (String key : keys) {
+            if (section.contains(key)) {
+                return section.getDouble(key, def);
+            }
+        }
+        return def;
+    }
+
+    private static String formatAmount(double amount) {
+        if (amount == Math.rint(amount)) {
+            return String.valueOf((long) amount);
+        }
+        return String.format(Locale.US, "%.2f", amount);
     }
 
     public boolean isOpening(UUID playerId) { return openingPlayers.contains(playerId); }

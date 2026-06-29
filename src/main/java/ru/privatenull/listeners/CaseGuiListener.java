@@ -14,6 +14,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import ru.privatenull.cases.CaseManager;
 import ru.privatenull.cases.animation.AnimationType;
 import ru.privatenull.cases.model.CaseDefinition;
+import ru.privatenull.cases.model.Reward;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,6 +25,17 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class CaseGuiListener implements Listener {
+
+    private static final int[] ANIMATION_SLOTS = {10, 11, 13, 15, 16};
+    private static final int[] PREVIEW_REWARD_SLOTS = {
+            10, 11, 12, 13, 14, 15, 16,
+            19, 20, 21, 22, 23, 24, 25,
+            28, 29, 30, 31, 32, 33, 34,
+            37, 38, 39, 40, 41, 42, 43
+    };
+    private static final int PREVIEW_PREV_SLOT = 45;
+    private static final int PREVIEW_BACK_SLOT = 49;
+    private static final int PREVIEW_NEXT_SLOT = 53;
 
     private final CaseManager caseManager;
     private final Set<UUID> clickLock = ConcurrentHashMap.newKeySet();
@@ -47,8 +59,22 @@ public class CaseGuiListener implements Listener {
         e.setCancelled(true);
 
         int slot = e.getRawSlot();
-        if (slot == 49) {
+        if (holder.type() == CaseGuiHolder.Type.PREVIEW) {
+            handlePreviewClick(p, holder, slot);
+            return;
+        }
+
+        if (holder.type() != CaseGuiHolder.Type.CASE) {
+            return;
+        }
+
+        if (slot == CaseManager.ANIMATION_SLOT) {
             openAnimationSelectGui(p, holder.caseName());
+            return;
+        }
+
+        if (slot == CaseManager.PREVIEW_SLOT) {
+            openRewardPreviewGui(p, holder.caseName(), 0);
             return;
         }
 
@@ -86,7 +112,7 @@ public class CaseGuiListener implements Listener {
             caseManager.getPlugin().getKeyStorage().add(uuid, keyId, give);
             e.getInventory().setItem(22, pane(Material.LIME_STAINED_GLASS_PANE,
                     caseManager.getPlugin().getMessages().getOr("gui.buy.success", "gui-buy-success"), Collections.emptyList()));
-            p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.7f, 1.2f);
+            p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.28f, 1.2f);
             scheduleRefresh(p, holder.caseName(), def, uuid, 30L);
             return;
         }
@@ -102,8 +128,106 @@ public class CaseGuiListener implements Listener {
         }
 
         e.getInventory().setItem(22, pane(Material.RED_STAINED_GLASS_PANE, title, lore));
-        p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.8f, 1.0f);
+        p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.24f, 1.0f);
         scheduleRefresh(p, holder.caseName(), def, uuid, 30L);
+    }
+
+    private void openRewardPreviewGui(Player p, String caseName, int page) {
+        CaseDefinition def = caseManager.getCaseByName(caseName);
+        if (def == null) return;
+
+        List<Reward> rewards = def.rewards();
+        int pageSize = PREVIEW_REWARD_SLOTS.length;
+        int pages = Math.max(1, (int) Math.ceil(rewards.size() / (double) pageSize));
+        int safePage = Math.max(0, Math.min(page, pages - 1));
+
+        Inventory inv = org.bukkit.Bukkit.createInventory(
+                CaseGuiHolder.previewGui(caseName, safePage),
+                54,
+                color("&8Содержимое кейса")
+        );
+
+        ItemStack filler = pane(Material.GRAY_STAINED_GLASS_PANE, " ", Collections.emptyList());
+        for (int i = 0; i < inv.getSize(); i++) {
+            inv.setItem(i, filler);
+        }
+
+        int totalChance = rewards.stream().mapToInt(Reward::chance).sum();
+        int start = safePage * pageSize;
+        for (int i = 0; i < pageSize; i++) {
+            int rewardIndex = start + i;
+            if (rewardIndex >= rewards.size()) break;
+            inv.setItem(PREVIEW_REWARD_SLOTS[i], caseManager.buildRewardPreviewItem(rewards.get(rewardIndex), totalChance));
+        }
+
+        inv.setItem(4, buildPreviewInfoItem(def, safePage, pages, rewards.size()));
+        inv.setItem(PREVIEW_BACK_SLOT, buildPreviewButton(Material.ARROW,
+                "§x§A§0§E§F§A§1← §fНазад",
+                List.of("", " §7- §fВернуться к кейсу", "")));
+
+        if (safePage > 0) {
+            inv.setItem(PREVIEW_PREV_SLOT, buildPreviewButton(Material.SPECTRAL_ARROW,
+                    "§x§A§0§E§F§A§1← §fПредыдущая",
+                    List.of("", " §7- §fСтраница " + safePage + " из " + pages, "")));
+        }
+
+        if (safePage + 1 < pages) {
+            inv.setItem(PREVIEW_NEXT_SLOT, buildPreviewButton(Material.SPECTRAL_ARROW,
+                    "§x§A§0§E§F§A§1→ §fСледующая",
+                    List.of("", " §7- §fСтраница " + (safePage + 2) + " из " + pages, "")));
+        }
+
+        p.openInventory(inv);
+        p.playSound(p.getLocation(), Sound.BLOCK_BARREL_OPEN, 0.22f, 1.25f);
+    }
+
+    private void handlePreviewClick(Player p, CaseGuiHolder holder, int slot) {
+        if (slot == PREVIEW_BACK_SLOT) {
+            CaseDefinition def = caseManager.getCaseByName(holder.caseName());
+            if (def != null) {
+                caseManager.openCaseGui(p, def);
+            }
+            p.playSound(p.getLocation(), Sound.BLOCK_BARREL_CLOSE, 0.2f, 0.95f);
+            return;
+        }
+
+        if (slot == PREVIEW_PREV_SLOT) {
+            openRewardPreviewGui(p, holder.caseName(), holder.page() - 1);
+            return;
+        }
+
+        if (slot == PREVIEW_NEXT_SLOT) {
+            openRewardPreviewGui(p, holder.caseName(), holder.page() + 1);
+        }
+    }
+
+    private ItemStack buildPreviewInfoItem(CaseDefinition def, int page, int pages, int rewardCount) {
+        ItemStack item = new ItemStack(Material.KNOWLEDGE_BOOK);
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return item;
+
+        meta.setDisplayName(color("&x&4&2&9&F&9&1▸ &fСодержимое кейса"));
+        meta.setLore(List.of(
+                "",
+                color("&x&A&0&E&F&A&1 «Информация»"),
+                color(" &7- &fКейс: &x&4&2&9&F&9&1" + def.name()),
+                color(" &7- &fНаград: &x&4&2&9&F&9&1" + rewardCount),
+                color(" &7- &fСтраница: &x&4&2&9&F&9&1" + (page + 1) + "&7/&x&4&2&9&F&9&1" + pages),
+                ""
+        ));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack buildPreviewButton(Material material, String name, List<String> lore) {
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return item;
+
+        meta.setDisplayName(color(name));
+        meta.setLore(lore.stream().map(CaseGuiListener::color).toList());
+        item.setItemMeta(meta);
+        return item;
     }
 
     private void openAnimationSelectGui(Player p, String caseName) {
@@ -119,11 +243,10 @@ public class CaseGuiListener implements Listener {
         }
 
         AnimationType[] types = AnimationType.values();
-        int[] slots = {10, 12, 14, 16};
         AnimationType selected = caseManager.getPlayerAnimation(p.getUniqueId());
 
-        for (int i = 0; i < types.length && i < slots.length; i++) {
-            inv.setItem(slots[i], buildAnimationItem(types[i], types[i] == selected));
+        for (int i = 0; i < types.length && i < ANIMATION_SLOTS.length; i++) {
+            inv.setItem(ANIMATION_SLOTS[i], buildAnimationItem(types[i], types[i] == selected));
         }
 
         ItemStack back = new ItemStack(Material.ARROW);
@@ -141,7 +264,7 @@ public class CaseGuiListener implements Listener {
         inv.setItem(22, back);
 
         p.openInventory(inv);
-        p.playSound(p.getLocation(), Sound.BLOCK_BARREL_OPEN, 0.7f, 1.15f);
+        p.playSound(p.getLocation(), Sound.BLOCK_BARREL_OPEN, 0.28f, 1.15f);
     }
 
     private void handleAnimationSelectClick(Player p, AnimationSelectHolder holder, int slot) {
@@ -150,15 +273,14 @@ public class CaseGuiListener implements Listener {
             if (def != null) {
                 caseManager.openCaseGui(p, def);
             }
-            p.playSound(p.getLocation(), Sound.BLOCK_BARREL_CLOSE, 0.7f, 0.95f);
+            p.playSound(p.getLocation(), Sound.BLOCK_BARREL_CLOSE, 0.24f, 0.95f);
             return;
         }
 
-        int[] slots = {10, 12, 14, 16};
         AnimationType[] types = AnimationType.values();
 
-        for (int i = 0; i < types.length && i < slots.length; i++) {
-            if (slot != slots[i]) continue;
+        for (int i = 0; i < types.length && i < ANIMATION_SLOTS.length; i++) {
+            if (slot != ANIMATION_SLOTS[i]) continue;
 
             AnimationType chosen = types[i];
             if (caseManager.getPlayerAnimation(p.getUniqueId()) == chosen) return;
@@ -166,8 +288,8 @@ public class CaseGuiListener implements Listener {
             caseManager.setPlayerAnimation(p.getUniqueId(), chosen);
 
             Inventory inv = p.getOpenInventory().getTopInventory();
-            for (int j = 0; j < types.length && j < slots.length; j++) {
-                inv.setItem(slots[j], buildAnimationItem(types[j], types[j] == chosen));
+            for (int j = 0; j < types.length && j < ANIMATION_SLOTS.length; j++) {
+                inv.setItem(ANIMATION_SLOTS[j], buildAnimationItem(types[j], types[j] == chosen));
             }
 
             playAnimationSelectSound(p, chosen);
@@ -177,13 +299,17 @@ public class CaseGuiListener implements Listener {
     }
 
     private void playAnimationSelectSound(Player p, AnimationType type) {
-        p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 0.35f, 1.35f);
+        p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 0.22f, 1.35f);
 
         switch (type) {
-            case ANVIL -> p.playSound(p.getLocation(), Sound.BLOCK_ANVIL_PLACE, 0.28f, 1.45f);
-            case DYNAMITE -> p.playSound(p.getLocation(), Sound.ENTITY_TNT_PRIMED, 0.25f, 1.75f);
-            case PORTAL -> p.playSound(p.getLocation(), Sound.BLOCK_PORTAL_AMBIENT, 0.18f, 1.65f);
-            case POISON -> p.playSound(p.getLocation(), Sound.ENTITY_SPIDER_AMBIENT, 0.25f, 1.6f);
+            case ANVIL -> p.playSound(p.getLocation(), Sound.BLOCK_ANVIL_PLACE, 0.16f, 1.45f);
+            case DYNAMITE -> p.playSound(p.getLocation(), Sound.ENTITY_TNT_PRIMED, 0.15f, 1.75f);
+            case PORTAL -> p.playSound(p.getLocation(), Sound.BLOCK_PORTAL_AMBIENT, 0.12f, 1.65f);
+            case POISON -> p.playSound(p.getLocation(), Sound.ENTITY_SPIDER_AMBIENT, 0.15f, 1.6f);
+            case CAULDRON -> {
+                p.playSound(p.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 0.13f, 1.65f);
+                p.playSound(p.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.15f, 1.85f);
+            }
         }
     }
 

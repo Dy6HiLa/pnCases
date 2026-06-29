@@ -3,7 +3,7 @@ version: '${version}'
 main: ru.privatenull.pnCases
 api-version: '1.21'
 authors: [ privatenull ]
-softdepend: [LuckPerms, FancyHolograms]
+softdepend: [LuckPerms, FancyHolograms, DecentHolograms, Vault, PlayerPoints]
 commands:
   pncases:
     description: dohcases admin commands

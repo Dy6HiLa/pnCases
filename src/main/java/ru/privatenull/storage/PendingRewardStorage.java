@@ -1,100 +1,131 @@
 package ru.privatenull.storage;
 
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.java.JavaPlugin;
 import ru.privatenull.cases.model.Reward;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Base64;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
 public final class PendingRewardStorage {
 
-    private final File file;
-    private final YamlConfiguration cfg;
+    private final SqliteDatabase database;
 
-    public PendingRewardStorage(JavaPlugin plugin) {
-        if (!plugin.getDataFolder().exists()) plugin.getDataFolder().mkdirs();
-        this.file = new File(plugin.getDataFolder(), "pending_rewards.yml");
-        if (!file.exists()) {
-            try { file.createNewFile(); }
-            catch (IOException e) { throw new RuntimeException(e); }
-        }
-        this.cfg = YamlConfiguration.loadConfiguration(file);
+    public PendingRewardStorage(SqliteDatabase database) {
+        this.database = database;
     }
 
     public synchronized void save(UUID uuid, Reward reward) {
-        String base = "players." + uuid;
-        cfg.set(base + ".type",   reward.type().name());
-        cfg.set(base + ".chance", reward.chance());
-        if (reward.displayName() != null) cfg.set(base + ".displayName", reward.displayName());
-        if (reward.message()  != null) cfg.set(base + ".message", reward.message());
-        if (reward.lpGroup() != null) cfg.set(base + ".lpGroup", reward.lpGroup());
-        if (reward.lpNode() != null) cfg.set(base + ".lpNode", reward.lpNode());
-        if (reward.lpDuration() != null) cfg.set(base + ".lpDuration", reward.lpDuration());
-
-        if (reward.type() == Reward.Type.ITEM && reward.item() != null) {
-            try {
-                String b64 = Base64.getEncoder().encodeToString(reward.item().serializeAsBytes());
-                cfg.set(base + ".item", b64);
-            } catch (Exception ignored) {
-            }
+        try (PreparedStatement statement = database.connection().prepareStatement("""
+                INSERT INTO pending_rewards(
+                    player_uuid, type, chance, rarity, item_base64, lp_group, lp_node, lp_duration,
+                    vault_amount, player_points_amount, message, display_name
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(player_uuid) DO UPDATE SET
+                    type = excluded.type,
+                    chance = excluded.chance,
+                    rarity = excluded.rarity,
+                    item_base64 = excluded.item_base64,
+                    lp_group = excluded.lp_group,
+                    lp_node = excluded.lp_node,
+                    lp_duration = excluded.lp_duration,
+                    vault_amount = excluded.vault_amount,
+                    player_points_amount = excluded.player_points_amount,
+                    message = excluded.message,
+                    display_name = excluded.display_name
+                """)) {
+            statement.setString(1, uuid.toString());
+            statement.setString(2, reward.type().name());
+            statement.setInt(3, reward.chance());
+            statement.setString(4, reward.rarity().name());
+            statement.setString(5, SqliteDatabase.serializeItem(reward.item()));
+            statement.setString(6, reward.lpGroup());
+            statement.setString(7, reward.lpNode());
+            statement.setString(8, reward.lpDuration());
+            statement.setDouble(9, reward.vaultAmount());
+            statement.setInt(10, reward.playerPointsAmount());
+            statement.setString(11, reward.message());
+            statement.setString(12, reward.displayName());
+            statement.executeUpdate();
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Не удалось сохранить отложенную награду в SQLite.", ex);
         }
-        save();
     }
 
     public synchronized Reward load(UUID uuid) {
-        String base = "players." + uuid;
-        if (!cfg.contains(base + ".type")) return null;
+        try (PreparedStatement statement = database.connection().prepareStatement("""
+                SELECT type, chance, rarity, item_base64, lp_group, lp_node, lp_duration,
+                       vault_amount, player_points_amount, message, display_name
+                FROM pending_rewards
+                WHERE player_uuid = ?
+                """)) {
+            statement.setString(1, uuid.toString());
 
-        String typeStr = cfg.getString(base + ".type", "ITEM");
-        Reward.Type type;
-        try { type = Reward.Type.valueOf(typeStr); }
-        catch (Exception e) { type = Reward.Type.ITEM; }
+            try (ResultSet result = statement.executeQuery()) {
+                if (!result.next()) return null;
 
-        int chance = cfg.getInt(base + ".chance", 100);
-        String displayName = cfg.getString(base + ".displayName");
-        String message = cfg.getString(base + ".message");
-        String lpGroup = cfg.getString(base + ".lpGroup");
-        String lpNode = cfg.getString(base + ".lpNode");
-        String lpDuration = cfg.getString(base + ".lpDuration");
+                Reward.Type type = parseType(result.getString("type"));
+                int chance = result.getInt("chance");
+                ItemStack item = SqliteDatabase.deserializeItem(result.getString("item_base64"));
 
-        ItemStack item = null;
-        if (type == Reward.Type.ITEM) {
-            String b64 = cfg.getString(base + ".item");
-            if (b64 != null) {
-                try { item = ItemStack.deserializeBytes(Base64.getDecoder().decode(b64)); }
-                catch (Exception ignored) {
-                }
+                return new Reward(
+                        chance,
+                        type,
+                        item,
+                        result.getString("lp_group"),
+                        result.getString("lp_node"),
+                        result.getString("lp_duration"),
+                        result.getDouble("vault_amount"),
+                        result.getInt("player_points_amount"),
+                        result.getString("message"),
+                        result.getString("display_name"),
+                        Reward.Rarity.parse(result.getString("rarity"), chance)
+                );
             }
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Не удалось прочитать отложенную награду из SQLite.", ex);
         }
-
-        return new Reward(chance, type, item, lpGroup, lpNode, lpDuration, message, displayName);
     }
 
     public synchronized void clear(UUID uuid) {
-        cfg.set("players." + uuid, null);
-        save();
+        try (PreparedStatement statement = database.connection().prepareStatement("""
+                DELETE FROM pending_rewards WHERE player_uuid = ?
+                """)) {
+            statement.setString(1, uuid.toString());
+            statement.executeUpdate();
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Не удалось удалить отложенную награду из SQLite.", ex);
+        }
     }
 
     public synchronized Set<UUID> getAll() {
         Set<UUID> uuids = new HashSet<>();
-        ConfigurationSection sec = cfg.getConfigurationSection("players");
-        if (sec == null) return uuids;
-        for (String key : sec.getKeys(false)) {
-            try { uuids.add(UUID.fromString(key)); }
-            catch (Exception ignored) {}
+
+        try (PreparedStatement statement = database.connection().prepareStatement("""
+                SELECT player_uuid FROM pending_rewards
+                """);
+             ResultSet result = statement.executeQuery()) {
+            while (result.next()) {
+                try {
+                    uuids.add(UUID.fromString(result.getString("player_uuid")));
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+            return uuids;
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Не удалось прочитать список отложенных наград из SQLite.", ex);
         }
-        return uuids;
     }
 
-    private void save() {
-        try { cfg.save(file); }
-        catch (IOException e) { throw new RuntimeException(e); }
+    private static Reward.Type parseType(String value) {
+        try {
+            return Reward.Type.valueOf(value);
+        } catch (Exception ignored) {
+            return Reward.Type.ITEM;
+        }
     }
 }

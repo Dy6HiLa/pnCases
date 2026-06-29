@@ -1,6 +1,7 @@
 package ru.privatenull.commands;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
@@ -9,6 +10,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import ru.privatenull.cases.CaseManager;
 import ru.privatenull.pnCases;
+import ru.privatenull.update.UpdateChecker;
 
 import java.util.UUID;
 
@@ -30,16 +32,23 @@ public class CasesCMD implements CommandExecutor {
         }
 
         if (args.length == 0) {
+            sendVersionInfo(sender);
             plugin.getMessages().getList("command-help").forEach(sender::sendMessage);
             return true;
         }
 
         if (args[0].equalsIgnoreCase("reload")) {
             plugin.reloadConfig();
+            var validation = plugin.validateCurrentConfig();
             plugin.getMessages().load();
             caseManager.reloadFromConfig();
             plugin.reloadRuntimeConfig();
             sender.sendMessage(plugin.getMessages().get("config-reloaded"));
+            if (validation.hasProblems()) {
+                sender.sendMessage("§e[pnCases] Config validation: §cошибок " + validation.errors()
+                        + "§e, предупреждений §6" + validation.warnings()
+                        + "§e. Подробности в консоли сервера.");
+            }
             return true;
         }
 
@@ -188,8 +197,43 @@ public class CasesCMD implements CommandExecutor {
         }
 
         sender.sendMessage(plugin.getMessages().get("unknown-command"));
+        sendVersionInfo(sender);
         plugin.getMessages().getList("command-help").forEach(sender::sendMessage);
         return true;
+    }
+
+    private void sendVersionInfo(CommandSender sender) {
+        String current = plugin.getDescription().getVersion();
+        sender.sendMessage(plugin.getMessages().get("command-version", "version", current));
+
+        UpdateChecker checker = plugin.getUpdateChecker();
+        if (checker == null || !checker.isCheckCompleted()) {
+            sender.sendMessage(plugin.getMessages().get("command-update-checking"));
+            return;
+        }
+
+        if (checker.isUpdateAvailable()) {
+            sender.sendMessage(plugin.getMessages().get("command-update-available",
+                    "current", current,
+                    "latest", nullToUnknown(checker.getLatestVersion())));
+            sender.sendMessage(plugin.getMessages().get("command-update-download",
+                    "url", checker.getDownloadUrl()));
+            return;
+        }
+
+        String error = checker.getLastError();
+        if (error != null && !error.isBlank()) {
+            sender.sendMessage(plugin.getMessages().get("command-update-error",
+                    "error", ChatColor.stripColor(error) == null ? error : ChatColor.stripColor(error)));
+            return;
+        }
+
+        sender.sendMessage(plugin.getMessages().get("command-update-latest",
+                "latest", nullToUnknown(checker.getLatestVersion())));
+    }
+
+    private static String nullToUnknown(String value) {
+        return value == null || value.isBlank() ? "неизвестно" : value;
     }
 
     private static OfflinePlayer resolveOfflinePlayer(String input) {

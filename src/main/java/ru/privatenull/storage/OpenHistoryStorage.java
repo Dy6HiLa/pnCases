@@ -1,15 +1,12 @@
 package ru.privatenull.storage;
 
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.plugin.java.JavaPlugin;
-
-import java.io.File;
-import java.io.IOException;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
 public final class OpenHistoryStorage {
 
@@ -17,67 +14,80 @@ public final class OpenHistoryStorage {
 
     private static final int LIMIT = 9;
 
-    private final File file;
-    private final YamlConfiguration cfg;
+    private final SqliteDatabase database;
 
-    public OpenHistoryStorage(JavaPlugin plugin) {
-        if (!plugin.getDataFolder().exists()) plugin.getDataFolder().mkdirs();
-        this.file = new File(plugin.getDataFolder(), "open_history.yml");
-        if (!file.exists()) {
-            try {
-                file.createNewFile();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        this.cfg = YamlConfiguration.loadConfiguration(file);
+    public OpenHistoryStorage(SqliteDatabase database) {
+        this.database = database;
     }
 
     public synchronized void add(String caseName, String playerName, String rewardName) {
-        String base = "cases." + caseName.toLowerCase();
-        List<Entry> entries = new ArrayList<>(get(caseName));
-        entries.add(0, new Entry(playerName, rewardName, Instant.now().getEpochSecond()));
-        if (entries.size() > LIMIT) {
-            entries = new ArrayList<>(entries.subList(0, LIMIT));
+        String normalizedCase = normalizeCase(caseName);
+
+        try (PreparedStatement statement = database.connection().prepareStatement("""
+                INSERT INTO open_history(case_name, player_name, reward_name, opened_at)
+                VALUES (?, ?, ?, ?)
+                """)) {
+            statement.setString(1, normalizedCase);
+            statement.setString(2, playerName == null ? "Unknown" : playerName);
+            statement.setString(3, rewardName == null ? "Награда" : rewardName);
+            statement.setLong(4, Instant.now().getEpochSecond());
+            statement.executeUpdate();
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Не удалось сохранить историю открытия в SQLite.", ex);
         }
 
-        cfg.set(base, null);
-        for (int i = 0; i < entries.size(); i++) {
-            Entry entry = entries.get(i);
-            String path = base + "." + i;
-            cfg.set(path + ".player", entry.playerName());
-            cfg.set(path + ".reward", entry.rewardName());
-            cfg.set(path + ".time", entry.openedAt());
-        }
-        save();
+        trim(normalizedCase);
     }
 
     public synchronized List<Entry> get(String caseName) {
-        ConfigurationSection sec = cfg.getConfigurationSection("cases." + caseName.toLowerCase());
         List<Entry> entries = new ArrayList<>();
-        if (sec == null) return entries;
 
-        for (String key : sec.getKeys(false)) {
-            ConfigurationSection item = sec.getConfigurationSection(key);
-            if (item == null) continue;
-            String player = item.getString("player", "Unknown");
-            String reward = item.getString("reward", "Награда");
-            long time = item.getLong("time", 0L);
-            entries.add(new Entry(player, reward, time));
-        }
+        try (PreparedStatement statement = database.connection().prepareStatement("""
+                SELECT player_name, reward_name, opened_at
+                FROM open_history
+                WHERE case_name = ?
+                ORDER BY opened_at DESC, id DESC
+                LIMIT ?
+                """)) {
+            statement.setString(1, normalizeCase(caseName));
+            statement.setInt(2, LIMIT);
 
-        entries.sort(Comparator.comparingLong(Entry::openedAt).reversed());
-        if (entries.size() > LIMIT) {
-            return new ArrayList<>(entries.subList(0, LIMIT));
+            try (ResultSet result = statement.executeQuery()) {
+                while (result.next()) {
+                    entries.add(new Entry(
+                            result.getString("player_name"),
+                            result.getString("reward_name"),
+                            result.getLong("opened_at")
+                    ));
+                }
+            }
+            return entries;
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Не удалось прочитать историю открытия из SQLite.", ex);
         }
-        return entries;
     }
 
-    private void save() {
-        try {
-            cfg.save(file);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+    private void trim(String caseName) {
+        try (PreparedStatement statement = database.connection().prepareStatement("""
+                DELETE FROM open_history
+                WHERE case_name = ?
+                  AND id NOT IN (
+                      SELECT id FROM open_history
+                      WHERE case_name = ?
+                      ORDER BY opened_at DESC, id DESC
+                      LIMIT ?
+                  )
+                """)) {
+            statement.setString(1, caseName);
+            statement.setString(2, caseName);
+            statement.setInt(3, LIMIT);
+            statement.executeUpdate();
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Не удалось очистить старую историю открытия в SQLite.", ex);
         }
+    }
+
+    private static String normalizeCase(String caseName) {
+        return (caseName == null ? "" : caseName).toLowerCase(Locale.ROOT);
     }
 }

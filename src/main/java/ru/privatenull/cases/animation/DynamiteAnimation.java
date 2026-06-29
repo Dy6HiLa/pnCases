@@ -17,11 +17,11 @@ import java.util.Random;
 
 public class DynamiteAnimation extends CaseAnimation {
 
-    private static final int PHASE0_END = 35;
-    private static final int PHASE1_END = 60;
-    private static final int PHASE2_END = 65;
-    private static final int PHASE3_END = 110;
-    private static final int PHASE4_END = 155;
+    private static final int PHASE0_END = 46;
+    private static final int PHASE1_END = 78;
+    private static final int PHASE2_END = 84;
+    private static final int PHASE3_END = 138;
+    private static final int PHASE4_END = 188;
 
     private static final int DEBRIS_COUNT    = 10;
     private static final int GUNPOWDER_COUNT = 8;
@@ -108,15 +108,15 @@ public class DynamiteAnimation extends CaseAnimation {
                         if (curY <= tntTarget.getY()) {
                             curY = tntTarget.getY();
                             bouncing = true;
-                            bounceVY = Math.abs(velY) * 0.35;
+                            bounceVY = Math.abs(velY) * 0.28;
                             bounceCount = 0;
-                            w.playSound(base, Sound.BLOCK_STONE_HIT, 1.0f, 0.8f);
+                            w.playSound(base, Sound.BLOCK_STONE_HIT, 0.28f, 0.8f);
                             w.spawnParticle(Particle.BLOCK,
                                     new Location(w, curX, tntTarget.getY() + 0.05, curZ),
                                     8, 0.2, 0.0, 0.2, 0.02,
                                     Material.DIRT.createBlockData());
                         }
-                        tnt.setRotation((float)(t * 12), (float)(t * 5));
+                        tnt.setRotation((float)(t * 7), (float)(t * 3));
                     } else {
                         bounceVY -= g;
                         curY += bounceVY;
@@ -141,7 +141,7 @@ public class DynamiteAnimation extends CaseAnimation {
                     }
                     if (t % 6 == 0 && !bouncing) {
                         w.playSound(new Location(w, curX, curY, curZ),
-                                Sound.ENTITY_ARROW_SHOOT, 0.4f, 0.6f + (float) t / PHASE0_END * 0.4f);
+                                Sound.ENTITY_ARROW_SHOOT, 0.16f, 0.6f + (float) t / PHASE0_END * 0.4f);
                     }
                 }
 
@@ -153,8 +153,8 @@ public class DynamiteAnimation extends CaseAnimation {
                         boolean bright = ((t - PHASE0_END) % 6) < 3;
                         tnt.setBlock(bright ? Material.TNT.createBlockData() : Material.REDSTONE_BLOCK.createBlockData());
 
-                        float jitter = (t > PHASE1_END - 8)
-                                ? 1.0f + (rng.nextFloat() - 0.5f) * 0.06f
+                        float jitter = (t > PHASE1_END - 10)
+                                ? 1.0f + (rng.nextFloat() - 0.5f) * 0.028f
                                 : 1.0f;
                         centerBlock(tnt, jitter);
                     }
@@ -165,7 +165,7 @@ public class DynamiteAnimation extends CaseAnimation {
 
                     if (t % 5 == 0) {
                         float progress = (float)(t - PHASE0_END) / (PHASE1_END - PHASE0_END);
-                        w.playSound(base, Sound.ENTITY_TNT_PRIMED, 0.6f, 0.7f + progress * 0.8f);
+                        w.playSound(base, Sound.ENTITY_TNT_PRIMED, 0.22f, 0.7f + progress * 0.8f);
                     }
                 }
 
@@ -190,11 +190,11 @@ public class DynamiteAnimation extends CaseAnimation {
                         w.spawnParticle(Particle.FLAME, ring, 2, 0.02, 0.05, 0.02, 0.06);
                     }
 
-                    w.playSound(base, Sound.ENTITY_GENERIC_EXPLODE, 1.4f, 0.7f);
-                    w.playSound(base, Sound.ENTITY_TNT_PRIMED, 1.0f, 0.4f);
-                    w.playSound(base, Sound.BLOCK_STONE_BREAK, 0.9f, 0.5f);
-                    w.playSound(base, Sound.ENTITY_ZOMBIE_BREAK_WOODEN_DOOR, 0.7f, 0.6f);
-                    player.playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1.0f, 0.8f);
+                    w.playSound(base, Sound.ENTITY_GENERIC_EXPLODE, 0.42f, 0.7f);
+                    w.playSound(base, Sound.ENTITY_TNT_PRIMED, 0.28f, 0.4f);
+                    w.playSound(base, Sound.BLOCK_STONE_BREAK, 0.30f, 0.5f);
+                    w.playSound(base, Sound.ENTITY_ZOMBIE_BREAK_WOODEN_DOOR, 0.20f, 0.6f);
+                    player.playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.32f, 0.8f);
 
                     Material[] debrisMats = {
                             Material.DIRT, Material.GRAVEL, Material.STONE,
@@ -266,7 +266,7 @@ public class DynamiteAnimation extends CaseAnimation {
                             continue;
                         }
                         bd.teleport(new Location(w, debrisX[i], debrisY[i], debrisZ[i]));
-                        bd.setRotation(bd.getLocation().getYaw() + 9f, bd.getLocation().getPitch() + 6f);
+                        bd.setRotation(bd.getLocation().getYaw() + 5f, bd.getLocation().getPitch() + 3f);
                         if (t % 3 == 0)
                             w.spawnParticle(Particle.SMOKE, bd.getLocation(), 1, 0.03, 0.03, 0.03, 0.005);
                     }
@@ -294,7 +294,7 @@ public class DynamiteAnimation extends CaseAnimation {
 
                     if (t == PHASE3_END - 10) {
                         w.spawnParticle(Particle.END_ROD, base.clone().add(0, 0.2, 0), 20, 0.1, 0.05, 0.1, 0.04);
-                        w.playSound(base, Sound.BLOCK_BEACON_POWER_SELECT, 0.8f, 1.4f);
+                        w.playSound(base, Sound.BLOCK_BEACON_POWER_SELECT, 0.28f, 1.4f);
                     }
                 }
 
@@ -308,9 +308,9 @@ public class DynamiteAnimation extends CaseAnimation {
                     w.spawnParticle(Particle.END_ROD, pop, 40, 0.3, 0.2, 0.3, 0.08);
                     w.spawnParticle(Particle.ELECTRIC_SPARK, pop, 30, 0.25, 0.15, 0.25, 0.1);
                     w.spawnParticle(Particle.SMOKE, pop, 15, 0.2, 0.1, 0.2, 0.04);
-                    w.playSound(base, Sound.BLOCK_BEACON_ACTIVATE, 1.0f, 1.3f);
-                    w.playSound(base, Sound.ENTITY_PLAYER_LEVELUP, 0.7f, 1.5f);
-                    player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.9f, 1.4f);
+                    w.playSound(base, Sound.BLOCK_BEACON_ACTIVATE, 0.34f, 1.3f);
+                    w.playSound(base, Sound.ENTITY_PLAYER_LEVELUP, 0.28f, 1.5f);
+                    player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.32f, 1.4f);
                 }
 
                 if (t > PHASE3_END && t <= PHASE4_END) {
@@ -343,7 +343,7 @@ public class DynamiteAnimation extends CaseAnimation {
                     if (t % 3 == 0)
                         w.spawnParticle(Particle.ELECTRIC_SPARK, rewardLoc, 2, 0.25, 0.15, 0.25, 0.04);
                     if (t % 10 == 0)
-                        w.playSound(base, Sound.BLOCK_FIRE_AMBIENT, 0.4f, 1.5f + (float) phaseProgress * 0.5f);
+                        w.playSound(base, Sound.BLOCK_FIRE_AMBIENT, 0.15f, 1.5f + (float) phaseProgress * 0.5f);
                     if (t == PHASE3_END + 10)
                         setLabel(label, rewardVisual);
                 }
@@ -355,9 +355,9 @@ public class DynamiteAnimation extends CaseAnimation {
                     w.spawnParticle(Particle.END_ROD, rewardLoc, 40, 0.3, 0.2, 0.3, 0.06);
                     w.spawnParticle(Particle.SMOKE, rewardLoc, 30, 0.5, 0.3, 0.5, 0.05);
                     w.spawnParticle(Particle.LAVA, rewardLoc, 15, 0.3, 0.2, 0.3, 0.0);
-                    w.playSound(base, Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 1.0f);
-                    w.playSound(base, Sound.ENTITY_PLAYER_LEVELUP, 0.9f, 1.5f);
-                    player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 1.1f);
+                    w.playSound(base, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.34f, 1.0f);
+                    w.playSound(base, Sound.ENTITY_PLAYER_LEVELUP, 0.30f, 1.5f);
+                    player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.34f, 1.1f);
                     cleanup();
                 }
             }
@@ -405,8 +405,8 @@ public class DynamiteAnimation extends CaseAnimation {
     }
 
     private static ItemStack buildRewardVisual(Reward reward, CaseDefinition def) {
-        return reward.item() != null
-                ? reward.item().clone()
+        return reward.visualItem() != null
+                ? reward.visualItem().clone()
                 : def.animationItems().get(0).clone();
     }
 

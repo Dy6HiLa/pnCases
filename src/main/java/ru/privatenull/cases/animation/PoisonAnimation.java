@@ -33,9 +33,9 @@ import java.util.UUID;
 public class PoisonAnimation extends CaseAnimation {
 
     private static final int REQUIRED_HITS = 6;
-    private static final int OPENING_TICKS = 30;
-    private static final int EXPLODE_CHARGE_TICKS = 20;
-    private static final int REVEAL_TICKS = 50;
+    private static final int OPENING_TICKS = 42;
+    private static final int EXPLODE_CHARGE_TICKS = 28;
+    private static final int REVEAL_TICKS = 68;
     private static final int AUTO_BREAK_TICK = 260;
 
     public PoisonAnimation(pnCases plugin) {
@@ -132,8 +132,8 @@ public class PoisonAnimation extends CaseAnimation {
                 world.spawnParticle(Particle.ITEM_SLIME, hitLoc, 10, 0.25, 0.18, 0.25, 0.04);
                 world.spawnParticle(Particle.WITCH, hitLoc, 8, 0.25, 0.18, 0.25, 0.02);
 
-                world.playSound(cube.getLocation(), Sound.ENTITY_SLIME_HURT, 1.0f, 0.7f + hits[0] * 0.08f);
-                world.playSound(cube.getLocation(), Sound.ENTITY_PLAYER_ATTACK_STRONG, 0.75f, 1.2f);
+                world.playSound(cube.getLocation(), Sound.ENTITY_SLIME_HURT, 0.36f, 0.7f + hits[0] * 0.08f);
+                world.playSound(cube.getLocation(), Sound.ENTITY_PLAYER_ATTACK_STRONG, 0.24f, 1.2f);
 
                 info.setText(buildStatusText(hits[0]));
 
@@ -145,7 +145,7 @@ public class PoisonAnimation extends CaseAnimation {
                                     " §7- §fКуб перегружен\n" +
                                     " §7- §fСейчас лопнет..."
                     );
-                    world.playSound(cube.getLocation(), Sound.BLOCK_BREWING_STAND_BREW, 0.9f, 0.65f);
+                    world.playSound(cube.getLocation(), Sound.BLOCK_BREWING_STAND_BREW, 0.28f, 0.65f);
                 }
             }
         };
@@ -184,14 +184,14 @@ public class PoisonAnimation extends CaseAnimation {
                     spawnGroundRing(world, base.clone().add(0, 0.02, 0), 0.5 + eased * 0.9, tick[0] * 0.08);
 
                     if (tick[0] % 8 == 0) {
-                        world.playSound(cube.getLocation(), Sound.ENTITY_SLIME_SQUISH, 0.9f, 0.6f + (float) progress * 0.25f);
+                        world.playSound(cube.getLocation(), Sound.ENTITY_SLIME_SQUISH, 0.24f, 0.6f + (float) progress * 0.25f);
                     }
 
                     if (tick[0] >= OPENING_TICKS) {
                         state[0] = STATE_BATTLE;
                         cube.setSize(4);
                         info.setText(buildStatusText(hits[0]));
-                        world.playSound(cube.getLocation(), Sound.ENTITY_SLIME_JUMP, 1.0f, 0.8f);
+                        world.playSound(cube.getLocation(), Sound.ENTITY_SLIME_JUMP, 0.28f, 0.8f);
                     }
                     return;
                 }
@@ -210,7 +210,7 @@ public class PoisonAnimation extends CaseAnimation {
                     int spitInterval = Math.max(10, 24 - hits[0] * 2);
                     if (tick[0] % spitInterval == 0) {
                         spitSlime(world, cube.getLocation().clone().add(0, 0.95, 0), random, globs);
-                        world.playSound(cube.getLocation(), Sound.ENTITY_SLIME_ATTACK, 0.95f, 0.85f);
+                        world.playSound(cube.getLocation(), Sound.ENTITY_SLIME_ATTACK, 0.28f, 0.85f);
                     }
 
                     if (tick[0] >= AUTO_BREAK_TICK) {
@@ -232,8 +232,8 @@ public class PoisonAnimation extends CaseAnimation {
                     else if (dt < 12) cube.setSize(6);
                     else cube.setSize(6);
 
-                    double shakeX = (random.nextDouble() - 0.5) * 0.16;
-                    double shakeZ = (random.nextDouble() - 0.5) * 0.16;
+                    double shakeX = (random.nextDouble() - 0.5) * 0.08;
+                    double shakeZ = (random.nextDouble() - 0.5) * 0.08;
                     cube.teleport(oriented(cubeBase.clone().add(shakeX, 0.05, shakeZ), slimeYaw, slimePitch));
 
                     Location loc = cube.getLocation().clone().add(0, 1.0, 0);
@@ -243,7 +243,7 @@ public class PoisonAnimation extends CaseAnimation {
                     world.spawnParticle(Particle.SMOKE, loc, 6, 0.22, 0.12, 0.22, 0.01);
 
                     if (dt % 4 == 0) {
-                        world.playSound(cube.getLocation(), Sound.ENTITY_SLIME_SQUISH, 1.0f, 0.45f + dt * 0.03f);
+                        world.playSound(cube.getLocation(), Sound.ENTITY_SLIME_SQUISH, 0.30f, 0.45f + dt * 0.03f);
                     }
 
                     if (dt >= EXPLODE_CHARGE_TICKS) {
@@ -261,9 +261,9 @@ public class PoisonAnimation extends CaseAnimation {
                         world.spawnParticle(Particle.WITCH, explodeLoc, 24, 0.40, 0.24, 0.40, 0.03);
                         world.spawnParticle(Particle.SMOKE, explodeLoc, 18, 0.28, 0.16, 0.28, 0.03);
 
-                        world.playSound(cube.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.9f, 1.2f);
-                        world.playSound(cube.getLocation(), Sound.BLOCK_SLIME_BLOCK_BREAK, 1.0f, 0.8f);
-                        world.playSound(cube.getLocation(), Sound.ENTITY_SPLASH_POTION_BREAK, 1.0f, 0.7f);
+                        world.playSound(cube.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.28f, 1.2f);
+                        world.playSound(cube.getLocation(), Sound.BLOCK_SLIME_BLOCK_BREAK, 0.32f, 0.8f);
+                        world.playSound(cube.getLocation(), Sound.ENTITY_SPLASH_POTION_BREAK, 0.32f, 0.7f);
 
                         safeRemove(cube);
                         untrack(cube);
@@ -299,14 +299,14 @@ public class PoisonAnimation extends CaseAnimation {
                     spawnRewardAura(world, rewardLoc, dt);
 
                     if (dt % 8 == 0) {
-                        world.playSound(base, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.7f, 0.8f + (float) progress * 0.5f);
+                        world.playSound(base, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.24f, 0.8f + (float) progress * 0.5f);
                     }
 
                     if (dt >= REVEAL_TICKS) {
                         world.spawnParticle(Particle.ITEM_SLIME, rewardLoc, 18, 0.25, 0.16, 0.25, 0.03);
                         world.spawnParticle(Particle.ITEM_SLIME, rewardLoc, 14, 0.22, 0.12, 0.22, 0.03);
-                        world.playSound(base, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.95f, 1.0f);
-                        world.playSound(base, Sound.ENTITY_PLAYER_LEVELUP, 0.85f, 1.25f);
+                        world.playSound(base, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.32f, 1.0f);
+                        world.playSound(base, Sound.ENTITY_PLAYER_LEVELUP, 0.28f, 1.25f);
                         cleanup();
                     }
                 }
@@ -388,7 +388,7 @@ public class PoisonAnimation extends CaseAnimation {
             if (glob.age >= glob.maxAge || current.getY() <= base.getY() + 0.18) {
                 world.spawnParticle(Particle.ITEM_SLIME, current, 6, 0.10, 0.06, 0.10, 0.02);
                 world.spawnParticle(Particle.ITEM_SLIME, current, 5, 0.08, 0.05, 0.08, 0.02);
-                world.playSound(current, Sound.BLOCK_SLIME_BLOCK_BREAK, 0.45f, 1.5f);
+                world.playSound(current, Sound.BLOCK_SLIME_BLOCK_BREAK, 0.16f, 1.5f);
 
                 safeRemove(glob.display);
                 untrack(glob.display);
@@ -511,8 +511,8 @@ public class PoisonAnimation extends CaseAnimation {
     }
 
     private static ItemStack buildRewardVisual(Reward reward, CaseDefinition def) {
-        if (reward.item() != null) {
-            return reward.item().clone();
+        if (reward.visualItem() != null) {
+            return reward.visualItem().clone();
         }
 
         ItemStack matched = findMatchingAnimationItem(reward, def);

@@ -1,17 +1,26 @@
+reward-symbols:
+  vault: $
+  playerpoints: ✦
+
 keys:
-  tools_key:
-    name: '&aКлюч: &fИнструменты'
+  money_key:
+    name: '§x§F§F§5§3§0§0ᴋ§x§F§F§5§F§0§0ᴇ§x§F§F§6§C§0§0й§x§F§E§7§8§0§0ᴄ §x§F§E§9§0§0§0ᴄ §x§F§E§A§9§0§0ʍ§x§F§D§B§5§0§0о§x§F§D§C§2§0§0н§x§F§D§C§E§0§0ᴇ§x§F§D§D§A§0§0ᴛ§x§F§C§E§6§0§0ᴀ§x§F§C§F§3§0§0ʍ§x§F§C§F§F§0§0и'
+  points_key:
+    name: '&bКлюч: &fPlayerPoints'
+  items_key:
+    name: '§x§0§0§9§8§F§Fк§x§0§0§9§0§F§Fе§x§0§0§8§9§F§Fй§x§0§0§8§1§F§Fс §x§0§0§7§2§F§Fс
+      §x§0§0§6§3§F§Fр§x§0§0§5§B§F§Fе§x§0§0§5§4§F§Fс§x§0§0§4§C§F§Fу§x§0§0§4§4§F§Fр§x§0§0§3§D§F§Fс§x§0§0§3§5§F§Fа§x§0§0§2§E§F§Fм§x§0§0§2§6§F§Fи'
   donate_key:
-    name: '&aДонат кейс'
-  resources_key:
-    name: '&aКлюч: &6Ресурсы'
+    name: '§x§F§F§8§6§0§0д§x§F§F§9§0§0§0о§x§F§F§9§B§0§0н§x§F§F§A§5§0§0ᴀ§x§F§F§A§F§0§0ᴛ
+      §x§F§F§C§4§0§0ᴋ§x§F§F§C§E§0§0ᴇ§x§F§F§D§9§0§0й§x§F§F§E§3§0§0ᴄ'
+
 cases:
-  donate:
+  money:
     block:
       world: world
-      x: -146
-      y: 69
-      z: -43
+      x: -102
+      y: 74
+      z: 450
     hologram:
       enabled: true
       type: TEXT
@@ -19,8 +28,8 @@ cases:
       y: 1.5
       z: 0.0
       lines:
-      - §x§6§F§2§A§6§B§lК§x§7§2§2§9§6§A§lе§x§7§4§2§8§6§9§lй§x§7§7§2§8§6§8§lс §x§7§D§2§6§6§6§lс
-        §x§8§2§2§5§6§4§lП§x§8§5§2§4§6§3§lᴘ§x§8§8§2§3§6§2§lи§x§8§A§2§2§6§1§lʙ§x§8§D§2§1§6§0§lи§x§9§0§2§1§5§F§lл§x§9§2§2§0§5§E§lᴇ§x§9§5§1§F§5§D§lг§x§9§8§1§E§5§C§lи§x§9§B§1§E§5§B§lя§x§9§D§1§D§5§A§lм§x§A§0§1§C§5§9§lи
+      - '§x§F§F§5§3§0§0ᴋ§x§F§F§5§F§0§0ᴇ§x§F§F§6§C§0§0й§x§F§E§7§8§0§0ᴄ §x§F§E§9§0§0§0ᴄ §x§F§E§A§9§0§0ʍ§x§F§D§B§5§0§0о§x§F§D§C§2§0§0н§x§F§D§C§E§0§0ᴇ§x§F§D§D§A§0§0ᴛ§x§F§C§E§6§0§0ᴀ§x§F§C§F§3§0§0ʍ§x§F§C§F§F§0§0и'
+      - '&7↪ Нажмите чтобы открыть ↩'
       billboard: CENTER
       text_alignment: CENTER
       text_shadow: true
@@ -31,161 +40,22 @@ cases:
       visibility_distance: 64
       text_update_interval: 0
     gui:
-      title: '&8Кейс с привилегиями'
+      title: '&8Кейс с монетами'
       open-item:
-        material: FLOWER_BANNER_PATTERN
-        name: §x§6§F§2§A§6§B§lК§x§7§2§2§9§6§A§lе§x§7§4§2§8§6§9§lй§x§7§7§2§8§6§8§lс
-          §x§7§D§2§6§6§6§lс §x§8§2§2§5§6§4§lП§x§8§5§2§4§6§3§lᴘ§x§8§8§2§3§6§2§lи§x§8§A§2§2§6§1§lʙ§x§8§D§2§1§6§0§lи§x§9§0§2§1§5§F§lл§x§9§2§2§0§5§E§lᴇ§x§9§5§1§F§5§D§lг§x§9§8§1§E§5§C§lи§x§9§B§1§E§5§B§lя§x§9§D§1§D§5§A§lм§x§A§0§1§C§5§9§lи
+        material: EMERALD
+        name: '§x§F§F§5§3§0§0ᴋ§x§F§F§5§F§0§0ᴇ§x§F§F§6§C§0§0й§x§F§E§7§8§0§0ᴄ §x§F§E§9§0§0§0ᴄ §x§F§E§A§9§0§0ʍ§x§F§D§B§5§0§0о§x§F§D§C§2§0§0н§x§F§D§C§E§0§0ᴇ§x§F§D§D§A§0§0ᴛ§x§F§C§E§6§0§0ᴀ§x§F§C§F§3§0§0ʍ§x§F§C§F§F§0§0и'
         lore:
         - ''
         - '&7Содержимое:'
-        - '&7- &evip'
+        - '&7-&r &e1500 ʍонᴇᴛ'
+        - '&7-&r &e2500 ʍонᴇᴛ'
+        - '&7-&r &e5000 ʍонᴇᴛ'
+        - '&7-&r &e7500 ʍонᴇᴛ'
+        - '&7-&r &e10000 ʍонᴇᴛ'
         - ''
     cost:
       type: KEY
-      key: donate_key
-      amount: 1
-      buy_xp_levels: 100
-    animation:
-      duration_ticks: 80
-      cycle_every_ticks: 2
-      rise_blocks: 1.2
-      spin_degrees_per_tick: 18
-      poison:
-        slime-facing: SOUTH
-        slime-pitch: 0
-      items:
-      - base64: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNzNiYzk2NWQ1NzljM2M2MDM5ZjBhMTdlYjdjMmU2ZmFmNTM4YzdhNWRlOGU2MGVjN2E3MTkzNjBkMGE4NTdhOSJ9fX0=
-        name: '&evip'
-      - base64: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMTFlZDlhYmY1MWZlNGVhODRjZmNiMjcyOTdmMWJjNTRjZDM4MmVkZjg1ZTdiZDZlNzVlY2NhMmI4MDY2MTEifX19
-        name: '&ddiamond'
-      - base64: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOGU0YTcwYjdiYmNkN2E4YzMyMmQ1MjI1MjA0OTFhMjdlYTZiODNkNjBlY2Y5NjFkMmI0ZWZiYmY5ZjYwNWQifX19
-        name: '&eКрутая голова'
-    rewards:
-    - chance: 50
-      type: LUCKPERMS
-      luckperms:
-        group: vip
-        display_name: '&eVIP'
-      message: '&aТы получил привилегию &eVIP&a!'
-    - chance: 40
-      type: LUCKPERMS
-      luckperms:
-        group: diamond
-        display_name: '&dDIAMOND &7на 7 дней'
-      message: '&aТебе выдали DIAMOND на 7 дней!'
-  tools:
-    block:
-      world: world
-      x: -126
-      y: 65
-      z: -49
-    hologram:
-      enabled: true
-      type: TEXT
-      x: 0.0
-      y: 1.5
-      z: 0.0
-      lines:
-      - §x§6§7§2§A§7§F§lК§x§6§C§2§D§7§F§lе§x§7§1§3§0§7§F§lй§x§7§6§3§3§7§F§lс §x§8§1§3§A§8§0§lс
-        §x§8§B§4§0§8§0§lИ§x§9§0§4§3§8§0§lн§x§9§5§4§6§8§0§lс§x§9§A§4§A§8§1§lт§x§9§F§4§D§8§1§lр§x§A§4§5§0§8§1§lу§x§A§9§5§3§8§1§lм§x§A§E§5§6§8§1§lе§x§B§4§5§9§8§1§lн§x§B§9§5§D§8§2§lт§x§B§E§6§0§8§2§lа§x§C§3§6§3§8§2§lм§x§C§8§6§6§8§2§lи
-      billboard: CENTER
-      text_alignment: CENTER
-      text_shadow: true
-      see_through: true
-      shadow_radius: 0.0
-      shadow_strength: 1.0
-      background: none
-      visibility_distance: 64
-      text_update_interval: 0
-    gui:
-      title: '&8Кейс с инструментами'
-      open-item:
-        material: CHEST
-        name: '&aОткрыть кейс'
-        lore:
-        - ''
-    cost:
-      type: KEY
-      key: tools_key
-      amount: 1
-      buy_xp_levels: 40
-    animation:
-      duration_ticks: 80
-      cycle_every_ticks: 2
-      rise_blocks: 1.2
-      spin_degrees_per_tick: 18
-      poison:
-        slime-facing: SOUTH
-        slime-pitch: 0
-      items:
-      - material: DIAMOND_PICKAXE
-        name: '&bАлмазная кирка'
-      - material: NETHERITE_AXE
-        name: '&dНезеритовый топор'
-      - base64: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOGU0YTcwYjdiYmNkN2E4YzMyMmQ1MjI1MjA0OTFhMjdlYTZiODNkNjBlY2Y5NjFkMmI0ZWZiYmY5ZjYwNWQifX19
-        name: '&eКрутая голова'
-    rewards:
-    - chance: 60
-      type: ITEM
-      item:
-        material: DIAMOND_PICKAXE
-        amount: 1
-        name: '&bАлмазная кирка'
-        enchantments:
-          efficiency: 4
-          unbreaking: 3
-    - chance: 30
-      type: LUCKPERMS
-      luckperms:
-        group: vip
-        display_name: '&eVIP'
-      message: '&aТы получил привилегию &eVIP&a!'
-    - chance: 10
-      type: LUCKPERMS
-      luckperms:
-        group: vip
-        duration: 7d
-        display_name: '&eVIP &7на 7 дней'
-      message: '&aТебе выдали VIP на 7 дней!'
-  resources:
-    block:
-      world: world
-      x: -146
-      y: 69
-      z: -46
-    hologram:
-      enabled: true
-      type: TEXT
-      x: 0.0
-      y: 1.5
-      z: 0.0
-      lines:
-      - '&6&lКейс с ресурсами'
-      - '&7Инструменты и материалы'
-      billboard: CENTER
-      text_alignment: CENTER
-      text_shadow: true
-      see_through: true
-      shadow_radius: 0.0
-      shadow_strength: 1.0
-      background: none
-      visibility_distance: 64
-      text_update_interval: 0
-    gui:
-      title: '&8Кейс с ресурсами'
-      open-item:
-        material: CHEST
-        name: '&6Кейс с ресурсами'
-        lore:
-        - ''
-        - '&7Содержимое:'
-        - '&7- &fИнструменты и материалы'
-        - '&7- &eРедкие ресурсы'
-        - ''
-    cost:
-      type: KEY
-      key: resources_key
+      key: money_key
       amount: 1
       buy_xp_levels: 30
     animation:
@@ -197,87 +67,331 @@ cases:
         slime-facing: SOUTH
         slime-pitch: 0
       items:
-      - material: DIAMOND_PICKAXE
-        name: '&bАлмазная кирка'
-      - material: NETHERITE_INGOT
-        name: '&8Незеритовый слиток'
-      - material: ELYTRA
-        name: '&dЭлитры'
+      - material: base64-eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvODkyNmMxZjJjM2MxNGQwODZjNDBjZmMyMzVmZTkzODY5NGY0YTUxMDY3YWRhNDcyNmI0ODZlYTFjODdiMDNlMiJ9fX0=
+        name: '&e1500 ʍонᴇᴛ'
+      - material: base64-eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvODkyNmMxZjJjM2MxNGQwODZjNDBjZmMyMzVmZTkzODY5NGY0YTUxMDY3YWRhNDcyNmI0ODZlYTFjODdiMDNlMiJ9fX0=
+        name: '&e2500 ʍонᴇᴛ'
+      - material: base64-eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvODkyNmMxZjJjM2MxNGQwODZjNDBjZmMyMzVmZTkzODY5NGY0YTUxMDY3YWRhNDcyNmI0ODZlYTFjODdiMDNlMiJ9fX0=
+        name: '&e3500 ʍонᴇᴛ'
+      - material: base64-eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvODkyNmMxZjJjM2MxNGQwODZjNDBjZmMyMzVmZTkzODY5NGY0YTUxMDY3YWRhNDcyNmI0ODZlYTFjODdiMDNlMiJ9fX0=
+        name: '&e5000 ʍонᴇᴛ'
+      - material: base64-eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvODkyNmMxZjJjM2MxNGQwODZjNDBjZmMyMzVmZTkzODY5NGY0YTUxMDY3YWRhNDcyNmI0ODZlYTFjODdiMDNlMiJ9fX0=
+        name: '&e7500 ʍонᴇᴛ'
+      - material: base64-eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvODkyNmMxZjJjM2MxNGQwODZjNDBjZmMyMzVmZTkzODY5NGY0YTUxMDY3YWRhNDcyNmI0ODZlYTFjODdiMDNlMiJ9fX0=
+        name: '&e10000 ʍонᴇᴛ'
     rewards:
-    - chance: 20
-      type: ITEM
-      item:
-        material: IRON_INGOT
-        amount: 32
-        name: '&7Железо &8x32'
-    - chance: 15
-      type: ITEM
-      item:
+    - chance: 55
+      type: VAULT
+      vault:
+        amount: 1500
+        display_name: '&e1500 ʍонᴇᴛ'
+      visual:
+        material: EMERALD
+        name: '&e1500 ʍонᴇᴛ'
+      message: '&aВы получили &f{amount}&a на баланс!'
+    - chance: 30
+      type: VAULT
+      vault:
+        amount: 2500
+        display_name: '&e2500 ʍонᴇᴛ'
+      visual:
         material: GOLD_INGOT
-        amount: 16
-        name: '&eЗолото &8x16'
+        name: '&e2500 ʍонᴇᴛ'
+      message: '&aВы получили &f{amount}&a на баланс!'
     - chance: 15
-      type: ITEM
-      item:
-        material: COAL
-        amount: 64
-        name: '&8Уголь &8x64'
-    - chance: 10
+      type: VAULT
+      vault:
+        amount: 3500
+        display_name: '&e3500 ʍонᴇᴛ'
+      visual:
+        material: DIAMOND
+        name: '&b$500'
+      message: '&aВы получили &f{amount}&a на баланс!'
+    - chance: 55
+      type: VAULT
+      vault:
+        amount: 5000
+        display_name: '&e5000 ʍонᴇᴛ'
+      visual:
+        material: EMERALD
+        name: '&e5000 ʍонᴇᴛ'
+      message: '&aВы получили &f{amount}&a на баланс!'
+    - chance: 30
+      type: VAULT
+      vault:
+        amount: 7500
+        display_name: '&e7500 ʍонᴇᴛ'
+      visual:
+        material: GOLD_INGOT
+        name: '&e7500 ʍонᴇᴛ'
+      message: '&aВы получили &f{amount}&a на баланс!'
+    - chance: 15
+      type: VAULT
+      vault:
+        amount: 10000
+        display_name: '&e10000 ʍонᴇᴛ'
+      visual:
+        material: DIAMOND
+        name: '&e10000 ʍонᴇᴛ'
+      message: '&aВы получили &f{amount}&a на баланс!'
+  playerpoints:
+    block:
+      world: world
+      x: 1
+      y: 64
+      z: 0
+    hologram:
+      enabled: true
+      type: TEXT
+      x: 0.0
+      y: 1.5
+      z: 0.0
+      lines:
+      - '&b&lКейс с поинтами'
+      - '&7Награды через PlayerPoints'
+      - '&fПКМ, чтобы открыть'
+      billboard: CENTER
+      text_alignment: CENTER
+      text_shadow: true
+      see_through: true
+      shadow_radius: 0.0
+      shadow_strength: 1.0
+      background: none
+      visibility_distance: 64
+      text_update_interval: 0
+    gui:
+      title: '&8Кейс с PlayerPoints'
+      open-item:
+        material: AMETHYST_SHARD
+        name: '&b&lКейс с поинтами'
+        lore:
+        - ''
+        - '&7Тип наград: &bPlayerPoints'
+        - '&7Пример: &fпоинты на аккаунт игрока'
+        - ''
+    cost:
+      type: KEY
+      key: points_key
+      amount: 1
+      buy_xp_levels: 30
+    animation:
+      duration_ticks: 80
+      cycle_every_ticks: 2
+      rise_blocks: 1.2
+      spin_degrees_per_tick: 18
+      poison:
+        slime-facing: SOUTH
+        slime-pitch: 0
+      items:
+      - material: AMETHYST_SHARD
+        name: '&b✦10'
+      - material: EXPERIENCE_BOTTLE
+        name: '&d✦25'
+      - material: NETHER_STAR
+        name: '&e✦50'
+    rewards:
+    - chance: 55
+      type: PLAYERPOINTS
+      playerpoints:
+        amount: 10
+        display_name: '&b✦10'
+      visual:
+        material: AMETHYST_SHARD
+        name: '&b✦10'
+      message: '&bВы получили &f{amount}&b PlayerPoints!'
+    - chance: 30
+      type: PLAYERPOINTS
+      playerpoints:
+        amount: 25
+        display_name: '&d✦25'
+      visual:
+        material: EXPERIENCE_BOTTLE
+        name: '&d✦25'
+      message: '&bВы получили &f{amount}&b PlayerPoints!'
+    - chance: 15
+      type: PLAYERPOINTS
+      playerpoints:
+        amount: 50
+        display_name: '&e✦50'
+      visual:
+        material: NETHER_STAR
+        name: '&e✦50'
+      message: '&bВы получили &f{amount}&b PlayerPoints!'
+
+  items:
+    block:
+      world: world
+      x: -97
+      y: 74
+      z: 455
+    hologram:
+      enabled: true
+      type: TEXT
+      x: 0.0
+      y: 1.5
+      z: 0.0
+      lines:
+      - '&6&lКейс с предметами'
+      - '&7Обычные item-награды'
+      - '&fПКМ, чтобы открыть'
+      billboard: CENTER
+      text_alignment: CENTER
+      text_shadow: true
+      see_through: true
+      shadow_radius: 0.0
+      shadow_strength: 1.0
+      background: none
+      visibility_distance: 64
+      text_update_interval: 0
+    gui:
+      title: '&8Кейс с предметами'
+      open-item:
+        material: CHEST
+        name: '&6&lПредметный кейс'
+        lore:
+        - ''
+        - '&7Тип наград: &6ITEM'
+        - '&7Пример: &fпредметы, количество, зачарования'
+        - ''
+    cost:
+      type: KEY
+      key: items_key
+      amount: 1
+      buy_xp_levels: 25
+    animation:
+      duration_ticks: 80
+      cycle_every_ticks: 2
+      rise_blocks: 1.2
+      spin_degrees_per_tick: 18
+      poison:
+        slime-facing: SOUTH
+        slime-pitch: 0
+      items:
+      - material: DIAMOND
+        name: '&bАлмазы'
+      - material: GOLDEN_APPLE
+        name: '&eЗолотые яблоки'
+      - material: DIAMOND_PICKAXE
+        name: '&bКирка шахтера'
+    rewards:
+    - chance: 45
       type: ITEM
       item:
         material: DIAMOND
         amount: 8
         name: '&bАлмазы &8x8'
-    - chance: 12
+      message: '&aВы получили &bалмазы&a!'
+    - chance: 35
       type: ITEM
       item:
-        material: IRON_PICKAXE
-        amount: 1
-        name: '&7Железная кирка'
-        enchantments:
-          efficiency: 3
-          unbreaking: 2
-    - chance: 10
+        material: GOLDEN_APPLE
+        amount: 4
+        name: '&eЗолотые яблоки &8x4'
+      message: '&aВы получили &eзолотые яблоки&a!'
+    - chance: 20
       type: ITEM
       item:
         material: DIAMOND_PICKAXE
         amount: 1
-        name: '&bАлмазная кирка'
-        enchantments:
-          efficiency: 4
-          unbreaking: 3
-    - chance: 8
-      type: ITEM
-      item:
-        material: DIAMOND_SWORD
-        amount: 1
-        name: '&bАлмазный меч'
-        enchantments:
-          sharpness: 4
-          unbreaking: 3
-    - chance: 5
-      type: ITEM
-      item:
-        material: NETHERITE_INGOT
-        amount: 2
-        name: '&8Незеритовые слитки &8x2'
-      message: '&6Редкая находка! Ты получил &8незеритовые слитки&6!'
-    - chance: 3
-      type: ITEM
-      item:
-        material: ELYTRA
-        amount: 1
-        name: '&dЭлитры'
-      message: '&5Удача на твоей стороне! Ты получил &dЭлитры&5!'
-    - chance: 2
-      type: ITEM
-      item:
-        material: NETHERITE_PICKAXE
-        amount: 1
-        name: '&8&lНезеритовая кирка'
+        name: '&bКирка шахтера'
+        lore:
+        - '&7Пример предмета с зачарованиями'
         enchantments:
           efficiency: 5
           unbreaking: 3
           fortune: 3
-          mending: 1
-      message: '&4⚡ ДЖЕКПОТ! &8Незеритовая кирка &4Fortune III + Mending!'
+      message: '&aВы получили &bкирку шахтера&a!'
+
+  luckperms:
+    block:
+      world: world
+      x: -101
+      y: 74
+      z: 454
+    hologram:
+      enabled: true
+      type: TEXT
+      x: 0.0
+      y: 1.5
+      z: 0.0
+      lines:
+      - '§x§F§F§8§6§0§0д§x§F§F§9§0§0§0о§x§F§F§9§B§0§0н§x§F§F§A§5§0§0ᴀ§x§F§F§A§F§0§0ᴛ
+          §x§F§F§C§4§0§0ᴋ§x§F§F§C§E§0§0ᴇ§x§F§F§D§9§0§0й§x§F§F§E§3§0§0ᴄ'
+      - '&7↪ Нажмите чтобы открыть ↩'
+      billboard: CENTER
+      text_alignment: CENTER
+      text_shadow: true
+      see_through: true
+      shadow_radius: 0.0
+      shadow_strength: 1.0
+      background: none
+      visibility_distance: 64
+      text_update_interval: 0
+    gui:
+      title: '§x§F§F§8§6§0§0д§x§F§F§9§0§0§0о§x§F§F§9§B§0§0н§x§F§F§A§5§0§0ᴀ§x§F§F§A§F§0§0ᴛ
+          §x§F§F§C§4§0§0ᴋ§x§F§F§C§E§0§0ᴇ§x§F§F§D§9§0§0й§x§F§F§E§3§0§0ᴄ'
+      open-item:
+        material: NETHER_STAR
+        name: '§x§F§F§8§6§0§0д§x§F§F§9§0§0§0о§x§F§F§9§B§0§0н§x§F§F§A§5§0§0ᴀ§x§F§F§A§F§0§0ᴛ
+          §x§F§F§C§4§0§0ᴋ§x§F§F§C§E§0§0ᴇ§x§F§F§D§9§0§0й§x§F§F§E§3§0§0ᴄ'
+        lore:
+        - ''
+        - '&7Содержимое:'
+        - '&7- §x§5§5§F§F§5§5ʀ§x§4§4§E§E§5§5ᴀ§x§3§3§D§D§5§5ɴ§x§2§2§C§C§5§5ɢ§x§1§1§B§B§5§5ᴇ§x§0§0§A§A§5§5ʀ'
+        - '&7- §x§5§5§A§A§F§Fʜ§x§4§4§9§C§F§Fᴜ§x§3§3§8§F§F§Fɴ§x§2§2§8§1§F§Fᴛ§x§1§1§7§4§F§Fᴇ§x§0§0§6§6§F§Fʀ'
+        - '&7- §x§A§A§5§5§F§Fʟ§x§9§3§3§9§E§Eᴏ§x§7§D§1§C§D§Dʀ§x§6§6§0§0§C§Cᴅ'
+        - '&7- §x§F§F§A§A§0§0ʀ§x§F§F§9§5§0§0ᴏ§x§F§F§8§0§0§0ʏ§x§F§F§6§A§0§0ᴀ§x§F§F§5§5§0§0ʟ'
+        - '&7- §x§F§F§5§5§5§5ᴍ§x§E§E§4§4§4§4ʏ§x§D§D§3§3§3§3ᴛ§x§C§C§2§2§2§2ʜ§x§B§B§1§1§1§1ɪ§x§A§A§0§0§0§0ᴄ'
+        - '&7- §x§F§F§D§7§0§0ᴇ§x§F§F§B§3§1§Cᴛ§x§F§F§8§F§3§9ᴇ§x§F§F§6§C§5§5ʀ§x§F§F§4§8§7§1ɴ§x§F§F§2§4§8§Eᴀ§x§F§F§0§0§A§Aʟ'
+        - ''
+    cost:
+      type: KEY
+      key: donate_key
+      amount: 1
+      buy_xp_levels: 60
+    animation:
+      duration_ticks: 80
+      cycle_every_ticks: 2
+      rise_blocks: 1.2
+      spin_degrees_per_tick: 18
+      poison:
+        slime-facing: SOUTH
+        slime-pitch: 0
+      items:
+      - material: IRON_BLOCK
+        name: '&7VIP'
+      - material: GOLD_BLOCK
+        name: '&6PREMIUM'
+      - material: DIAMOND_BLOCK
+        name: '&bDELUXE'
+    rewards:
+    - chance: 50
+      type: LUCKPERMS
+      luckperms:
+        group: vip
+        duration: 7d
+        display_name: '&7VIP &fна 7 дней'
+      visual:
+        material: IRON_BLOCK
+        name: '&7VIP &fна 7 дней'
+      message: '&dВы получили привилегию &7VIP &fна 7 дней&d!'
+    - chance: 35
+      type: LUCKPERMS
+      luckperms:
+        group: premium
+        duration: 14d
+        display_name: '&6PREMIUM &fна 14 дней'
+      visual:
+        material: GOLD_BLOCK
+        name: '&6PREMIUM &fна 14 дней'
+      message: '&dВы получили привилегию &6PREMIUM &fна 14 дней&d!'
+    - chance: 15
+      type: LUCKPERMS
+      luckperms:
+        node: essentials.fly
+        duration: 30d
+        display_name: '&bПраво essentials.fly &fна 30 дней'
+      visual:
+        material: DIAMOND_BLOCK
+        name: '&bПраво essentials.fly &fна 30 дней'
+      message: '&dВы получили право &bessentials.fly &fна 30 дней&d!'

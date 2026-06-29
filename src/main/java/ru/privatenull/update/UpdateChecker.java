@@ -39,9 +39,11 @@ public final class UpdateChecker {
 
     private final pnCases plugin;
     private BukkitTask task;
-    private String latestVersion;
-    private String downloadUrl = DEFAULT_DOWNLOAD_URL;
-    private boolean updateAvailable;
+    private volatile String latestVersion;
+    private volatile String downloadUrl = DEFAULT_DOWNLOAD_URL;
+    private volatile boolean updateAvailable;
+    private volatile boolean checkCompleted;
+    private volatile String lastError;
 
     public UpdateChecker(pnCases plugin) {
         this.plugin = plugin;
@@ -53,6 +55,8 @@ public final class UpdateChecker {
         updateAvailable = false;
         latestVersion = null;
         downloadUrl = DEFAULT_DOWNLOAD_URL;
+        checkCompleted = false;
+        lastError = null;
 
         long periodTicks = CHECK_PERIOD_MINUTES * 60L * 20L;
         task = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::check, CHECK_DELAY_TICKS, periodTicks);
@@ -78,11 +82,15 @@ public final class UpdateChecker {
             UpdateInfo updateInfo = fetchLatestUpdateInfo();
             String found = updateInfo.version();
             if (found == null || found.isBlank()) {
+                checkCompleted = true;
+                lastError = "GitHub не вернул версию";
                 plugin.getLogger().warning("Проверка обновлений: GitHub не вернул версию.");
                 return;
             }
 
             String current = plugin.getDescription().getVersion();
+            checkCompleted = true;
+            lastError = null;
             if (compareVersions(found, current) <= 0) {
                 updateAvailable = false;
                 latestVersion = found;
@@ -101,8 +109,30 @@ public final class UpdateChecker {
                 Bukkit.getScheduler().runTask(plugin, this::notifyOnlineAdmins);
             }
         } catch (Exception ex) {
+            checkCompleted = true;
+            lastError = ex.getMessage();
             plugin.getLogger().warning("Ошибка проверки обновлений: " + ex.getMessage());
         }
+    }
+
+    public boolean isUpdateAvailable() {
+        return updateAvailable;
+    }
+
+    public boolean isCheckCompleted() {
+        return checkCompleted;
+    }
+
+    public String getLatestVersion() {
+        return latestVersion;
+    }
+
+    public String getDownloadUrl() {
+        return downloadUrl == null || downloadUrl.isBlank() ? DEFAULT_DOWNLOAD_URL : downloadUrl;
+    }
+
+    public String getLastError() {
+        return lastError;
     }
 
     private void notifyOnlineAdmins() {

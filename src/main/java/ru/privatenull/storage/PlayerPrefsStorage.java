@@ -1,45 +1,56 @@
 package ru.privatenull.storage;
 
-import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.plugin.java.JavaPlugin;
 import ru.privatenull.cases.animation.AnimationType;
 
-import java.io.File;
-import java.io.IOException;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Locale;
 import java.util.UUID;
 
 public final class PlayerPrefsStorage {
 
-    private final File file;
-    private final YamlConfiguration cfg;
+    private final SqliteDatabase database;
 
-    public PlayerPrefsStorage(JavaPlugin plugin) {
-        if (!plugin.getDataFolder().exists()) plugin.getDataFolder().mkdirs();
-        this.file = new File(plugin.getDataFolder(), "player_prefs.yml");
-        if (!file.exists()) {
-            try { file.createNewFile(); }
-            catch (IOException e) { throw new RuntimeException(e); }
-        }
-        this.cfg = YamlConfiguration.loadConfiguration(file);
+    public PlayerPrefsStorage(SqliteDatabase database) {
+        this.database = database;
     }
 
     public synchronized AnimationType getAnimation(UUID uuid) {
-        String raw = cfg.getString("players." + uuid + ".animation");
-        if (raw == null) return AnimationType.ANVIL;
-        try {
-            return AnimationType.valueOf(raw.toUpperCase());
-        } catch (IllegalArgumentException ignored) {
-            return AnimationType.ANVIL;
+        try (PreparedStatement statement = database.connection().prepareStatement("""
+                SELECT animation FROM player_prefs WHERE player_uuid = ?
+                """)) {
+            statement.setString(1, uuid.toString());
+
+            try (ResultSet result = statement.executeQuery()) {
+                if (!result.next()) return AnimationType.ANVIL;
+                return parseAnimation(result.getString("animation"));
+            }
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Не удалось прочитать анимацию игрока из SQLite.", ex);
         }
     }
 
     public synchronized void setAnimation(UUID uuid, AnimationType type) {
-        cfg.set("players." + uuid + ".animation", type.name());
-        save();
+        try (PreparedStatement statement = database.connection().prepareStatement("""
+                INSERT INTO player_prefs(player_uuid, animation)
+                VALUES (?, ?)
+                ON CONFLICT(player_uuid) DO UPDATE SET animation = excluded.animation
+                """)) {
+            statement.setString(1, uuid.toString());
+            statement.setString(2, type.name());
+            statement.executeUpdate();
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Не удалось сохранить анимацию игрока в SQLite.", ex);
+        }
     }
 
-    private void save() {
-        try { cfg.save(file); }
-        catch (IOException e) { throw new RuntimeException(e); }
+    private static AnimationType parseAnimation(String value) {
+        if (value == null || value.isBlank()) return AnimationType.ANVIL;
+        try {
+            return AnimationType.valueOf(value.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ignored) {
+            return AnimationType.ANVIL;
+        }
     }
 }
