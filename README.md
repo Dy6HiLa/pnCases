@@ -1,16 +1,13 @@
 <p align="center">
   <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.3">
-    <img src="assets/pncases-cover.svg" alt="pnCases 1.3" width="100%">
+    <img src="assets/pncases-cover.png" alt="pnCases 1.3" width="100%">
   </a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.3/pnCases-1.3.jar">
-    <img src="assets/button-download.svg" alt="Скачать pnCases 1.3">
-  </a>
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.3">
-    <img src="assets/button-changelog.svg" alt="Открыть changelog pnCases 1.3">
-  </a>
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.3/pnCases-1.3.jar"><b>Скачать pnCases 1.3</b></a>
+  ·
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.3"><b>Что нового в 1.3</b></a>
 </p>
 
 # pnCases
