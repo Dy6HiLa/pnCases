@@ -1,5 +1,8 @@
 package ru.privatenull;
 
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import ru.privatenull.cases.CaseManager;
 import ru.privatenull.commands.CasesCMD;
@@ -7,6 +10,7 @@ import ru.privatenull.commands.CasesCMDTabCompliter;
 import ru.privatenull.config.MessagesConfig;
 import ru.privatenull.integrations.FancyHologramsHook;
 import ru.privatenull.storage.KeyStorage;
+import ru.privatenull.update.UpdateChecker;
 
 public final class pnCases extends JavaPlugin {
 
@@ -14,6 +18,7 @@ public final class pnCases extends JavaPlugin {
     private KeyStorage keyStorage;
     private FancyHologramsHook fancyHolograms;
     private MessagesConfig messages;
+    private UpdateChecker updateChecker;
 
     @Override
     public void onEnable() {
@@ -24,8 +29,18 @@ public final class pnCases extends JavaPlugin {
 
         this.caseManager = new CaseManager(this);
         this.caseManager.reloadFromConfig();
+        setupUpdateChecker();
 
         this.keyStorage = new KeyStorage(this);
+
+        getServer().getPluginManager().registerEvents(new Listener() {
+            @EventHandler
+            public void onJoin(PlayerJoinEvent e) {
+                if (updateChecker != null) {
+                    updateChecker.notifyAdminOnJoin(e.getPlayer());
+                }
+            }
+        }, this);
 
         var cmd = getCommand("pncases");
         var exec = new CasesCMD(this, caseManager);
@@ -46,6 +61,7 @@ public final class pnCases extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (updateChecker != null) updateChecker.cancel();
         if (fancyHolograms != null) fancyHolograms.shutdown();
         if (caseManager != null) caseManager.shutdown();
         getLogger().info("██████╗░██████╗░██╗██╗░░░██╗░█████╗░████████╗███████╗███╗░░██╗██╗░░░██╗██╗░░░░░██╗░░░░░");
@@ -62,4 +78,15 @@ public final class pnCases extends JavaPlugin {
     public KeyStorage getKeyStorage()   { return keyStorage; }
     public FancyHologramsHook getFancyHolograms() { return fancyHolograms; }
     public MessagesConfig getMessages() { return messages; }
+
+    public void reloadRuntimeConfig() {
+        if (updateChecker != null) {
+            updateChecker.reload();
+        }
+    }
+
+    private void setupUpdateChecker() {
+        updateChecker = new UpdateChecker(this);
+        updateChecker.reload();
+    }
 }
