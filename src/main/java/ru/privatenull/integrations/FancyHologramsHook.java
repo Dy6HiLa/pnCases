@@ -27,6 +27,7 @@ public final class FancyHologramsHook {
     private Object hologramManager;
 
     private final Set<String> managedNames = new HashSet<>();
+    private final Map<String, List<TextDisplay>> nativeDisplays = new HashMap<>();
 
     public FancyHologramsHook(pnCases plugin) {
         this.plugin = plugin;
@@ -40,12 +41,11 @@ public final class FancyHologramsHook {
     }
 
     public void clearManaged() {
-        if (!available || hologramManager == null) {
-            managedNames.clear();
-            return;
-        }
-        for (String name : new ArrayList<>(managedNames)) {
-            removeHologram(name);
+        clearNativeDisplays();
+        if (available && hologramManager != null) {
+            for (String name : new ArrayList<>(managedNames)) {
+                removeHologram(name);
+            }
         }
         managedNames.clear();
     }
@@ -53,8 +53,6 @@ public final class FancyHologramsHook {
     public void syncCases(Collection<CaseDefinition> defs) {
         detect();
         clearManaged();
-        if (!available || hologramManager == null) return;
-
         for (CaseDefinition def : defs) {
             try {
                 ConfigurationSection cs = plugin.getConfig().getConfigurationSection("cases." + def.name());
@@ -64,22 +62,23 @@ public final class FancyHologramsHook {
                 if (!hs.getBoolean("enabled", false)) continue;
                 createCaseHologram(def, hs);
             } catch (Throwable t) {
-                plugin.getLogger().warning("FancyHolograms: ошибка создания голограммы для кейса '" + def.name() + "': " + t.getMessage());
+                plugin.getLogger().warning("Holograms: ошибка создания голограммы для кейса '" + def.name() + "': " + t.getMessage());
             }
         }
     }
 
     public void hideCase(CaseDefinition def) {
         detect();
-        if (!available || hologramManager == null || def == null) return;
+        if (def == null) return;
         String holoName = "pncases_" + def.name();
         removeHologram(holoName);
         managedNames.remove(holoName);
+        clearNativeDisplays(def.name());
     }
 
     public void showCase(CaseDefinition def) {
         detect();
-        if (!available || hologramManager == null || def == null) return;
+        if (def == null) return;
         try {
             ConfigurationSection cs = plugin.getConfig().getConfigurationSection("cases." + def.name());
             if (cs == null) return;
@@ -88,7 +87,7 @@ public final class FancyHologramsHook {
             if (!hs.getBoolean("enabled", false)) return;
             createCaseHologram(def, hs);
         } catch (Throwable t) {
-            plugin.getLogger().warning("FancyHolograms: ошибка showCase для '" + def.name() + "': " + t.getMessage());
+            plugin.getLogger().warning("Holograms: ошибка showCase для '" + def.name() + "': " + t.getMessage());
         }
     }
 
@@ -137,20 +136,102 @@ public final class FancyHologramsHook {
         String holoName = "pncases_" + def.name();
         removeHologram(holoName);
 
-        Object data = switch (type) {
-            case "ITEM"  -> buildItemData(holoName, loc, hs);
-            case "BLOCK" -> buildBlockData(holoName, loc, hs);
-            default      -> buildTextData(holoName, loc, def, hs);
-        };
+        if (available && hologramManager != null) {
+            try {
+                Object data = switch (type) {
+                    case "ITEM"  -> buildItemData(holoName, loc, hs);
+                    case "BLOCK" -> buildBlockData(holoName, loc, hs);
+                    default      -> buildTextData(holoName, loc, def, hs);
+                };
 
-        invoke(data, "setPersistent", boolean.class, false);
-        applyCommonStyles(data, hs);
+                invoke(data, "setPersistent", boolean.class, false);
+                applyCommonStyles(data, hs);
 
-        Object hologram = invoke(hologramManager, "create",
-                Class.forName("de.oliver.fancyholograms.api.data.HologramData"), data);
-        invoke(hologramManager, "addHologram", Class.forName(FH_HOLOGRAM_CLASS), hologram);
+                Object hologram = invoke(hologramManager, "create",
+                        Class.forName("de.oliver.fancyholograms.api.data.HologramData"), data);
+                invoke(hologramManager, "addHologram", Class.forName(FH_HOLOGRAM_CLASS), hologram);
 
-        managedNames.add(holoName);
+                managedNames.add(holoName);
+                return;
+            } catch (Throwable t) {
+                plugin.getLogger().warning("FancyHolograms недоступен для '" + def.name() + "', создаю обычный TextDisplay: " + t.getMessage());
+            }
+        }
+
+        createNativeTextDisplay(loc, def, hs);
+    }
+
+    private void createNativeTextDisplay(Location loc, CaseDefinition def, ConfigurationSection hs) {
+        World world = loc.getWorld();
+        if (world == null) return;
+
+        List<String> lines = hs.getStringList("lines");
+        if (lines == null || lines.isEmpty()) {
+            String one = hs.getString("line", null);
+            if (one != null && !one.isBlank()) lines = List.of(one);
+        }
+        if (lines == null || lines.isEmpty()) {
+            lines = List.of("&e" + def.name());
+        }
+
+        List<String> out = new ArrayList<>(lines.size());
+        for (String s : lines) {
+            out.add(ChatColor.translateAlternateColorCodes('&', applyPlaceholders(s, def)));
+        }
+
+        TextDisplay display = world.spawn(loc, TextDisplay.class, td -> {
+            td.setPersistent(false);
+            td.setText(String.join("\n", out));
+            td.setBillboard(readBillboard(hs));
+            td.setAlignment(readTextAlignment(hs));
+            td.setShadowed(hs.getBoolean("text_shadow", true));
+            td.setSeeThrough(hs.getBoolean("see_through", true));
+            td.setDefaultBackground(false);
+            td.setViewRange((float) Math.max(1, hs.getInt("visibility_distance", 64)));
+            td.addScoreboardTag("pncases_hologram");
+            td.addScoreboardTag("pncases_" + def.name());
+        });
+        nativeDisplays.computeIfAbsent(def.name(), ignored -> new ArrayList<>()).add(display);
+    }
+
+    private void clearNativeDisplays() {
+        for (List<TextDisplay> displays : new ArrayList<>(nativeDisplays.values())) {
+            removeDisplays(displays);
+        }
+        nativeDisplays.clear();
+    }
+
+    private void clearNativeDisplays(String caseName) {
+        List<TextDisplay> displays = nativeDisplays.remove(caseName);
+        removeDisplays(displays);
+    }
+
+    private static void removeDisplays(List<TextDisplay> displays) {
+        if (displays == null) return;
+        for (TextDisplay display : new ArrayList<>(displays)) {
+            if (display != null && !display.isDead()) {
+                display.remove();
+            }
+        }
+        displays.clear();
+    }
+
+    private static Display.Billboard readBillboard(ConfigurationSection hs) {
+        String raw = hs.getString("billboard", "CENTER");
+        try {
+            return Display.Billboard.valueOf(raw == null ? "CENTER" : raw.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ignored) {
+            return Display.Billboard.CENTER;
+        }
+    }
+
+    private static TextDisplay.TextAlignment readTextAlignment(ConfigurationSection hs) {
+        String raw = hs.getString("text_alignment", "CENTER");
+        try {
+            return TextDisplay.TextAlignment.valueOf(raw == null ? "CENTER" : raw.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ignored) {
+            return TextDisplay.TextAlignment.CENTER;
+        }
     }
 
     private Object buildTextData(String name, Location loc, CaseDefinition def, ConfigurationSection hs) throws Exception {

@@ -453,7 +453,7 @@ public class PortalAnimation extends CaseAnimation {
     }
 
     private static ItemStack buildRewardVisual(Reward reward, CaseDefinition def) {
-        return (reward.type() == Reward.Type.ITEM && reward.item() != null)
+        return reward.item() != null
                 ? reward.item().clone()
                 : def.animationItems().get(0).clone();
     }

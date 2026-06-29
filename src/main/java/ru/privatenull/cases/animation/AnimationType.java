@@ -11,13 +11,18 @@ public enum AnimationType {
     ),
     DYNAMITE(
             "§x§F§F§5§5§2§2§lДинамит",
-            "§7Динамит летит по параболе и врезается\n§7в кейс. Взрыв разносит всё вокруг:\n§7дебрис, порох, дым — и твоя награда.",
+            "§7Динамит летит по параболе и врезается\n§7в кейс. Взрыв разносит всё вокруг:\n§7дым, огонь — и твоя награда.",
             Material.TNT
     ),
     PORTAL(
             "§x§2§2§0§0§C§C§lЧёрная дыра",
             "§7Предметы разлетаются во все стороны.\n§7Затем чёрная дыра засасывает всё\n§7обратно — и выпускает твою награду.",
             Material.ENDER_EYE
+    ),
+    POISON(
+            "§x§6§5§E§A§6§A§lОтравление",
+            "§7Кейс окутывает ядовитый туман,\n§7частицы вспыхивают вокруг —\n§7и из облака появляется награда.",
+            Material.SLIME_BALL
     );
 
     private final String displayName;
@@ -30,15 +35,7 @@ public enum AnimationType {
         this.icon = icon;
     }
 
-    public String displayName() {
-        return displayName;
-    }
-
-    public String description() {
-        return description;
-    }
-
-    public Material icon() {
-        return icon;
-    }
+    public String displayName() { return displayName; }
+    public String description() { return description; }
+    public Material icon() { return icon; }
 }

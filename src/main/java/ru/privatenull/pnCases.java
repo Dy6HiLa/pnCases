@@ -3,8 +3,10 @@ package ru.privatenull;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import ru.privatenull.cases.CaseManager;
+import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.cases.model.Reward;
 import ru.privatenull.commands.CasesCMD;
 import ru.privatenull.commands.CasesCMDTabCompliter;
@@ -12,6 +14,7 @@ import ru.privatenull.config.MessagesConfig;
 import ru.privatenull.integrations.FancyHologramsHook;
 import ru.privatenull.storage.KeyStorage;
 import ru.privatenull.storage.PendingRewardStorage;
+import ru.privatenull.update.UpdateChecker;
 
 import java.util.UUID;
 
@@ -22,6 +25,7 @@ public final class pnCases extends JavaPlugin {
     private FancyHologramsHook fancyHolograms;
     private MessagesConfig messages;
     private PendingRewardStorage pendingRewards;
+    private UpdateChecker updateChecker;
 
     @Override
     public void onEnable() {
@@ -32,6 +36,7 @@ public final class pnCases extends JavaPlugin {
 
         caseManager = new CaseManager(this);
         caseManager.reloadFromConfig();
+        setupUpdateChecker();
 
         keyStorage = new KeyStorage(this);
         pendingRewards = new PendingRewardStorage(this);
@@ -53,6 +58,10 @@ public final class pnCases extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new Listener() {
             @EventHandler
             public void onJoin(PlayerJoinEvent e) {
+                if (updateChecker != null) {
+                    updateChecker.notifyAdminOnJoin(e.getPlayer());
+                }
+
                 UUID uuid = e.getPlayer().getUniqueId();
                 Reward pending = pendingRewards.load(uuid);
                 if (pending == null) return;
@@ -93,6 +102,10 @@ public final class pnCases extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (updateChecker != null) {
+            updateChecker.cancel();
+        }
+
         if (fancyHolograms != null) {
             fancyHolograms.shutdown();
         }
@@ -130,4 +143,19 @@ public final class pnCases extends JavaPlugin {
     public PendingRewardStorage getPendingRewards() {
         return pendingRewards;
     }
+
+    public void reloadRuntimeConfig() {
+        if (updateChecker != null) {
+            updateChecker.reload();
+        }
+    }
+
+    public void recordCaseOpening(Player player, CaseDefinition def, Reward reward, String rewardLabel) {
+    }
+
+    private void setupUpdateChecker() {
+        updateChecker = new UpdateChecker(this);
+        updateChecker.reload();
+    }
+
 }

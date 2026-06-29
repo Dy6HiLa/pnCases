@@ -1,290 +1,145 @@
+<p align="center">
+  <img src="assets/pncases-cover.svg" alt="pnCases 1.3" width="100%">
+</p>
+
 # pnCases
 
-Бесплатный плагин кейсов для Paper 1.21.x. три анимации, поддержка FancyHolograms, LuckPerms-награды.
+`pnCases` - бесплатный плагин кейсов для Paper 1.21.x с красивыми анимациями, GUI, историей открытий, голограммами и LuckPerms-наградами.
 
----
+[Скачать pnCases 1.3](https://github.com/Dy6HiLa/pnCases/raw/master/release/pnCases-1.3.jar)
+
+## pnCases 1.3
+
+Извините за столь долгое ожидание. В версии `1.3` плагин стал удобнее, красивее и стабильнее. Если будет еще больше актива и обратной связи, обновлений будет еще больше.
+
+Что нового:
+
+- Вернули выбор анимации открытия: Наковальня, Динамит, Портал и Отравление.
+- Добавили красивое GUI-меню выбора анимации.
+- Добавили отдельные тихие звуки для каждой анимации.
+- Добавили историю последних открытий прямо в GUI кейса.
+- Исправили отображение донат-наград: теперь каждая награда может иметь свой `base64`.
+- Улучшили broadcast после открытия кейса.
+- Добавили красивые уведомления об обновлениях с кликабельной ссылкой на скачивание.
+- Добавили fallback-голограммы через `TextDisplay`, если FancyHolograms недоступен.
+- Добавили настройку направления слайма для анимации Отравление.
+- Убрали лишние Discord/metrics/bStats-связки.
 
 ## Установка
 
-1. Скинь `pnCases.jar` в папку `plugins/`
-2. Рестарт сервера
-3. В `plugins/pnCases/` появятся `config.yml` и `messages.yml`
+1. Скачайте `pnCases-1.3.jar`.
+2. Положите файл в папку `plugins/`.
+3. Перезапустите сервер.
+4. Настройте `plugins/pnCases/config.yml` и `messages.yml`.
 
-**Зависимости**
-- Paper 1.21.x (обязательно)
-- FancyHolograms (опционально — голограммы над кейсами)
-- LuckPerms (опционально — выдача привилегий как награда)
+Зависимости:
 
----
+- Paper 1.21.x - обязательно.
+- LuckPerms - опционально, для выдачи групп/прав.
+- FancyHolograms - опционально, если нужны голограммы через этот плагин. Без него pnCases умеет создавать fallback-голограммы через `TextDisplay`.
 
-## Команды и права
+## Команды
 
 | Команда | Описание |
 |---|---|
-| `/pncases setcase <name>` | Привязать кейс к блоку (смотри на блок) |
-| `/pncases givekey <player\|uuid> <key> <amount>` | Выдать виртуальные ключи |
+| `/pncases` | Показать список команд |
 | `/pncases reload` | Перезагрузить config.yml и messages.yml |
+| `/pncases setcase <кейс>` | Привязать кейс к блоку |
+| `/pncases givekey <игрок> <ключ> <кол-во>` | Выдать ключи |
+| `/pncases takekey <игрок> <ключ> <кол-во>` | Забрать ключи |
 
-**Право:** `pncases.admin` — доступ ко всем командам.
-
----
-
-## Настройка кейса
-
-### 1. Создай кейс в config.yml
+Право администратора:
 
 ```yaml
-cases:
-  donate:                          # ID кейса (только латиница, без пробелов)
-    block:
-      world: world
-      x: 0
-      y: 64
-      z: 0
-
-    gui:
-      title: "&5Донат кейс"
-      open-item:
-        material: ENDER_CHEST
-        name: "&5Открыть донат кейс"
-        lore:
-          - "&7Испытай удачу!"
-
-    cost:
-      type: KEY                    # NONE / KEY / XP_LEVELS
-      key: donate_key              # ID ключа из секции keys:
-      amount: 1                    # сколько ключей нужно
-      buy_xp_levels: 10            # купить ключ за XP (0 = выключено)
-
-    animation:
-      duration_ticks: 80
-      cycle_every_ticks: 2
-      rise_blocks: 1.2
-      spin_degrees_per_tick: 18
-      items:
-        - material: DIAMOND
-          name: "&bАлмаз"
-        - material: NETHERITE_INGOT
-          name: "&8Незеритовый слиток"
-
-    rewards:
-      - chance: 70
-        type: ITEM
-        item:
-          material: DIAMOND
-          amount: 1
-          name: "&bАлмаз"
-        message: "&aТебе повезло — алмаз!"
-
-      - chance: 25
-        type: ITEM
-        item:
-          material: NETHERITE_INGOT
-          amount: 1
-          name: "&8Незеритовый слиток"
-
-      - chance: 5
-        type: LUCKPERMS
-        luckperms:
-          group: vip
-          duration: "30d"
-          display_name: "&6VIP на 30 дней"
-        message: "&6Поздравляем — ты получил VIP!"
+pncases.admin
 ```
 
-### 2. Привяжи кейс к блоку
-
-Встань перед блоком, выполни:
-```
-/pncases setcase donate
-```
-
-### 3. Готово. Игрок нажимает ПКМ на блок — открывается GUI.
-
----
-
-## Ключи
-
-Ключи только виртуальные — хранятся в `keys.yml`, не занимают инвентарь.
+## Пример настройки ключей
 
 ```yaml
 keys:
   donate_key:
-    name: "&5Донат ключ"
-
-  vip_key:
-    name: "&6VIP ключ"
+    name: '&aДонат кейс'
+  tools_key:
+    name: '&aКлюч: &fИнструменты'
 ```
 
-**Выдать ключ игроку:**
-```
-/pncases givekey Steve donate_key 3
-/pncases givekey 069a79f4-44e9-4726-a5be-fca90e38aaf1 donate_key 1
-```
+## Пример награды с base64
 
----
-
-## Типы стоимости (cost.type)
-
-| Тип | Описание |
-|---|---|
-| `NONE` | Бесплатно, без условий |
-| `KEY` | Нужен виртуальный ключ |
-| `XP_LEVELS` | Нужны уровни опыта |
-
-При `KEY` можно включить покупку ключа за XP прямо из GUI — параметр `buy_xp_levels`.
-
----
-
-## Типы наград (rewards.type)
-
-### ITEM — выдать предмет
+Для донат-наград можно указать отдельный визуальный предмет. Он будет показан в анимации и не будет заменяться первым предметом из `animation.items`.
 
 ```yaml
-- chance: 80
-  type: ITEM
-  item:
-    material: DIAMOND
-    amount: 3
-    name: "&bАлмазы"
-    lore:
-      - "&7Хорошая добыча"
-  message: "&aТы получил алмазы!"  # необязательно
+rewards:
+  - chance: 25
+    type: LUCKPERMS
+    item:
+      base64: "eyJ0ZXh0dXJlcyI6..."
+      name: "&aRanger"
+    luckperms:
+      group: ranger
+      display_name: "&aRanger"
+    message: "&aТы получил привилегию Ranger!"
 ```
-
-Поддерживается `base64` для скинов голов:
-```yaml
-  item:
-    base64: "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA..."
-    name: "&aКастомная голова"
-```
-
-### LUCKPERMS — выдать группу или перм
-
-```yaml
-- chance: 5
-  type: LUCKPERMS
-  luckperms:
-    group: vip           # группа (необязательно)
-    node: "some.perm"    # перм (необязательно)
-    duration: "30d"      # срок (необязательно, без — навсегда)
-    display_name: "&6VIP на 30 дней"
-  message: "&6Поздравляем!"
-```
-
-**Шансы** суммируются и нормализуются автоматически. `chance: 70` + `chance: 30` = 70% и 30%.
-
----
 
 ## Анимации
 
-Игрок выбирает анимацию сам через кнопку в GUI кейса (слот 49).
+Игрок выбирает анимацию через GUI кейса. Выбор сохраняется в `player_prefs.yml`.
 
 | Анимация | Описание |
 |---|---|
-| **Anvil** | Наковальня падает с высоты и выбивает награду |
-| **Dynamite** | TNT летит по параболе, взрывается, появляется награда |
-| **Portal** | Пурпурные столбы, портал, из него вырывается награда |
+| Наковальня | Падение наковальни и появление награды |
+| Динамит | Полет TNT, взрыв и выдача награды |
+| Портал | Эффекты портала и появление приза |
+| Отравление | Ядовитый слайм, частицы и награда |
 
-Выбор сохраняется в `player_prefs.yml` и запоминается между сессиями.
-
----
-
-## Голограммы (FancyHolograms)
-
-Установи FancyHolograms и добавь секцию `hologram:` к кейсу:
+Настройка направления слайма для Отравления:
 
 ```yaml
-cases:
-  donate:
-    hologram:
-      enabled: true
-      type: TEXT          # TEXT / ITEM / BLOCK
-      y: 2.0              # высота над блоком
-      lines:
-        - "&5✦ Донат кейс ✦"
-        - "&7Открой и получи привилегию"
-        - "&8Кейс: &f{case}"
-      billboard: CENTER
-      text_shadow: true
-      visibility_distance: 32
+animation:
+  poison:
+    slime-facing: PLAYER # NORTH / SOUTH / EAST / WEST / PLAYER / число yaw
+    slime-pitch: 0
 ```
 
-**Плейсхолдеры в lines:**
+## Голограммы
 
-| Плейсхолдер | Значение |
-|---|---|
-| `{case}` | ID кейса |
-| `{gui_title}` | Название с цветами |
-| `{gui_title_plain}` | Название без цветов |
-| `{world}` | Название мира |
-| `{x}` `{y}` `{z}` | Координаты блока |
-
-**Тип ITEM:**
 ```yaml
 hologram:
   enabled: true
-  type: ITEM
+  type: TEXT
   y: 1.5
-  item:
-    material: ENDER_CHEST
-    name: "&5Донат кейс"
+  lines:
+    - "&a&lДонат кейс"
+    - "&7ПКМ, чтобы открыть"
 ```
 
-**Тип BLOCK:**
-```yaml
-hologram:
-  enabled: true
-  type: BLOCK
-  y: 1.5
-  block: ENDER_CHEST
-```
+Если FancyHolograms установлен, pnCases попробует использовать его. Если нет или API не подошел, будет создан обычный `TextDisplay`.
 
----
+## Обновления
 
-## messages.yml
+Проверка обновлений работает через GitHub и не требует настройки в `config.yml`.
 
-Все сообщения плагина редактируются здесь. Перезагрузка через `/pncases reload`.
+pnCases проверяет:
 
-```yaml
-prefix: "§x§8§7§3§E§8§0§lᴄ..."   # префикс — вставляется в {prefix}
+- `update-manifest.json`;
+- последний GitHub Release;
+- git tags;
+- версию в `plugin.yml`.
 
-broadcast:                          # список строк — можно добавить/убрать
-  - ""
-  - "&8&m          "
-  - " {prefix}"
-  - " &7Игрок &f{player} &7открыл кейс"
-  - " &7и получил: {reward}"
-  - "&8&m          "
-  - ""
-```
+Если найдена версия выше установленной, админы с `pncases.admin` увидят красивое сообщение с кликабельной ссылкой на скачивание.
 
-**Доступные плейсхолдеры** зависят от сообщения — `{player}`, `{reward}`, `{amount}`, `{key_name}`, `{need}`, `{have}`, `{case}`, `{world}`, `{x}`, `{y}`, `{z}`, `{levels}`, `{animation}`.
+## Файлы
 
----
-
-## Структура файлов
-
-```
+```text
 plugins/pnCases/
-├── config.yml        — кейсы, ключи
-├── messages.yml      — все сообщения
-├── keys.yml          — балансы ключей игроков
-└── player_prefs.yml  — настройки анимации игроков
+├── config.yml
+├── messages.yml
+├── keys.yml
+├── open_history.yml
+├── pending_rewards.yml
+└── player_prefs.yml
 ```
 
----
+## Поддержка
 
-## FAQ
-
-**Кейс не открывается — «ключ не настроен»**
-→ Убедись что `cost.key` в кейсе совпадает с ID в секции `keys:` config.yml.
-
-**Голограмма не появляется**
-→ Проверь что FancyHolograms установлен и включён. В логах будет предупреждение если что-то пошло не так.
-
-**Хочу несколько кейсов**
-→ Просто добавь несколько секций в `cases:` с разными ID, привяжи каждый к своему блоку через `/pncases setcase`.
-
-**Выдать ключ через другой плагин**
-→ Используй `/pncases givekey` через консоль или CommandAPI — работает с UUID.
+Пишите идеи, баги и предложения. Чем больше актива, тем быстрее будут выходить новые обновления.

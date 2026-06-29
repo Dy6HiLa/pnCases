@@ -33,10 +33,10 @@ public final class PendingRewardStorage {
         cfg.set(base + ".type",   reward.type().name());
         cfg.set(base + ".chance", reward.chance());
         if (reward.displayName() != null) cfg.set(base + ".displayName", reward.displayName());
-        if (reward.message()     != null) cfg.set(base + ".message",     reward.message());
-        if (reward.lpGroup()     != null) cfg.set(base + ".lpGroup",     reward.lpGroup());
-        if (reward.lpNode()      != null) cfg.set(base + ".lpNode",      reward.lpNode());
-        if (reward.lpDuration()  != null) cfg.set(base + ".lpDuration",  reward.lpDuration());
+        if (reward.message()  != null) cfg.set(base + ".message", reward.message());
+        if (reward.lpGroup() != null) cfg.set(base + ".lpGroup", reward.lpGroup());
+        if (reward.lpNode() != null) cfg.set(base + ".lpNode", reward.lpNode());
+        if (reward.lpDuration() != null) cfg.set(base + ".lpDuration", reward.lpDuration());
 
         if (reward.type() == Reward.Type.ITEM && reward.item() != null) {
             try {
@@ -57,12 +57,12 @@ public final class PendingRewardStorage {
         try { type = Reward.Type.valueOf(typeStr); }
         catch (Exception e) { type = Reward.Type.ITEM; }
 
-        int    chance      = cfg.getInt(base + ".chance", 100);
+        int chance = cfg.getInt(base + ".chance", 100);
         String displayName = cfg.getString(base + ".displayName");
-        String message     = cfg.getString(base + ".message");
-        String lpGroup     = cfg.getString(base + ".lpGroup");
-        String lpNode      = cfg.getString(base + ".lpNode");
-        String lpDuration  = cfg.getString(base + ".lpDuration");
+        String message = cfg.getString(base + ".message");
+        String lpGroup = cfg.getString(base + ".lpGroup");
+        String lpNode = cfg.getString(base + ".lpNode");
+        String lpDuration = cfg.getString(base + ".lpDuration");
 
         ItemStack item = null;
         if (type == Reward.Type.ITEM) {

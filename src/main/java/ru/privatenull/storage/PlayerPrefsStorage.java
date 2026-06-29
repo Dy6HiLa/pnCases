@@ -26,8 +26,11 @@ public final class PlayerPrefsStorage {
     public synchronized AnimationType getAnimation(UUID uuid) {
         String raw = cfg.getString("players." + uuid + ".animation");
         if (raw == null) return AnimationType.ANVIL;
-        try { return AnimationType.valueOf(raw.toUpperCase()); }
-        catch (IllegalArgumentException ignored) { return AnimationType.ANVIL; }
+        try {
+            return AnimationType.valueOf(raw.toUpperCase());
+        } catch (IllegalArgumentException ignored) {
+            return AnimationType.ANVIL;
+        }
     }
 
     public synchronized void setAnimation(UUID uuid, AnimationType type) {

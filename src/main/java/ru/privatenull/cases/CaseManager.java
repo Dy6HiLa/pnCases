@@ -3,24 +3,38 @@ package ru.privatenull.cases;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.entity.*;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-
 import ru.privatenull.cases.animation.AnimationRegistry;
 import ru.privatenull.cases.animation.AnimationType;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.cases.model.Reward;
 import ru.privatenull.listeners.CaseGuiHolder;
 import ru.privatenull.pnCases;
+import ru.privatenull.storage.OpenHistoryStorage;
 import ru.privatenull.storage.PlayerPrefsStorage;
 import ru.privatenull.util.ItemFactory;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class CaseManager {
+
+    private static final int[] HISTORY_SLOTS = {45, 46, 47, 48, 49, 50, 51, 52, 53};
+    private static final int[] DECOR_SLOTS = {
+            0, 1, 2, 3, 4, 5, 6, 7, 8,
+            9, 17,
+            18, 26,
+            27, 35,
+            36, 37, 38, 39, 40, 41, 42, 43, 44
+    };
+    private static final DateTimeFormatter HISTORY_TIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM HH:mm");
 
     private final pnCases plugin;
 
@@ -33,11 +47,13 @@ public class CaseManager {
     private final Map<UUID, AnimationType> playerAnimations = new ConcurrentHashMap<>();
 
     private final AnimationRegistry animationRegistry;
+    private final OpenHistoryStorage openHistoryStorage;
     private final PlayerPrefsStorage playerPrefs;
 
     public CaseManager(pnCases plugin) {
         this.plugin = plugin;
         this.animationRegistry = new AnimationRegistry(plugin);
+        this.openHistoryStorage = new OpenHistoryStorage(plugin);
         this.playerPrefs = new PlayerPrefsStorage(plugin);
     }
 
@@ -56,12 +72,53 @@ public class CaseManager {
     public List<String> getKeyNames()  { return new ArrayList<>(keyNames.keySet()); }
     public boolean keyExists(String keyId) { return keyNames.containsKey(keyId.toLowerCase()); }
 
+    public int getLoadedCaseCount() { return casesByName.size(); }
+    public int getConfiguredKeyCount() { return keyNames.size(); }
+
+    public Map<String, Integer> getCostTypeCounts() {
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (CaseDefinition def : casesByName.values()) {
+            counts.merge(def.costType().name().toLowerCase(Locale.ROOT), 1, Integer::sum);
+        }
+        return counts;
+    }
+
+    public Map<String, Integer> getRewardTypeCounts() {
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (CaseDefinition def : casesByName.values()) {
+            for (Reward reward : def.rewards()) {
+                counts.merge(reward.type().name().toLowerCase(Locale.ROOT), 1, Integer::sum);
+            }
+        }
+        return counts;
+    }
+
+    public String getHologramUsage() {
+        for (CaseDefinition def : casesByName.values()) {
+            if (plugin.getConfig().getBoolean("cases." + def.name() + ".hologram.enabled", false)) {
+                return "enabled";
+            }
+        }
+        return "disabled";
+    }
+
+    public String getXpKeyPurchaseUsage() {
+        for (CaseDefinition def : casesByName.values()) {
+            if (def.buyKeyWithXpLevels() > 0) {
+                return "enabled";
+            }
+        }
+        return "disabled";
+    }
+
     public CaseDefinition getCaseByName(String name) { return casesByName.get(name.toLowerCase()); }
 
     public CaseDefinition getCaseByBlock(Block block) {
         String name = caseByBlock.get(BlockKey.of(block));
         return name == null ? null : casesByName.get(name);
     }
+
+    public AnimationRegistry getAnimationRegistry() { return animationRegistry; }
 
     public AnimationType getPlayerAnimation(UUID uuid) {
         return playerAnimations.computeIfAbsent(uuid, playerPrefs::getAnimation);
@@ -71,8 +128,6 @@ public class CaseManager {
         playerAnimations.put(uuid, type);
         playerPrefs.setAnimation(uuid, type);
     }
-
-    public AnimationRegistry getAnimationRegistry() { return animationRegistry; }
 
     public void bindCaseToBlock(String caseName, Block target) {
         ConfigurationSection cases = plugin.getConfig().getConfigurationSection("cases");
@@ -112,8 +167,8 @@ public class CaseManager {
             an.set("rise_blocks", 1.2);
             an.set("spin_degrees_per_tick", 18);
             an.set("items", List.of(
-                    Map.of("material", "DIAMOND_PICKAXE", "name", "&bАлмазная кирка"),
-                    Map.of("material", "NETHERITE_AXE", "name", "&dНезеритовый топор")
+                    Map.of("material", "SLIME_BALL", "name", "&aСгусток яда"),
+                    Map.of("material", "SPIDER_EYE", "name", "&2Ядовитый глаз")
             ));
         }
 
@@ -183,10 +238,10 @@ public class CaseManager {
             }
 
             ConfigurationSection an = cs.getConfigurationSection("animation");
-            int duration   = an != null ? an.getInt("duration_ticks", 80) : 80;
+            int duration = an != null ? an.getInt("duration_ticks", 80) : 80;
             int cycleEvery = an != null ? an.getInt("cycle_every_ticks", 2) : 2;
-            double rise    = an != null ? an.getDouble("rise_blocks", 1.2) : 1.2;
-            float spin     = an != null ? (float) an.getDouble("spin_degrees_per_tick", 18) : 18f;
+            double rise = an != null ? an.getDouble("rise_blocks", 1.2) : 1.2;
+            float spin = an != null ? (float) an.getDouble("spin_degrees_per_tick", 18) : 18f;
 
             List<ItemStack> animItems = new ArrayList<>();
             if (an != null && an.isList("items")) {
@@ -196,7 +251,7 @@ public class CaseManager {
                 }
             }
             animItems.removeIf(Objects::isNull);
-            if (animItems.isEmpty()) animItems.add(new ItemStack(Material.DIAMOND));
+            if (animItems.isEmpty()) animItems.add(new ItemStack(Material.SLIME_BALL));
 
             List<Reward> rewards = new ArrayList<>();
             if (cs.isList("rewards")) {
@@ -209,9 +264,9 @@ public class CaseManager {
                     try { rType = Reward.Type.valueOf(typeS.toUpperCase(Locale.ROOT)); }
                     catch (Exception e) { rType = Reward.Type.ITEM; }
 
-                    String message     = map.containsKey("message") ? String.valueOf(map.get("message")) : null;
+                    String message = map.containsKey("message") ? String.valueOf(map.get("message")) : null;
                     String displayName = null;
-                    ItemStack item     = null;
+                    ItemStack item = null;
                     String lpGroup = null, lpNode = null, lpDuration = null;
 
                     if (rType == Reward.Type.ITEM) {
@@ -230,12 +285,13 @@ public class CaseManager {
                         Object lpObj = map.get("luckperms");
                         if (lpObj instanceof Map<?, ?> lpMap) {
                             Object g = lpMap.get("group"), n = lpMap.get("node"), d = lpMap.get("duration");
-                            if (g != null) lpGroup    = String.valueOf(g);
-                            if (n != null) lpNode     = String.valueOf(n);
+                            if (g != null) lpGroup = String.valueOf(g);
+                            if (n != null) lpNode = String.valueOf(n);
                             if (d != null) lpDuration = String.valueOf(d);
                             Object dn = lpMap.get("display_name");
                             displayName = dn != null ? String.valueOf(dn) : "&f" + (lpGroup != null ? lpGroup : lpNode);
                         }
+                        item = buildRewardVisualItem(map, displayName);
                     }
 
                     if (chance > 0 && (rType != Reward.Type.ITEM || item != null)) {
@@ -275,18 +331,18 @@ public class CaseManager {
             String keyId = def.costKeyId();
             int need = Math.max(1, def.costAmount());
             int have = (keyId == null) ? 0 : plugin.getKeyStorage().get(p.getUniqueId(), keyId);
-            lore.add(plugin.getMessages().get("gui-keys-balance",
+            lore.add(plugin.getMessages().getOr("gui.case-button.keys-balance", "gui-keys-balance",
                     "have", String.valueOf(have),
                     "need", String.valueOf(need)));
         }
 
         int buyExp = Math.max(0, def.buyKeyWithXpLevels());
         if (buyExp > 0) {
-            lore.add(plugin.getMessages().get("gui-buy-xp-hint", "levels", String.valueOf(buyExp)));
+            lore.add(plugin.getMessages().getOr("gui.case-button.buy-xp-hint", "gui-buy-xp-hint", "levels", String.valueOf(buyExp)));
         } else {
-            lore.add(plugin.getMessages().get("gui-buy-xp-disabled"));
+            lore.add(plugin.getMessages().getOr("gui.case-button.buy-xp-disabled", "gui-buy-xp-disabled"));
         }
-        lore.add(plugin.getMessages().get("gui-open-hint"));
+        lore.add(plugin.getMessages().getOr("gui.case-button.open-hint", "gui-open-hint"));
 
         meta.setLore(lore);
         it.setItemMeta(meta);
@@ -297,23 +353,137 @@ public class CaseManager {
         AnimationType current = getPlayerAnimation(p.getUniqueId());
         ItemStack it = new ItemStack(current.icon());
         ItemMeta meta = it.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(color("&bАнимация: " + current.displayName()));
-            List<String> lore = new ArrayList<>();
-            lore.add(" ");
-            lore.add(color("&7" + current.description().replace("\n", "\n&7")));
-            lore.add(" ");
-            lore.add(color("&7Нажми, чтобы сменить анимацию"));
-            meta.setLore(lore);
-            it.setItemMeta(meta);
-        }
+        if (meta == null) return it;
+
+        meta.setDisplayName(color("&fАнимация: " + current.displayName()));
+
+        List<String> lore = new ArrayList<>();
+        lore.add("");
+        lore.add(color("&7Текущая: " + current.displayName()));
+        lore.add(color("&7Нажмите, чтобы выбрать другую"));
+        lore.add("");
+
+        meta.setLore(lore);
+        it.setItemMeta(meta);
         return it;
     }
 
-    public void openCaseGui(Player p, CaseDefinition def) {
-        Inventory inv = Bukkit.createInventory(new CaseGuiHolder(def.name()), 54, color(def.guiTitle()));
+    public void fillCaseGui(Inventory inv, Player p, CaseDefinition def) {
+        for (int i = 0; i < inv.getSize(); i++) {
+            inv.setItem(i, null);
+        }
+        fillDecor(inv);
         inv.setItem(22, buildGuiOpenItem(p, def));
+        fillHistory(inv, def);
         inv.setItem(49, buildAnimationSelectorItem(p));
+    }
+
+    private void fillDecor(Inventory inv) {
+        ItemStack pane = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        ItemMeta meta = pane.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(" ");
+            pane.setItemMeta(meta);
+        }
+
+        for (int slot : DECOR_SLOTS) {
+            if (slot >= 0 && slot < inv.getSize()) {
+                inv.setItem(slot, pane);
+            }
+        }
+    }
+
+    private void fillHistory(Inventory inv, CaseDefinition def) {
+        List<OpenHistoryStorage.Entry> history = openHistoryStorage.get(def.name());
+        for (int i = 0; i < HISTORY_SLOTS.length; i++) {
+            if (i < history.size()) {
+                inv.setItem(HISTORY_SLOTS[i], buildHistoryItem(history.get(i)));
+            } else {
+                inv.setItem(HISTORY_SLOTS[i], buildEmptyHistoryItem());
+            }
+        }
+    }
+
+    private ItemStack buildHistoryItem(OpenHistoryStorage.Entry entry) {
+        ItemStack it = new ItemStack(Material.BOOK);
+        ItemMeta meta = it.getItemMeta();
+        if (meta == null) return it;
+
+        meta.setDisplayName("§x§A§0§E§F§A§1◆ §x§F§B§C§A§0§8" + entry.playerName());
+
+        List<String> lore = new ArrayList<>();
+        lore.add("");
+        lore.add("§x§A§0§E§F§A§1 «Детали открытия»");
+        lore.add(" §7- §fИгрок: §x§F§B§C§A§0§8" + entry.playerName());
+        lore.add(" §7- §fНаграда: " + color(entry.rewardName()));
+        lore.add("");
+        lore.add("§x§C§0§9§6§A§B «Время»");
+        lore.add(" §7- §f" + formatHistoryTime(entry.openedAt()));
+        lore.add("");
+
+        meta.setLore(lore);
+        it.setItemMeta(meta);
+        return it;
+    }
+
+    private ItemStack buildEmptyHistoryItem() {
+        ItemStack it = new ItemStack(Material.BARRIER);
+        ItemMeta meta = it.getItemMeta();
+        if (meta == null) return it;
+
+        meta.setDisplayName("§8История пуста");
+
+        List<String> lore = new ArrayList<>();
+        lore.add("");
+        lore.add("§x§A§0§E§F§A§1 «История кейса»");
+        lore.add(" §7- §fПоследние открытия");
+        lore.add(" §7- §fбудут отображаться здесь");
+        lore.add("");
+
+        meta.setLore(lore);
+        it.setItemMeta(meta);
+        return it;
+    }
+
+    private String formatHistoryTime(long epochSeconds) {
+        if (epochSeconds <= 0L) return "неизвестно";
+
+        long now = System.currentTimeMillis() / 1000L;
+        long diff = now - epochSeconds;
+
+        if (diff < 60) {
+            return "только что";
+        }
+
+        if (diff < 3600) {
+            long minutes = diff / 60;
+            return minutes + " " + getWordForm((int) minutes, "минуту", "минуты", "минут") + " назад";
+        }
+
+        if (diff < 86400) {
+            long hours = diff / 3600;
+            return hours + " " + getWordForm((int) hours, "час", "часа", "часов") + " назад";
+        }
+        long days = diff / 86400;
+        if (days < 7) {
+            return days + " " + getWordForm((int) days, "день", "дня", "дней") + " назад";
+        }
+        LocalDateTime time = LocalDateTime.ofInstant(Instant.ofEpochSecond(epochSeconds), ZoneId.systemDefault());
+        return HISTORY_TIME_FORMAT.format(time);
+    }
+
+    private String getWordForm(int n, String form1, String form2, String form5) {
+        n = Math.abs(n) % 100;
+        int n1 = n % 10;
+        if (n > 10 && n < 20) return form5;
+        if (n1 > 1 && n1 < 5) return form2;
+        if (n1 == 1) return form1;
+        return form5;
+    }
+
+    public void openCaseGui(Player p, CaseDefinition def) {
+        Inventory inv = Bukkit.createInventory(CaseGuiHolder.caseGui(def.name()), 54, color(def.guiTitle()));
+        fillCaseGui(inv, p, def);
         p.openInventory(inv);
     }
 
@@ -326,7 +496,10 @@ public class CaseManager {
             p.sendMessage(plugin.getMessages().get("case-busy"));
             return;
         }
-        if (!checkAndTakeCost(p, def)) { unlockCase(p, def); return; }
+        if (!checkAndTakeCost(p, def)) {
+            unlockCase(p, def);
+            return;
+        }
 
         p.closeInventory();
         openingPlayers.add(p.getUniqueId());
@@ -336,7 +509,10 @@ public class CaseManager {
     public boolean openCasePaidByXp(Player p, CaseDefinition def, int levels) {
         if (openingPlayers.contains(p.getUniqueId()) || levels <= 0) return false;
         if (!tryLockCase(p, def)) return false;
-        if (p.getLevel() < levels) { unlockCase(p, def); return false; }
+        if (p.getLevel() < levels) {
+            unlockCase(p, def);
+            return false;
+        }
 
         p.setLevel(p.getLevel() - levels);
         p.closeInventory();
@@ -381,16 +557,19 @@ public class CaseManager {
     private void runAnimationAndReward(Player p, CaseDefinition def) {
         Location base = def.blockLocation().clone().add(0.5, 0.0, 0.5);
         World w = base.getWorld();
-        if (w == null) { openingPlayers.remove(p.getUniqueId()); return; }
+        if (w == null) {
+            openingPlayers.remove(p.getUniqueId());
+            return;
+        }
 
         var fh = plugin.getFancyHolograms();
         if (fh != null) fh.hideCase(def);
 
         Reward finalReward = pickReward(def.rewards());
-        AnimationType animType = getPlayerAnimation(p.getUniqueId());
 
-        animationRegistry.get(animType).play(p, def, finalReward, base, () -> {
-            giveReward(p, finalReward);
+        AnimationType animationType = getPlayerAnimation(p.getUniqueId());
+        animationRegistry.get(animationType).play(p, def, finalReward, base, () -> {
+            giveReward(p, def, finalReward);
             openingPlayers.remove(p.getUniqueId());
             unlockCase(p, def);
             if (fh != null) fh.showCase(def);
@@ -406,7 +585,11 @@ public class CaseManager {
         return keyNames.getOrDefault(keyId.toLowerCase(Locale.ROOT), keyId);
     }
 
-    private void giveReward(Player p, Reward reward) {
+    public void giveReward(Player p, Reward reward) {
+        giveReward(p, null, reward);
+    }
+
+    public void giveReward(Player p, CaseDefinition def, Reward reward) {
         String rewardLabel = color(reward.displayName() != null ? reward.displayName() : "&fНаграда");
 
         if (reward.type() == Reward.Type.ITEM) {
@@ -444,8 +627,14 @@ public class CaseManager {
             p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.9f, 1.2f);
         }
 
+        if (def != null) {
+            plugin.recordCaseOpening(p, def, reward, rewardLabel);
+            openHistoryStorage.add(def.name(), p.getName(), rewardLabel);
+        }
+
         List<String> broadcast = plugin.getMessages().getList("broadcast",
                 "player", p.getName(),
+                "case", getCaseDisplayName(def),
                 "reward", rewardLabel);
         Bukkit.getOnlinePlayers().forEach(online -> broadcast.forEach(online::sendMessage));
     }
@@ -459,12 +648,55 @@ public class CaseManager {
         int total = rewards.stream().mapToInt(Reward::chance).sum();
         if (total <= 0) return rewards.get(0);
         int r = new Random().nextInt(total) + 1, cur = 0;
-        for (Reward rw : rewards) { cur += rw.chance(); if (r <= cur) return rw; }
+        for (Reward rw : rewards) {
+            cur += rw.chance();
+            if (r <= cur) return rw;
+        }
         return rewards.get(rewards.size() - 1);
+    }
+
+    private ItemStack buildRewardVisualItem(Map<?, ?> rewardMap, String displayName) {
+        Object itemObj = rewardMap.get("item");
+        if (itemObj instanceof Map<?, ?> itemMap) {
+            return ItemFactory.fromMap(itemMap);
+        }
+
+        if (!rewardMap.containsKey("base64") && !rewardMap.containsKey("material")) {
+            return null;
+        }
+
+        Map<String, Object> visualMap = new HashMap<>();
+        for (Map.Entry<?, ?> entry : rewardMap.entrySet()) {
+            if (entry.getKey() == null) continue;
+            visualMap.put(String.valueOf(entry.getKey()), entry.getValue());
+        }
+        if (!visualMap.containsKey("name") && displayName != null && !displayName.isBlank()) {
+            visualMap.put("name", displayName);
+        }
+        return ItemFactory.fromMap(visualMap);
     }
 
     private String color(String s) {
         return ChatColor.translateAlternateColorCodes('&', s == null ? "" : s);
+    }
+
+    private String getCaseDisplayName(CaseDefinition def) {
+        if (def == null) return "кейс";
+
+        String keyId = def.costKeyId();
+        if (keyId != null && !keyId.isBlank()) {
+            String keyName = keyNames.get(keyId.toLowerCase(Locale.ROOT));
+            if (keyName != null && !keyName.isBlank()) {
+                return color(keyName);
+            }
+        }
+
+        String title = def.guiTitle();
+        if (title != null && !title.isBlank()) {
+            return color(title);
+        }
+
+        return def.name();
     }
 
     private static int asInt(Object o, int def) {
@@ -491,7 +723,7 @@ public class CaseManager {
     }
 
     public record BlockKey(String world, int x, int y, int z) {
-        public static BlockKey of(Block b)    { return new BlockKey(b.getWorld().getName(), b.getX(), b.getY(), b.getZ()); }
+        public static BlockKey of(Block b) { return new BlockKey(b.getWorld().getName(), b.getX(), b.getY(), b.getZ()); }
         public static BlockKey of(Location l) { return new BlockKey(l.getWorld().getName(), l.getBlockX(), l.getBlockY(), l.getBlockZ()); }
     }
 }

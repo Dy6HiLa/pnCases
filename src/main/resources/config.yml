@@ -3,13 +3,15 @@ keys:
     name: '&aКлюч: &fИнструменты'
   donate_key:
     name: '&aДонат кейс'
+  resources_key:
+    name: '&aКлюч: &6Ресурсы'
 cases:
   donate:
     block:
       world: world
-      x: -132
-      y: 65
-      z: -47
+      x: -146
+      y: 69
+      z: -43
     hologram:
       enabled: true
       type: TEXT
@@ -17,8 +19,8 @@ cases:
       y: 1.5
       z: 0.0
       lines:
-        - §x§6§F§2§A§6§B§lК§x§7§2§2§9§6§A§lе§x§7§4§2§8§6§9§lй§x§7§7§2§8§6§8§lс §x§7§D§2§6§6§6§lс
-          §x§8§2§2§5§6§4§lП§x§8§5§2§4§6§3§lᴘ§x§8§8§2§3§6§2§lи§x§8§A§2§2§6§1§lʙ§x§8§D§2§1§6§0§lи§x§9§0§2§1§5§F§lл§x§9§2§2§0§5§E§lᴇ§x§9§5§1§F§5§D§lг§x§9§8§1§E§5§C§lи§x§9§B§1§E§5§B§lя§x§9§D§1§D§5§A§lм§x§A§0§1§C§5§9§lи
+      - §x§6§F§2§A§6§B§lК§x§7§2§2§9§6§A§lе§x§7§4§2§8§6§9§lй§x§7§7§2§8§6§8§lс §x§7§D§2§6§6§6§lс
+        §x§8§2§2§5§6§4§lП§x§8§5§2§4§6§3§lᴘ§x§8§8§2§3§6§2§lи§x§8§A§2§2§6§1§lʙ§x§8§D§2§1§6§0§lи§x§9§0§2§1§5§F§lл§x§9§2§2§0§5§E§lᴇ§x§9§5§1§F§5§D§lг§x§9§8§1§E§5§C§lи§x§9§B§1§E§5§B§lя§x§9§D§1§D§5§A§lм§x§A§0§1§C§5§9§lи
       billboard: CENTER
       text_alignment: CENTER
       text_shadow: true
@@ -35,10 +37,10 @@ cases:
         name: §x§6§F§2§A§6§B§lК§x§7§2§2§9§6§A§lе§x§7§4§2§8§6§9§lй§x§7§7§2§8§6§8§lс
           §x§7§D§2§6§6§6§lс §x§8§2§2§5§6§4§lП§x§8§5§2§4§6§3§lᴘ§x§8§8§2§3§6§2§lи§x§8§A§2§2§6§1§lʙ§x§8§D§2§1§6§0§lи§x§9§0§2§1§5§F§lл§x§9§2§2§0§5§E§lᴇ§x§9§5§1§F§5§D§lг§x§9§8§1§E§5§C§lи§x§9§B§1§E§5§B§lя§x§9§D§1§D§5§A§lм§x§A§0§1§C§5§9§lи
         lore:
-          - ''
-          - '&7Содержимое:'
-          - '&7- &evip'
-          - ''
+        - ''
+        - '&7Содержимое:'
+        - '&7- &evip'
+        - ''
     cost:
       type: KEY
       key: donate_key
@@ -49,26 +51,29 @@ cases:
       cycle_every_ticks: 2
       rise_blocks: 1.2
       spin_degrees_per_tick: 18
+      poison:
+        slime-facing: SOUTH
+        slime-pitch: 0
       items:
-        - base64: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNzNiYzk2NWQ1NzljM2M2MDM5ZjBhMTdlYjdjMmU2ZmFmNTM4YzdhNWRlOGU2MGVjN2E3MTkzNjBkMGE4NTdhOSJ9fX0=
-          name: '&evip'
-        - material: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMTFlZDlhYmY1MWZlNGVhODRjZmNiMjcyOTdmMWJjNTRjZDM4MmVkZjg1ZTdiZDZlNzVlY2NhMmI4MDY2MTEifX19
-          name: '&ddiamond'
-        - base64: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOGU0YTcwYjdiYmNkN2E4YzMyMmQ1MjI1MjA0OTFhMjdlYTZiODNkNjBlY2Y5NjFkMmI0ZWZiYmY5ZjYwNWQifX19
-          name: '&eКрутая голова'
+      - base64: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNzNiYzk2NWQ1NzljM2M2MDM5ZjBhMTdlYjdjMmU2ZmFmNTM4YzdhNWRlOGU2MGVjN2E3MTkzNjBkMGE4NTdhOSJ9fX0=
+        name: '&evip'
+      - base64: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMTFlZDlhYmY1MWZlNGVhODRjZmNiMjcyOTdmMWJjNTRjZDM4MmVkZjg1ZTdiZDZlNzVlY2NhMmI4MDY2MTEifX19
+        name: '&ddiamond'
+      - base64: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOGU0YTcwYjdiYmNkN2E4YzMyMmQ1MjI1MjA0OTFhMjdlYTZiODNkNjBlY2Y5NjFkMmI0ZWZiYmY5ZjYwNWQifX19
+        name: '&eКрутая голова'
     rewards:
-      - chance: 50
-        type: LUCKPERMS
-        luckperms:
-          group: vip
-          display_name: '&eVIP'
-        message: '&aТы получил привилегию &eVIP&a!'
-      - chance: 40
-        type: LUCKPERMS
-        luckperms:
-          group: diamond
-          display_name: '&dDIAMOND &7на 7 дней'
-        message: '&aТебе выдали DIAMOND на 7 дней!'
+    - chance: 50
+      type: LUCKPERMS
+      luckperms:
+        group: vip
+        display_name: '&eVIP'
+      message: '&aТы получил привилегию &eVIP&a!'
+    - chance: 40
+      type: LUCKPERMS
+      luckperms:
+        group: diamond
+        display_name: '&dDIAMOND &7на 7 дней'
+      message: '&aТебе выдали DIAMOND на 7 дней!'
   tools:
     block:
       world: world
@@ -82,8 +87,8 @@ cases:
       y: 1.5
       z: 0.0
       lines:
-        - §x§6§7§2§A§7§F§lК§x§6§C§2§D§7§F§lе§x§7§1§3§0§7§F§lй§x§7§6§3§3§7§F§lс §x§8§1§3§A§8§0§lс
-          §x§8§B§4§0§8§0§lИ§x§9§0§4§3§8§0§lн§x§9§5§4§6§8§0§lс§x§9§A§4§A§8§1§lт§x§9§F§4§D§8§1§lр§x§A§4§5§0§8§1§lу§x§A§9§5§3§8§1§lм§x§A§E§5§6§8§1§lе§x§B§4§5§9§8§1§lн§x§B§9§5§D§8§2§lт§x§B§E§6§0§8§2§lа§x§C§3§6§3§8§2§lм§x§C§8§6§6§8§2§lи
+      - §x§6§7§2§A§7§F§lК§x§6§C§2§D§7§F§lе§x§7§1§3§0§7§F§lй§x§7§6§3§3§7§F§lс §x§8§1§3§A§8§0§lс
+        §x§8§B§4§0§8§0§lИ§x§9§0§4§3§8§0§lн§x§9§5§4§6§8§0§lс§x§9§A§4§A§8§1§lт§x§9§F§4§D§8§1§lр§x§A§4§5§0§8§1§lу§x§A§9§5§3§8§1§lм§x§A§E§5§6§8§1§lе§x§B§4§5§9§8§1§lн§x§B§9§5§D§8§2§lт§x§B§E§6§0§8§2§lа§x§C§3§6§3§8§2§lм§x§C§8§6§6§8§2§lи
       billboard: CENTER
       text_alignment: CENTER
       text_shadow: true
@@ -99,7 +104,7 @@ cases:
         material: CHEST
         name: '&aОткрыть кейс'
         lore:
-          - ''
+        - ''
     cost:
       type: KEY
       key: tools_key
@@ -110,33 +115,169 @@ cases:
       cycle_every_ticks: 2
       rise_blocks: 1.2
       spin_degrees_per_tick: 18
+      poison:
+        slime-facing: SOUTH
+        slime-pitch: 0
       items:
-        - material: DIAMOND_PICKAXE
-          name: '&bАлмазная кирка'
-        - material: NETHERITE_AXE
-          name: '&dНезеритовый топор'
-        - base64: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOGU0YTcwYjdiYmNkN2E4YzMyMmQ1MjI1MjA0OTFhMjdlYTZiODNkNjBlY2Y5NjFkMmI0ZWZiYmY5ZjYwNWQifX19
-          name: '&eКрутая голова'
+      - material: DIAMOND_PICKAXE
+        name: '&bАлмазная кирка'
+      - material: NETHERITE_AXE
+        name: '&dНезеритовый топор'
+      - base64: eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOGU0YTcwYjdiYmNkN2E4YzMyMmQ1MjI1MjA0OTFhMjdlYTZiODNkNjBlY2Y5NjFkMmI0ZWZiYmY5ZjYwNWQifX19
+        name: '&eКрутая голова'
     rewards:
-      - chance: 60
-        type: ITEM
-        item:
-          material: DIAMOND_PICKAXE
-          amount: 1
-          name: '&bАлмазная кирка'
-          enchantments:
-            efficiency: 4
-            unbreaking: 3
-      - chance: 30
-        type: LUCKPERMS
-        luckperms:
-          group: vip
-          display_name: '&eVIP'
-        message: '&aТы получил привилегию &eVIP&a!'
-      - chance: 10
-        type: LUCKPERMS
-        luckperms:
-          group: vip
-          duration: 7d
-          display_name: '&eVIP &7на 7 дней'
-        message: '&aТебе выдали VIP на 7 дней!'
+    - chance: 60
+      type: ITEM
+      item:
+        material: DIAMOND_PICKAXE
+        amount: 1
+        name: '&bАлмазная кирка'
+        enchantments:
+          efficiency: 4
+          unbreaking: 3
+    - chance: 30
+      type: LUCKPERMS
+      luckperms:
+        group: vip
+        display_name: '&eVIP'
+      message: '&aТы получил привилегию &eVIP&a!'
+    - chance: 10
+      type: LUCKPERMS
+      luckperms:
+        group: vip
+        duration: 7d
+        display_name: '&eVIP &7на 7 дней'
+      message: '&aТебе выдали VIP на 7 дней!'
+  resources:
+    block:
+      world: world
+      x: -146
+      y: 69
+      z: -46
+    hologram:
+      enabled: true
+      type: TEXT
+      x: 0.0
+      y: 1.5
+      z: 0.0
+      lines:
+      - '&6&lКейс с ресурсами'
+      - '&7Инструменты и материалы'
+      billboard: CENTER
+      text_alignment: CENTER
+      text_shadow: true
+      see_through: true
+      shadow_radius: 0.0
+      shadow_strength: 1.0
+      background: none
+      visibility_distance: 64
+      text_update_interval: 0
+    gui:
+      title: '&8Кейс с ресурсами'
+      open-item:
+        material: CHEST
+        name: '&6Кейс с ресурсами'
+        lore:
+        - ''
+        - '&7Содержимое:'
+        - '&7- &fИнструменты и материалы'
+        - '&7- &eРедкие ресурсы'
+        - ''
+    cost:
+      type: KEY
+      key: resources_key
+      amount: 1
+      buy_xp_levels: 30
+    animation:
+      duration_ticks: 80
+      cycle_every_ticks: 2
+      rise_blocks: 1.2
+      spin_degrees_per_tick: 18
+      poison:
+        slime-facing: SOUTH
+        slime-pitch: 0
+      items:
+      - material: DIAMOND_PICKAXE
+        name: '&bАлмазная кирка'
+      - material: NETHERITE_INGOT
+        name: '&8Незеритовый слиток'
+      - material: ELYTRA
+        name: '&dЭлитры'
+    rewards:
+    - chance: 20
+      type: ITEM
+      item:
+        material: IRON_INGOT
+        amount: 32
+        name: '&7Железо &8x32'
+    - chance: 15
+      type: ITEM
+      item:
+        material: GOLD_INGOT
+        amount: 16
+        name: '&eЗолото &8x16'
+    - chance: 15
+      type: ITEM
+      item:
+        material: COAL
+        amount: 64
+        name: '&8Уголь &8x64'
+    - chance: 10
+      type: ITEM
+      item:
+        material: DIAMOND
+        amount: 8
+        name: '&bАлмазы &8x8'
+    - chance: 12
+      type: ITEM
+      item:
+        material: IRON_PICKAXE
+        amount: 1
+        name: '&7Железная кирка'
+        enchantments:
+          efficiency: 3
+          unbreaking: 2
+    - chance: 10
+      type: ITEM
+      item:
+        material: DIAMOND_PICKAXE
+        amount: 1
+        name: '&bАлмазная кирка'
+        enchantments:
+          efficiency: 4
+          unbreaking: 3
+    - chance: 8
+      type: ITEM
+      item:
+        material: DIAMOND_SWORD
+        amount: 1
+        name: '&bАлмазный меч'
+        enchantments:
+          sharpness: 4
+          unbreaking: 3
+    - chance: 5
+      type: ITEM
+      item:
+        material: NETHERITE_INGOT
+        amount: 2
+        name: '&8Незеритовые слитки &8x2'
+      message: '&6Редкая находка! Ты получил &8незеритовые слитки&6!'
+    - chance: 3
+      type: ITEM
+      item:
+        material: ELYTRA
+        amount: 1
+        name: '&dЭлитры'
+      message: '&5Удача на твоей стороне! Ты получил &dЭлитры&5!'
+    - chance: 2
+      type: ITEM
+      item:
+        material: NETHERITE_PICKAXE
+        amount: 1
+        name: '&8&lНезеритовая кирка'
+        enchantments:
+          efficiency: 5
+          unbreaking: 3
+          fortune: 3
+          mending: 1
+      message: '&4⚡ ДЖЕКПОТ! &8Незеритовая кирка &4Fortune III + Mending!'

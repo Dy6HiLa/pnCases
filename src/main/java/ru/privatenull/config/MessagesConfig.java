@@ -51,6 +51,24 @@ public final class MessagesConfig {
         return color(raw);
     }
 
+    public String getOr(String path, String fallbackPath, String... replacements) {
+        String prefix = color(cfg.getString("prefix", ""));
+        String raw = cfg.isString(path)
+                ? cfg.getString(path, "")
+                : cfg.getString(fallbackPath, "&c[missing: " + path + "]");
+
+        raw = raw.replace("{prefix}", prefix);
+
+        if (replacements.length % 2 != 0) {
+            throw new IllegalArgumentException("Replacements must be key-value pairs");
+        }
+        for (int i = 0; i < replacements.length; i += 2) {
+            raw = raw.replace("{" + replacements[i] + "}", replacements[i + 1]);
+        }
+
+        return color(raw);
+    }
+
     public List<String> getList(String path, String... replacements) {
         String prefix = color(cfg.getString("prefix", ""));
 

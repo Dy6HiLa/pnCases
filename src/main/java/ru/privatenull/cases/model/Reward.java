@@ -26,12 +26,12 @@ public class Reward {
         this.displayName = displayName;
     }
 
-    public int chance()          { return chance; }
-    public Type type()           { return type; }
-    public ItemStack item()      { return item; }
-    public String lpGroup()      { return lpGroup; }
-    public String lpNode()       { return lpNode; }
-    public String lpDuration()   { return lpDuration; }
-    public String message()      { return message; }
-    public String displayName()  { return displayName; }
+    public int chance() { return chance; }
+    public Type type() { return type; }
+    public ItemStack item() { return item; }
+    public String lpGroup() { return lpGroup; }
+    public String lpNode() { return lpNode; }
+    public String lpDuration() { return lpDuration; }
+    public String message() { return message; }
+    public String displayName() { return displayName; }
 }
