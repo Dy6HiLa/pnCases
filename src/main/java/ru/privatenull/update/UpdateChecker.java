@@ -1,12 +1,12 @@
 package ru.privatenull.update;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.event.HoverEvent;
 import ru.privatenull.pnCases;
 
 import java.io.BufferedReader;
@@ -78,7 +78,7 @@ public final class UpdateChecker {
             UpdateInfo updateInfo = fetchLatestUpdateInfo();
             String found = updateInfo.version();
             if (found == null || found.isBlank()) {
-                plugin.getLogger().warning("Update checker: GitHub response did not contain a version.");
+                plugin.getLogger().warning("Проверка обновлений: GitHub не вернул версию.");
                 return;
             }
 
@@ -101,7 +101,7 @@ public final class UpdateChecker {
                 Bukkit.getScheduler().runTask(plugin, this::notifyOnlineAdmins);
             }
         } catch (Exception ex) {
-            plugin.getLogger().warning("Update checker error: " + ex.getMessage());
+            plugin.getLogger().warning("Ошибка проверки обновлений: " + ex.getMessage());
         }
     }
 
@@ -121,7 +121,7 @@ public final class UpdateChecker {
         try {
             candidates.add(extractUpdateInfo(fetch(GITHUB_MANIFEST_URL), false));
         } catch (Exception ignored) {
-            // The manifest is optional; releases and tags remain valid update sources.
+            // update-manifest.json is optional.
         }
 
         try {
@@ -130,7 +130,7 @@ public final class UpdateChecker {
                 candidates.add(releaseInfo);
             }
         } catch (Exception ignored) {
-            // If there are no GitHub releases yet, use the latest git tag.
+            // GitHub release may not exist yet.
         }
 
         try {
@@ -139,7 +139,7 @@ public final class UpdateChecker {
                 candidates.add(tagInfo);
             }
         } catch (Exception ignored) {
-            // Fall back to the source plugin.yml version from the default branch.
+            // Tags are optional too.
         }
 
         try {
@@ -283,7 +283,7 @@ public final class UpdateChecker {
 
     private void sendAdminMessage(Player player) {
         String url = downloadUrl == null || downloadUrl.isBlank() ? DEFAULT_DOWNLOAD_URL : downloadUrl;
-        for (String line : formatAdminLines(url)) {
+        for (String line : formatAdminLines()) {
             player.sendMessage(line);
         }
 
@@ -299,7 +299,7 @@ public final class UpdateChecker {
         player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.45f, 1.6f);
     }
 
-    private List<String> formatAdminLines(String url) {
+    private List<String> formatAdminLines() {
         String current = plugin.getDescription().getVersion();
         return List.of(
                 "",
