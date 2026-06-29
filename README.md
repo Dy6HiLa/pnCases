@@ -5,16 +5,17 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.3/pnCases-1.3.jar"><b>Скачать pnCases 1.3</b></a>
-  ·
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.3"><b>Что нового в 1.3</b></a>
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.3/pnCases-1.3.jar">
+    <img src="https://img.shields.io/badge/%D0%A1%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-1.3-429F91?style=for-the-badge&labelColor=17241F" alt="Скачать pnCases 1.3">
+  </a>
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.3">
+    <img src="https://img.shields.io/badge/Changelog-1.3-D8DF9D?style=for-the-badge&labelColor=17241F" alt="Changelog pnCases 1.3">
+  </a>
 </p>
 
 # pnCases
 
 `pnCases` - бесплатный плагин кейсов для Paper 1.21.x с красивыми анимациями, GUI, историей открытий, голограммами и LuckPerms-наградами.
-
-[Скачать pnCases 1.3](https://github.com/Dy6HiLa/pnCases/releases/download/v1.3/pnCases-1.3.jar)
 
 ## pnCases 1.3
 
