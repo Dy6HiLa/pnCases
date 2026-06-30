@@ -157,7 +157,7 @@ public class CaseGuiListener implements Listener {
         for (int i = 0; i < pageSize; i++) {
             int rewardIndex = start + i;
             if (rewardIndex >= rewards.size()) break;
-            inv.setItem(PREVIEW_REWARD_SLOTS[i], caseManager.buildRewardPreviewItem(rewards.get(rewardIndex), totalChance));
+            inv.setItem(PREVIEW_REWARD_SLOTS[i], caseManager.buildRewardPreviewItem(def, rewards.get(rewardIndex), totalChance));
         }
 
         inv.setItem(4, buildPreviewInfoItem(def, safePage, pages, rewards.size()));
@@ -202,7 +202,7 @@ public class CaseGuiListener implements Listener {
     }
 
     private ItemStack buildPreviewInfoItem(CaseDefinition def, int page, int pages, int rewardCount) {
-        ItemStack item = new ItemStack(Material.KNOWLEDGE_BOOK);
+        ItemStack item = new ItemStack(Material.COMPASS);
         ItemMeta meta = item.getItemMeta();
         if (meta == null) return item;
 

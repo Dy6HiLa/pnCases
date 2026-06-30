@@ -3,7 +3,6 @@ package ru.privatenull.cases.animation;
 import org.bukkit.*;
 import org.bukkit.entity.*;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.joml.AxisAngle4f;
@@ -36,7 +35,7 @@ public class PortalAnimation extends CaseAnimation {
         if (w == null) { onFinish.run(); return; }
 
         Random rng = new Random();
-        ItemStack rewardVisual = buildRewardVisual(reward, def);
+        ItemStack rewardVisual = resolveRewardVisual(reward, def);
 
         Location centre = base.clone().add(0, 2.0, 0);
 
@@ -393,7 +392,7 @@ public class PortalAnimation extends CaseAnimation {
                         w.spawnParticle(Particle.END_ROD, rewardLoc, 2, 0.15, 0.10, 0.15, 0.04);
 
                     if (t == COLLAPSE_END + 15)
-                        setLabel(label, rewardVisual);
+                        setLabel(label, reward, rewardVisual);
 
                     if (t % 8 == 0)
                         w.playSound(base, Sound.BLOCK_PORTAL_AMBIENT, 0.10f, 1.8f);
@@ -444,18 +443,8 @@ public class PortalAnimation extends CaseAnimation {
         ));
     }
 
-    private static void setLabel(TextDisplay td, ItemStack it) {
-        String name = null;
-        ItemMeta meta = it.getItemMeta();
-        if (meta != null && meta.hasDisplayName()) name = meta.getDisplayName();
-        if (name == null || name.isBlank()) name = "§f" + it.getType().name();
-        td.setText(ChatColor.translateAlternateColorCodes('&', name));
-    }
-
-    private static ItemStack buildRewardVisual(Reward reward, CaseDefinition def) {
-        return reward.visualItem() != null
-                ? reward.visualItem().clone()
-                : def.animationItems().get(0).clone();
+    private void setLabel(TextDisplay td, Reward reward, ItemStack visual) {
+        td.setText(resolveRewardName(reward, visual));
     }
 
     private static void safeRemove(Entity e) {

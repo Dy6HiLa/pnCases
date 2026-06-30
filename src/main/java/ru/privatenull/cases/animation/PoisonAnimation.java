@@ -496,31 +496,15 @@ public class PoisonAnimation extends CaseAnimation {
         return loc;
     }
 
-    private static void setLabel(TextDisplay td, Reward reward, ItemStack visual) {
-        String name = reward.displayName();
-        if (name == null || name.isBlank()) {
-            ItemMeta meta = visual.getItemMeta();
-            if (meta != null && meta.hasDisplayName()) name = meta.getDisplayName();
-        }
-        if (name == null || name.isBlank()) name = "§f" + visual.getType().name();
-
+    private void setLabel(TextDisplay td, Reward reward, ItemStack visual) {
         td.setText(
                 "§x§9§6§F§B§8§A«Награда»\n" +
-                        "" + ChatColor.translateAlternateColorCodes('&', name)
+                        "" + resolveRewardName(reward, visual)
         );
     }
 
-    private static ItemStack buildRewardVisual(Reward reward, CaseDefinition def) {
-        if (reward.visualItem() != null) {
-            return reward.visualItem().clone();
-        }
-
-        ItemStack matched = findMatchingAnimationItem(reward, def);
-        if (matched != null) {
-            return matched;
-        }
-
-        return buildFallbackRewardVisual(reward);
+    private ItemStack buildRewardVisual(Reward reward, CaseDefinition def) {
+        return resolveRewardVisual(reward, def);
     }
 
     private static ItemStack findMatchingAnimationItem(Reward reward, CaseDefinition def) {

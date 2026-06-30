@@ -3,7 +3,6 @@ package ru.privatenull.cases.animation;
 import org.bukkit.*;
 import org.bukkit.entity.*;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.joml.Vector3f;
@@ -36,7 +35,7 @@ public class DynamiteAnimation extends CaseAnimation {
         if (w == null) { onFinish.run(); return; }
 
         Random rng = new Random();
-        ItemStack rewardVisual = buildRewardVisual(reward, def);
+        ItemStack rewardVisual = resolveRewardVisual(reward, def);
 
         Location tntStart = base.clone().add(3.5, 7.0, 0.0);
         Location tntTarget = base.clone().add(0, 1.50, 0);
@@ -345,7 +344,7 @@ public class DynamiteAnimation extends CaseAnimation {
                     if (t % 10 == 0)
                         w.playSound(base, Sound.BLOCK_FIRE_AMBIENT, 0.15f, 1.5f + (float) phaseProgress * 0.5f);
                     if (t == PHASE3_END + 10)
-                        setLabel(label, rewardVisual);
+                        setLabel(label, reward, rewardVisual);
                 }
 
                 if (t >= PHASE4_END) {
@@ -396,18 +395,8 @@ public class DynamiteAnimation extends CaseAnimation {
         ));
     }
 
-    private static void setLabel(TextDisplay td, ItemStack it) {
-        String name = null;
-        ItemMeta meta = it.getItemMeta();
-        if (meta != null && meta.hasDisplayName()) name = meta.getDisplayName();
-        if (name == null || name.isBlank()) name = "§f" + it.getType().name();
-        td.setText(ChatColor.translateAlternateColorCodes('&', name));
-    }
-
-    private static ItemStack buildRewardVisual(Reward reward, CaseDefinition def) {
-        return reward.visualItem() != null
-                ? reward.visualItem().clone()
-                : def.animationItems().get(0).clone();
+    private void setLabel(TextDisplay td, Reward reward, ItemStack visual) {
+        td.setText(resolveRewardName(reward, visual));
     }
 
     private static void safeRemove(Entity e) {

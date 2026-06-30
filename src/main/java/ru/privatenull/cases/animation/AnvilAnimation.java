@@ -3,7 +3,6 @@ package ru.privatenull.cases.animation;
 import org.bukkit.*;
 import org.bukkit.entity.*;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.joml.Vector3f;
@@ -32,7 +31,7 @@ public class AnvilAnimation extends CaseAnimation {
         final int PHASE2_END = 92;
         final int PHASE3_END = 142;
 
-        ItemStack rewardVisual = buildRewardVisual(reward, def);
+        ItemStack rewardVisual = resolveRewardVisual(reward, def);
 
         BlockDisplay anvil = (BlockDisplay) w.spawnEntity(base.clone().add(0, ANVIL_START_Y, 0), EntityType.BLOCK_DISPLAY);
         anvil.setBlock(Material.ANVIL.createBlockData());
@@ -142,7 +141,7 @@ public class AnvilAnimation extends CaseAnimation {
                             st.getRightRotation()
                     ));
 
-                    if (t == PHASE2_END + 5) setLabel(label, rewardVisual);
+                    if (t == PHASE2_END + 5) setLabel(label, reward, rewardVisual);
 
                     if (t % 2 == 0) {
                         w.spawnParticle(Particle.ENCHANT, rewardLoc, 5, 0.1, 0.1, 0.1, 0.2);
@@ -186,23 +185,13 @@ public class AnvilAnimation extends CaseAnimation {
         }
     }
 
-    private static void setLabel(TextDisplay td, ItemStack it) {
-        String name = null;
-        ItemMeta meta = it.getItemMeta();
-        if (meta != null && meta.hasDisplayName()) name = meta.getDisplayName();
-        if (name == null || name.isBlank()) name = "§f" + it.getType().name();
-        td.setText(ChatColor.translateAlternateColorCodes('&', name));
+    private void setLabel(TextDisplay td, Reward reward, ItemStack visual) {
+        td.setText(resolveRewardName(reward, visual));
     }
 
     private static double easeInOut(double value) {
         double x = Math.max(0.0, Math.min(1.0, value));
         return x < 0.5 ? 2.0 * x * x : 1.0 - Math.pow(-2.0 * x + 2.0, 2.0) / 2.0;
-    }
-
-    private static ItemStack buildRewardVisual(Reward reward, CaseDefinition def) {
-        return reward.visualItem() != null
-                ? reward.visualItem().clone()
-                : def.animationItems().get(0).clone();
     }
 
     private static void safeRemove(Entity e) {

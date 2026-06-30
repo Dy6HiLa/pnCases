@@ -12,6 +12,7 @@ import ru.privatenull.cases.CaseManager;
 import ru.privatenull.pnCases;
 import ru.privatenull.update.UpdateChecker;
 
+import java.util.Locale;
 import java.util.UUID;
 
 public class CasesCMD implements CommandExecutor {
@@ -168,6 +169,22 @@ public class CasesCMD implements CommandExecutor {
             return true;
         }
 
+        if (isDeleteCaseCommand(args[0])) {
+            if (args.length < 2) {
+                sender.sendMessage(plugin.getMessages().get("delcase-usage"));
+                return true;
+            }
+
+            String caseName = args[1].toLowerCase(Locale.ROOT);
+            CaseManager.UnbindCaseResult result = caseManager.unbindCaseFromBlock(caseName);
+            switch (result) {
+                case REMOVED -> sender.sendMessage(plugin.getMessages().get("delcase-success", "case", caseName));
+                case NOT_BOUND -> sender.sendMessage(plugin.getMessages().get("delcase-not-bound", "case", caseName));
+                case NOT_FOUND -> sender.sendMessage(plugin.getMessages().get("delcase-not-found", "case", caseName));
+            }
+            return true;
+        }
+
         if (args[0].equalsIgnoreCase("setcase")) {
             if (!(sender instanceof Player p)) {
                 sender.sendMessage(plugin.getMessages().get("only-player"));
@@ -179,7 +196,7 @@ public class CasesCMD implements CommandExecutor {
                 return true;
             }
 
-            String caseName = args[1].toLowerCase();
+            String caseName = args[1].toLowerCase(Locale.ROOT);
             Block target = p.getTargetBlockExact(5);
             if (target == null) {
                 p.sendMessage(plugin.getMessages().get("setcase-look-at-block"));
@@ -234,6 +251,13 @@ public class CasesCMD implements CommandExecutor {
 
     private static String nullToUnknown(String value) {
         return value == null || value.isBlank() ? "неизвестно" : value;
+    }
+
+    private static boolean isDeleteCaseCommand(String value) {
+        return value.equalsIgnoreCase("delcase")
+                || value.equalsIgnoreCase("deletecase")
+                || value.equalsIgnoreCase("removecase")
+                || value.equalsIgnoreCase("unsetcase");
     }
 
     private static OfflinePlayer resolveOfflinePlayer(String input) {

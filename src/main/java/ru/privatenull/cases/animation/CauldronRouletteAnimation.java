@@ -402,29 +402,8 @@ public class CauldronRouletteAnimation extends CaseAnimation {
         return visuals;
     }
 
-    private static ItemStack buildRewardVisual(Reward reward, CaseDefinition def) {
-        if (reward.visualItem() != null) {
-            return reward.visualItem().clone();
-        }
-
-        ItemStack matched = findMatchingAnimationItem(reward, def);
-        if (matched != null) {
-            return matched;
-        }
-
-        ItemStack item = new ItemStack(Material.NETHER_STAR);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            String name = reward.displayName();
-            if (name == null || name.isBlank()) {
-                name = reward.lpGroup() != null && !reward.lpGroup().isBlank()
-                        ? "&f" + reward.lpGroup()
-                        : "&fНаграда";
-            }
-            meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', name));
-            item.setItemMeta(meta);
-        }
-        return item;
+    private ItemStack buildRewardVisual(Reward reward, CaseDefinition def) {
+        return resolveRewardVisual(reward, def);
     }
 
     private static ItemStack findMatchingAnimationItem(Reward reward, CaseDefinition def) {
@@ -471,21 +450,10 @@ public class CauldronRouletteAnimation extends CaseAnimation {
         return stripped.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+", "");
     }
 
-    private static void setLabel(TextDisplay textDisplay, Reward reward, ItemStack visual) {
-        String name = reward.displayName();
-        if (name == null || name.isBlank()) {
-            ItemMeta meta = visual.getItemMeta();
-            if (meta != null && meta.hasDisplayName()) {
-                name = meta.getDisplayName();
-            }
-        }
-        if (name == null || name.isBlank()) {
-            name = "§f" + visual.getType().name();
-        }
-
+    private void setLabel(TextDisplay textDisplay, Reward reward, ItemStack visual) {
         textDisplay.setText(
                 "§x§4§2§9§F§9§1§l«Разлом выдал награду»\n" +
-                        ChatColor.translateAlternateColorCodes('&', name)
+                        resolveRewardName(reward, visual)
         );
     }
 

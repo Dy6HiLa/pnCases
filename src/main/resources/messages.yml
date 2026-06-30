@@ -13,6 +13,7 @@ command-help:
   - "§x§4§2§9§F§9§1§l▸ §x§4§2§9§F§9§1/pncases givekey <игрок> <ключ> <кол-во> &8— &7выдать ключи"
   - "§x§4§2§9§F§9§1§l▸ §x§4§2§9§F§9§1/pncases takekey <игрок> <ключ> <кол-во> &8— &7забрать ключи"
   - "§x§4§2§9§F§9§1§l▸ §x§4§2§9§F§9§1/pncases setcase <кейс> &8— &7привязать кейс к блоку"
+  - "§x§4§2§9§F§9§1§l▸ §x§4§2§9§F§9§1/pncases delcase <кейс> &8— &7убрать кейс с блока"
   - ""
 
 command-version: "{prefix} &8| &fВерсия плагина: §x§4§2§9§F§9§1{version}"
@@ -61,6 +62,10 @@ takekey-success-target: "{prefix} &8| &fАдминистратор забрал 
 setcase-usage: "{prefix} &8| &fИспользование: §x§4§2§9§F§9§1/pncases setcase <кейс>"
 setcase-look-at-block: "{prefix} &8| &fПосмотрите на блок на расстоянии до 5 блоков."
 setcase-success: "{prefix} &8| &fКейс §x§4§2§9§F§9§1{case} &fпривязан к блоку: &7{world} {x} {y} {z}"
+delcase-usage: "{prefix} &8| &fИспользование: §x§4§2§9§F§9§1/pncases delcase <кейс>"
+delcase-success: "{prefix} &8| &fКейс §x§4§2§9§F§9§1{case} &fубран с блока. Настройки и награды сохранены."
+delcase-not-bound: "{prefix} &8| &fУ кейса §x§4§2§9§F§9§1{case} &fнет привязанного блока."
+delcase-not-found: "{prefix} &8| &fКейс §x§4§2§9§F§9§1{case} &fне найден в config.yml."
 
 animation-changed: "{prefix} &8| &fАнимация: §x§4§2§9§F§9§1{animation}"
 

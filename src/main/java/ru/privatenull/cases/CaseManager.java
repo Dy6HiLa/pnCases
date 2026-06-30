@@ -26,6 +26,12 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class CaseManager {
 
+    public enum UnbindCaseResult {
+        REMOVED,
+        NOT_FOUND,
+        NOT_BOUND
+    }
+
     public static final int PREVIEW_SLOT = 50;
     public static final int ANIMATION_SLOT = 49;
 
@@ -72,6 +78,10 @@ public class CaseManager {
     }
 
     public List<String> getCaseNames() { return new ArrayList<>(casesByName.keySet()); }
+    public List<String> getConfiguredCaseNames() {
+        ConfigurationSection cases = plugin.getConfig().getConfigurationSection("cases");
+        return cases == null ? getCaseNames() : new ArrayList<>(cases.getKeys(false));
+    }
     public List<String> getKeyNames()  { return new ArrayList<>(keyNames.keySet()); }
     public boolean keyExists(String keyId) { return keyNames.containsKey(keyId.toLowerCase()); }
 
@@ -148,6 +158,33 @@ public class CaseManager {
 
         plugin.saveConfig();
         reloadFromConfig();
+    }
+
+    public UnbindCaseResult unbindCaseFromBlock(String caseName) {
+        if (caseName == null || caseName.isBlank()) {
+            return UnbindCaseResult.NOT_FOUND;
+        }
+
+        String normalized = caseName.toLowerCase(Locale.ROOT);
+        ConfigurationSection cases = plugin.getConfig().getConfigurationSection("cases");
+        if (cases == null || !cases.isConfigurationSection(normalized)) {
+            return UnbindCaseResult.NOT_FOUND;
+        }
+
+        ConfigurationSection section = cases.getConfigurationSection(normalized);
+        if (section == null || !section.isConfigurationSection("block")) {
+            return UnbindCaseResult.NOT_BOUND;
+        }
+
+        CaseDefinition loaded = casesByName.get(normalized);
+        if (loaded != null && loaded.blockLocation() != null) {
+            busyCases.remove(BlockKey.of(loaded.blockLocation()));
+        }
+
+        section.set("block", null);
+        plugin.saveConfig();
+        reloadFromConfig();
+        return UnbindCaseResult.REMOVED;
     }
 
     public void reloadFromConfig() {
@@ -258,9 +295,10 @@ public class CaseManager {
                             if (n != null) lpNode = String.valueOf(n);
                             if (d != null) lpDuration = String.valueOf(d);
                             Object dn = firstPresent(lpMap, map, "display_name", "display-name", "displayName", "name");
-                            displayName = dn != null ? String.valueOf(dn) : "&f" + (lpGroup != null ? lpGroup : lpNode);
+                            displayName = dn != null ? String.valueOf(dn) : null;
                         }
                         item = buildRewardVisualItem(map, displayName);
+                        displayName = resolveRewardDisplayName(item, displayName != null ? displayName : "&dПривилегия");
                     } else if (rType == Reward.Type.VAULT) {
                         Map<?, ?> vaultMap = getNestedMap(map, "vault");
                         vaultAmount = asDouble(firstPresent(vaultMap, map, "amount", "money", "value"), 0.0);
@@ -351,7 +389,7 @@ public class CaseManager {
     }
 
     public ItemStack buildPreviewButton(CaseDefinition def) {
-        ItemStack item = new ItemStack(Material.BOOK);
+        ItemStack item = new ItemStack(Material.ENDER_EYE);
         ItemMeta meta = item.getItemMeta();
         if (meta == null) return item;
 
@@ -370,11 +408,15 @@ public class CaseManager {
     }
 
     public ItemStack buildRewardPreviewItem(Reward reward, int totalChance) {
-        ItemStack item = buildRewardDisplayItem(reward);
+        return buildRewardPreviewItem(null, reward, totalChance);
+    }
+
+    public ItemStack buildRewardPreviewItem(CaseDefinition def, Reward reward, int totalChance) {
+        ItemStack item = buildRewardDisplayItem(def, reward);
         ItemMeta meta = item.getItemMeta();
         if (meta == null) return item;
 
-        String rewardName = color(reward.displayName() != null ? reward.displayName() : getDisplayName(item));
+        String rewardName = color(resolveRewardViewName(reward, item));
         meta.setDisplayName(reward.rarity().color() + "◆ " + rewardName);
 
         List<String> lore = new ArrayList<>();
@@ -394,12 +436,6 @@ public class CaseManager {
         } else if (reward.type() == Reward.Type.PLAYERPOINTS) {
             lore.add(color(" §7- &fПоинты: §x§4§2§9§F§9§1" + formatPlayerPointsAmount(reward.playerPointsAmount())));
         } else if (reward.type() == Reward.Type.LUCKPERMS) {
-            if (reward.lpGroup() != null && !reward.lpGroup().isBlank()) {
-                lore.add(color(" §7- &fГруппа: §x§4§2§9§F§9§1" + reward.lpGroup()));
-            }
-            if (reward.lpNode() != null && !reward.lpNode().isBlank()) {
-                lore.add(color(" §7- &fПраво: §x§4§2§9§F§9§1" + reward.lpNode()));
-            }
             if (reward.lpDuration() != null && !reward.lpDuration().isBlank()) {
                 lore.add(color(" §7- &fСрок: §x§4§2§9§F§9§1" + reward.lpDuration()));
             }
@@ -411,9 +447,14 @@ public class CaseManager {
         return item;
     }
 
-    private ItemStack buildRewardDisplayItem(Reward reward) {
+    private ItemStack buildRewardDisplayItem(CaseDefinition def, Reward reward) {
         if (reward.visualItem() != null) {
             return reward.visualItem().clone();
+        }
+
+        ItemStack matched = findMatchingAnimationItem(def, reward);
+        if (matched != null) {
+            return matched;
         }
 
         Material material = switch (reward.type()) {
@@ -431,7 +472,7 @@ public class CaseManager {
                 name = switch (reward.type()) {
                     case VAULT -> "&a" + formatVaultAmount(reward.vaultAmount());
                     case PLAYERPOINTS -> "&b" + formatPlayerPointsAmount(reward.playerPointsAmount());
-                    case LUCKPERMS -> "&dLuckPerms";
+                    case LUCKPERMS -> "&dПривилегия";
                     case ITEM -> "&fНаграда";
                 };
             }
@@ -439,6 +480,48 @@ public class CaseManager {
             item.setItemMeta(meta);
         }
         return item;
+    }
+
+    private ItemStack findMatchingAnimationItem(CaseDefinition def, Reward reward) {
+        if (def == null || reward == null || def.animationItems() == null) {
+            return null;
+        }
+
+        String rewardName = normalizeDisplayName(reward.displayName());
+        String groupName = normalizeDisplayName(reward.lpGroup());
+        String nodeName = normalizeDisplayName(reward.lpNode());
+
+        for (ItemStack item : def.animationItems()) {
+            if (item == null) continue;
+
+            String itemName = normalizeDisplayName(getDisplayName(item));
+            if (matchesDisplayName(itemName, rewardName)
+                    || matchesDisplayName(itemName, groupName)
+                    || matchesDisplayName(itemName, nodeName)) {
+                return item.clone();
+            }
+        }
+
+        return null;
+    }
+
+    private boolean matchesDisplayName(String itemName, String rewardName) {
+        if (itemName.length() < 2 || rewardName.length() < 2) {
+            return false;
+        }
+        return itemName.equals(rewardName) || itemName.contains(rewardName) || rewardName.contains(itemName);
+    }
+
+    private String normalizeDisplayName(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        String colored = color(value);
+        String stripped = ChatColor.stripColor(colored);
+        if (stripped == null) {
+            stripped = colored;
+        }
+        return stripped.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+", "");
     }
 
     public void fillCaseGui(Inventory inv, Player p, CaseDefinition def) {
@@ -471,19 +554,19 @@ public class CaseManager {
         List<OpenHistoryStorage.Entry> history = openHistoryStorage.get(def.name());
         for (int i = 0; i < HISTORY_SLOTS.length; i++) {
             if (i < history.size()) {
-                inv.setItem(HISTORY_SLOTS[i], buildHistoryItem(history.get(i)));
+                inv.setItem(HISTORY_SLOTS[i], buildHistoryItem(def, history.get(i)));
             } else {
                 inv.setItem(HISTORY_SLOTS[i], buildEmptyHistoryItem());
             }
         }
     }
 
-    private ItemStack buildHistoryItem(OpenHistoryStorage.Entry entry) {
-        ItemStack it = new ItemStack(Material.BOOK);
+    private ItemStack buildHistoryItem(CaseDefinition def, OpenHistoryStorage.Entry entry) {
+        ItemStack it = buildHistoryRewardItem(def, entry.rewardName());
         ItemMeta meta = it.getItemMeta();
         if (meta == null) return it;
 
-        meta.setDisplayName("§x§A§0§E§F§A§1◆ §x§F§B§C§A§0§8" + entry.playerName());
+        meta.setDisplayName("§x§A§0§E§F§A§1◆ " + color(entry.rewardName()));
 
         List<String> lore = new ArrayList<>();
         lore.add("");
@@ -498,6 +581,26 @@ public class CaseManager {
         meta.setLore(lore);
         it.setItemMeta(meta);
         return it;
+    }
+
+    private ItemStack buildHistoryRewardItem(CaseDefinition def, String rewardName) {
+        if (def != null && rewardName != null) {
+            String targetName = normalizeDisplayName(rewardName);
+            for (Reward reward : def.rewards()) {
+                String currentName = normalizeDisplayName(reward.displayName());
+                if (matchesDisplayName(currentName, targetName)) {
+                    return buildRewardDisplayItem(def, reward);
+                }
+            }
+        }
+
+        ItemStack fallback = new ItemStack(Material.CLOCK);
+        ItemMeta meta = fallback.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(color(rewardName == null || rewardName.isBlank() ? "&fНаграда" : rewardName));
+            fallback.setItemMeta(meta);
+        }
+        return fallback;
     }
 
     private ItemStack buildEmptyHistoryItem() {
@@ -664,7 +767,7 @@ public class CaseManager {
     }
 
     public void giveReward(Player p, CaseDefinition def, Reward reward) {
-        String rewardLabel = color(reward.displayName() != null ? reward.displayName() : "&fНаграда");
+        String rewardLabel = color(resolveRewardViewName(reward, buildRewardDisplayItem(def, reward)));
         boolean delivered = false;
 
         if (reward.type() == Reward.Type.ITEM) {
@@ -915,12 +1018,60 @@ public class CaseManager {
         return result.toString();
     }
 
+    private String resolveRewardViewName(Reward reward, ItemStack visual) {
+        String configured = reward == null ? null : reward.displayName();
+        String visualName = getCustomDisplayName(visual);
+
+        if (isGenericLuckPermsName(reward, configured) && visualName != null) {
+            return visualName;
+        }
+        if (configured != null && !configured.isBlank()) {
+            return configured;
+        }
+        if (visualName != null) {
+            return visualName;
+        }
+        if (reward == null) {
+            return "&fНаграда";
+        }
+
+        return switch (reward.type()) {
+            case VAULT -> "&a" + formatVaultAmount(reward.vaultAmount());
+            case PLAYERPOINTS -> "&b" + formatPlayerPointsAmount(reward.playerPointsAmount());
+            case LUCKPERMS -> "&dПривилегия";
+            case ITEM -> "&fНаграда";
+        };
+    }
+
+    private String getCustomDisplayName(ItemStack item) {
+        if (item == null) {
+            return null;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null && meta.hasDisplayName()) {
+            return meta.getDisplayName();
+        }
+        return null;
+    }
+
+    private boolean isGenericLuckPermsName(Reward reward, String value) {
+        if (reward == null || reward.type() != Reward.Type.LUCKPERMS || value == null || value.isBlank()) {
+            return false;
+        }
+        String stripped = ChatColor.stripColor(color(value));
+        if (stripped == null) {
+            return false;
+        }
+        String normalized = stripped.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+", "");
+        return normalized.equals("luckperms") || normalized.equals("привилегия");
+    }
+
     private String formatRewardType(Reward.Type type) {
         return switch (type) {
             case ITEM -> "Предмет";
-            case LUCKPERMS -> "LuckPerms";
-            case VAULT -> "Vault";
-            case PLAYERPOINTS -> "PlayerPoints";
+            case LUCKPERMS -> "Привилегия";
+            case VAULT -> "Деньги";
+            case PLAYERPOINTS -> "Поинты";
         };
     }
 

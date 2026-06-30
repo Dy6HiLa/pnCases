@@ -23,12 +23,12 @@ public class CasesCMDTabCompliter implements TabCompleter {
         List<String> out = new ArrayList<>();
         if (!sender.hasPermission("pncases.admin")) return out;
         if (args.length == 1) {
-            return filter(List.of("setcase", "givekey", "takekey", "reload"), args[0]);
+            return filter(List.of("setcase", "delcase", "givekey", "takekey", "reload"), args[0]);
         }
         String sub = args[0].toLowerCase(Locale.ROOT);
-        if (sub.equals("setcase")) {
+        if (sub.equals("setcase") || isDeleteCaseCommand(sub)) {
             if (args.length == 2) {
-                return filter(caseManager.getCaseNames(), args[1]);
+                return filter(caseManager.getConfiguredCaseNames(), args[1]);
             }
         }
         if (sub.equals("givekey") || sub.equals("takekey")) {
@@ -53,5 +53,12 @@ public class CasesCMDTabCompliter implements TabCompleter {
             if (v.toLowerCase(Locale.ROOT).startsWith(p)) res.add(v);
         }
         return res;
+    }
+
+    private boolean isDeleteCaseCommand(String value) {
+        return value.equals("delcase")
+                || value.equals("deletecase")
+                || value.equals("removecase")
+                || value.equals("unsetcase");
     }
 }
