@@ -64,6 +64,9 @@ public final class HologramService {
 
         for (CaseDefinition def : defs) {
             try {
+                if (def.blockLocation() == null) {
+                    continue;
+                }
                 ConfigurationSection config = getHologramSection(def);
                 if (config == null || !config.getBoolean("enabled", false)) {
                     continue;
@@ -88,7 +91,7 @@ public final class HologramService {
 
     public void showCase(CaseDefinition def) {
         reloadProvider();
-        if (def == null) return;
+        if (def == null || def.blockLocation() == null) return;
 
         try {
             ConfigurationSection config = getHologramSection(def);

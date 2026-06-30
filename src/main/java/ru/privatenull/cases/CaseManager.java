@@ -214,13 +214,7 @@ public class CaseManager {
             ConfigurationSection cs = root.getConfigurationSection(caseName);
             if (cs == null) continue;
 
-            ConfigurationSection bs = cs.getConfigurationSection("block");
-            if (bs == null) continue;
-            String worldName = bs.getString("world");
-            World wld = worldName == null ? null : Bukkit.getWorld(worldName);
-            if (wld == null) continue;
-
-            Location blockLoc = new Location(wld, bs.getInt("x"), bs.getInt("y"), bs.getInt("z"));
+            Location blockLoc = readBlockLocation(cs);
 
             ConfigurationSection gui = cs.getConfigurationSection("gui");
             String title = gui != null ? gui.getString("title", "&8Case") : "&8Case";
@@ -330,11 +324,13 @@ public class CaseManager {
                     duration, cycleEvery, rise, spin, animItems, rewards
             );
             casesByName.put(def.name(), def);
-            caseByBlock.put(BlockKey.of(blockLoc), def.name());
+            if (blockLoc != null) {
+                caseByBlock.put(BlockKey.of(blockLoc), def.name());
+            }
         }
 
         if (holograms != null) holograms.syncCases(casesByName.values());
-        plugin.getLogger().info("Loaded cases: " + casesByName.size() + ", keys: " + keyNames.size());
+        plugin.getLogger().info("Loaded cases: " + casesByName.size() + ", active blocks: " + caseByBlock.size() + ", keys: " + keyNames.size());
     }
 
     public ItemStack buildGuiOpenItem(Player p, CaseDefinition def) {
@@ -1132,6 +1128,29 @@ public class CaseManager {
         try { return Integer.parseInt(String.valueOf(o)); } catch (Exception e) { return def; }
     }
 
+    private Location readBlockLocation(ConfigurationSection caseSection) {
+        ConfigurationSection block = caseSection.getConfigurationSection("block");
+        if (block == null) {
+            return null;
+        }
+
+        String worldName = block.getString("world");
+        if (worldName == null || worldName.isBlank()) {
+            return null;
+        }
+
+        World world = Bukkit.getWorld(worldName);
+        if (world == null) {
+            return null;
+        }
+
+        if (!block.contains("x") || !block.contains("y") || !block.contains("z")) {
+            return null;
+        }
+
+        return new Location(world, block.getInt("x"), block.getInt("y"), block.getInt("z"));
+    }
+
     private static int getIntAlias(ConfigurationSection section, int def, String... keys) {
         if (section == null) return def;
         for (String key : keys) {
@@ -1167,16 +1186,19 @@ public class CaseManager {
     public boolean isOpening(UUID playerId) { return openingPlayers.contains(playerId); }
 
     public boolean isCaseBusy(CaseDefinition def, UUID viewer) {
+        if (def.blockLocation() == null) return false;
         UUID who = busyCases.get(BlockKey.of(def.blockLocation()));
         return who != null && !who.equals(viewer);
     }
 
     private boolean tryLockCase(Player p, CaseDefinition def) {
+        if (def.blockLocation() == null) return false;
         UUID prev = busyCases.putIfAbsent(BlockKey.of(def.blockLocation()), p.getUniqueId());
         return prev == null || prev.equals(p.getUniqueId());
     }
 
     private void unlockCase(Player p, CaseDefinition def) {
+        if (def.blockLocation() == null) return;
         BlockKey k = BlockKey.of(def.blockLocation());
         UUID cur = busyCases.get(k);
         if (cur != null && cur.equals(p.getUniqueId())) busyCases.remove(k);

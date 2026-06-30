@@ -98,7 +98,7 @@ public final class ConfigValidator {
                 continue;
             }
 
-            validateBlock(path, section, errors);
+            validateBlock(path, section, warnings);
             validateGui(path, section, warnings);
             validateCost(path, section, knownKeys, warnings, errors);
             validateAnimation(path, section, warnings);
@@ -106,23 +106,23 @@ public final class ConfigValidator {
         }
     }
 
-    private static void validateBlock(String path, ConfigurationSection section, List<String> errors) {
+    private static void validateBlock(String path, ConfigurationSection section, List<String> warnings) {
         ConfigurationSection block = section.getConfigurationSection("block");
         if (block == null) {
-            errors.add(path + ".block отсутствует. Кейс будет пропущен.");
+            warnings.add(path + ".block отсутствует. Кейс загружен как настройка, но не привязан к блоку. Используйте /pncases setcase <кейс>.");
             return;
         }
 
         String world = block.getString("world");
         if (world == null || world.isBlank()) {
-            errors.add(path + ".block.world отсутствует.");
+            warnings.add(path + ".block.world отсутствует. Кейс загружен, но блок не активен.");
         } else if (Bukkit.getWorld(world) == null) {
-            errors.add(path + ".block.world = '" + world + "' не найден на сервере. Кейс загрузится только когда мир существует.");
+            warnings.add(path + ".block.world = '" + world + "' не найден на сервере. Настройки кейса загружены, но блок и голограмма будут активны после /pncases setcase <кейс> или загрузки мира.");
         }
 
-        requireInt(block, path + ".block", "x", errors);
-        requireInt(block, path + ".block", "y", errors);
-        requireInt(block, path + ".block", "z", errors);
+        requireInt(block, path + ".block", "x", warnings);
+        requireInt(block, path + ".block", "y", warnings);
+        requireInt(block, path + ".block", "z", warnings);
     }
 
     private static void validateGui(String path, ConfigurationSection section, List<String> warnings) {
