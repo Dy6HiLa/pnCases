@@ -1,15 +1,15 @@
 <p align="center">
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4">
-    <img src="assets/pncases-cover.png" alt="pnCases 1.4" width="100%">
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4.1">
+    <img src="assets/pncases-cover.png" alt="pnCases 1.4.1" width="100%">
   </a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4/pnCases-1.4.jar">
-    <img src="https://img.shields.io/badge/%D0%A1%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-1.4-429F91?style=for-the-badge&labelColor=17241F" alt="Скачать pnCases 1.4">
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.1/pnCases-1.4.1.jar">
+    <img src="https://img.shields.io/badge/%D0%A1%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-1.4.1-429F91?style=for-the-badge&labelColor=17241F" alt="Скачать pnCases 1.4.1">
   </a>
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4">
-    <img src="https://img.shields.io/badge/Changelog-1.4-D8DF9D?style=for-the-badge&labelColor=17241F" alt="Changelog pnCases 1.4">
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4.1">
+    <img src="https://img.shields.io/badge/Changelog-1.4.1-D8DF9D?style=for-the-badge&labelColor=17241F" alt="Changelog pnCases 1.4.1">
   </a>
 </p>
 
@@ -17,7 +17,9 @@
 
 `pnCases` - бесплатный плагин кейсов для Paper 1.21.x с анимациями, GUI, историей открытий, preview наград, голограммами, LuckPerms, Vault и PlayerPoints-наградами.
 
-## pnCases 1.4
+## pnCases 1.4.1
+
+`1.4.1` - bug fix после релиза `1.4`: VAULT и PlayerPoints теперь не читают `display_name` из виртуальной валюты. Для отображения в GUI и анимациях используется только `visual`, а выдача остается чисто валютной.
 
 Версия `1.4` делает pnCases удобнее для игроков и безопаснее для админов: больше вариантов наград, нормальный preview содержимого кейса, единое SQLite-хранилище и новая анимация открытия.
 
@@ -36,7 +38,7 @@
 
 ## Установка
 
-1. Скачайте `pnCases-1.4.jar`.
+1. Скачайте `pnCases-1.4.1.jar`.
 2. Положите файл в папку `plugins/`.
 3. Перезапустите сервер.
 4. Настройте `plugins/pnCases/config.yml` и `messages.yml`.
@@ -90,7 +92,6 @@ rewards:
     type: VAULT
     vault:
       amount: 2500
-      display_name: '&e2500 монет'
     visual:
       material: GOLD_INGOT
       name: '&e2500 монет'

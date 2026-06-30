@@ -258,11 +258,11 @@ public final class ConfigValidator {
                 }
                 case "VAULT" -> {
                     validateVisualReward(rewardPath, map, warnings);
-                    validateVaultReward(rewardPath, map, errors);
+                    validateVaultReward(rewardPath, map, warnings, errors);
                 }
                 case "PLAYERPOINTS" -> {
                     validateVisualReward(rewardPath, map, warnings);
-                    validatePlayerPointsReward(rewardPath, map, errors);
+                    validatePlayerPointsReward(rewardPath, map, warnings, errors);
                 }
                 default -> {
                 }
@@ -304,19 +304,27 @@ public final class ConfigValidator {
         }
     }
 
-    private static void validateVaultReward(String path, java.util.Map<?, ?> map, List<String> errors) {
+    private static void validateVaultReward(String path, java.util.Map<?, ?> map, List<String> warnings, List<String> errors) {
         java.util.Map<?, ?> vault = nestedMap(map, "vault");
+        warnIgnoredCurrencyDisplayName(path + ".vault", vault, warnings);
         Object amount = firstPresent(vault, map, "amount", "money", "value");
         if (asDouble(amount, 0.0) <= 0.0) {
             errors.add(path + ".vault.amount должен быть больше 0.");
         }
     }
 
-    private static void validatePlayerPointsReward(String path, java.util.Map<?, ?> map, List<String> errors) {
+    private static void validatePlayerPointsReward(String path, java.util.Map<?, ?> map, List<String> warnings, List<String> errors) {
         java.util.Map<?, ?> points = nestedMap(map, "playerpoints", "player_points", "player-points", "points");
+        warnIgnoredCurrencyDisplayName(path + ".playerpoints", points, warnings);
         Object amount = firstPresent(points, map, "amount", "points", "value");
         if (asInt(amount, 0) <= 0) {
             errors.add(path + ".playerpoints.amount должен быть больше 0.");
+        }
+    }
+
+    private static void warnIgnoredCurrencyDisplayName(String path, java.util.Map<?, ?> map, List<String> warnings) {
+        if (firstPresent(map, "display_name", "display-name", "displayName", "name") != null) {
+            warnings.add(path + ".display_name is ignored for virtual currency rewards. Use .visual.name for GUI and animation text.");
         }
     }
 

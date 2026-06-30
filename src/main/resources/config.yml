@@ -84,7 +84,6 @@ cases:
       type: VAULT
       vault:
         amount: 1500
-        display_name: '&e1500 ʍонᴇᴛ'
       visual:
         material: EMERALD
         name: '&e1500 ʍонᴇᴛ'
@@ -93,7 +92,6 @@ cases:
       type: VAULT
       vault:
         amount: 2500
-        display_name: '&e2500 ʍонᴇᴛ'
       visual:
         material: GOLD_INGOT
         name: '&e2500 ʍонᴇᴛ'
@@ -102,16 +100,14 @@ cases:
       type: VAULT
       vault:
         amount: 3500
-        display_name: '&e3500 ʍонᴇᴛ'
       visual:
         material: DIAMOND
-        name: '&b$500'
+        name: '&e3500 ʍонᴇᴛ'
       message: '&aВы получили &f{amount}&a на баланс!'
     - chance: 55
       type: VAULT
       vault:
         amount: 5000
-        display_name: '&e5000 ʍонᴇᴛ'
       visual:
         material: EMERALD
         name: '&e5000 ʍонᴇᴛ'
@@ -120,7 +116,6 @@ cases:
       type: VAULT
       vault:
         amount: 7500
-        display_name: '&e7500 ʍонᴇᴛ'
       visual:
         material: GOLD_INGOT
         name: '&e7500 ʍонᴇᴛ'
@@ -129,7 +124,6 @@ cases:
       type: VAULT
       vault:
         amount: 10000
-        display_name: '&e10000 ʍонᴇᴛ'
       visual:
         material: DIAMOND
         name: '&e10000 ʍонᴇᴛ'
@@ -194,7 +188,6 @@ cases:
       type: PLAYERPOINTS
       playerpoints:
         amount: 10
-        display_name: '&b✦10'
       visual:
         material: AMETHYST_SHARD
         name: '&b✦10'
@@ -203,7 +196,6 @@ cases:
       type: PLAYERPOINTS
       playerpoints:
         amount: 25
-        display_name: '&d✦25'
       visual:
         material: EXPERIENCE_BOTTLE
         name: '&d✦25'
@@ -212,7 +204,6 @@ cases:
       type: PLAYERPOINTS
       playerpoints:
         amount: 50
-        display_name: '&e✦50'
       visual:
         material: NETHER_STAR
         name: '&e✦50'

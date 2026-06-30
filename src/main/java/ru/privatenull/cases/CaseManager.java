@@ -264,15 +264,15 @@ public class CaseManager {
                     } else if (rType == Reward.Type.VAULT) {
                         Map<?, ?> vaultMap = getNestedMap(map, "vault");
                         vaultAmount = asDouble(firstPresent(vaultMap, map, "amount", "money", "value"), 0.0);
-                        Object display = firstPresent(vaultMap, map, "display_name", "display-name", "name");
-                        displayName = display != null ? String.valueOf(display) : "&a" + formatVaultAmount(vaultAmount);
+                        displayName = "&a" + formatVaultAmount(vaultAmount);
                         item = buildRewardVisualItem(map, displayName);
+                        displayName = resolveRewardDisplayName(item, displayName);
                     } else if (rType == Reward.Type.PLAYERPOINTS) {
                         Map<?, ?> pointsMap = getNestedMap(map, "playerpoints", "player_points", "player-points", "points");
                         playerPointsAmount = Math.max(0, asInt(firstPresent(pointsMap, map, "amount", "points", "value"), 0));
-                        Object display = firstPresent(pointsMap, map, "display_name", "display-name", "name");
-                        displayName = display != null ? String.valueOf(display) : "&b" + formatPlayerPointsAmount(playerPointsAmount);
+                        displayName = "&b" + formatPlayerPointsAmount(playerPointsAmount);
                         item = buildRewardVisualItem(map, displayName);
+                        displayName = resolveRewardDisplayName(item, displayName);
                     }
 
                     if (isValidReward(chance, rType, item, lpGroup, lpNode, vaultAmount, playerPointsAmount)) {
@@ -804,6 +804,18 @@ public class CaseManager {
             visualMap.put("name", displayName);
         }
         return ItemFactory.fromMap(visualMap);
+    }
+
+    private String resolveRewardDisplayName(ItemStack item, String fallback) {
+        if (item == null) {
+            return fallback;
+        }
+
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null && meta.hasDisplayName()) {
+            return meta.getDisplayName();
+        }
+        return fallback;
     }
 
     private static boolean isValidReward(int chance, Reward.Type type, ItemStack item, String lpGroup, String lpNode,
