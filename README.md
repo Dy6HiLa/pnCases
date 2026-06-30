@@ -11,6 +11,9 @@
   <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4.1">
     <img src="https://img.shields.io/badge/Changelog-1.4.1-D8DF9D?style=for-the-badge&labelColor=17241F" alt="Changelog pnCases 1.4.1">
   </a>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/License-MIT-429F91?style=for-the-badge&labelColor=17241F" alt="License MIT">
+  </a>
 </p>
 
 # pnCases
