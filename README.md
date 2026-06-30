@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4.1">
-    <img src="assets/pncases-cover.png" alt="pnCases 1.4.1" width="100%">
+    <img src="assets/pncases-cover-v2.png" alt="pnCases 1.4.1" width="100%">
   </a>
 </p>
 
