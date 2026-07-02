@@ -530,47 +530,73 @@ public class CaseManager {
         List<String> lore = meta.hasLore()
                 ? new ArrayList<>(Objects.requireNonNull(meta.getLore()))
                 : new ArrayList<>();
-        lore.removeIf(this::isConfiguredPreviewHintLine);
-        lore.add(" ");
 
+        int have = 0;
+        int need = Math.max(1, def.costAmount());
+        String keyId = def.costKeyId();
         if (def.costType() == CaseDefinition.CostType.KEY) {
-            String keyId = def.costKeyId();
-            int need = Math.max(1, def.costAmount());
-            int have = (keyId == null) ? 0 : plugin.getKeyStorage().get(p.getUniqueId(), keyId);
-            lore.add(plugin.getMessages().getOr("gui.case-button.keys-balance", "gui-keys-balance",
-                    "have", String.valueOf(have),
-                    "need", String.valueOf(need)));
+            have = (keyId == null) ? 0 : plugin.getKeyStorage().get(p.getUniqueId(), keyId);
         }
 
-        if (buyExp > 0) {
-            lore.add(plugin.getMessages().getOr("gui.case-button.buy-xp-hint", "gui-buy-xp-hint", "levels", String.valueOf(buyExp)));
-        } else {
-            lore.add(plugin.getMessages().getOr("gui.case-button.preview-left-hint", "gui.case-button.buy-xp-disabled"));
-        }
-        lore.add(plugin.getMessages().getOr("gui.case-button.open-hint", "gui-open-hint"));
-        if (buyExp > 0) {
-            String previewHint = plugin.getMessages().getOr("gui.case-button.preview-hint", "gui.case-button.preview-hint");
-            if (previewHint.startsWith("§c[missing:")) {
-                previewHint = color("&7СКМ &8— &bпосмотреть содержимое");
-            }
-            lore.add(previewHint);
-        }
+        lore.addAll(buildCaseButtonExtraLore(def, have, need, buyExp));
 
         meta.setLore(lore);
         it.setItemMeta(meta);
         return it;
     }
 
-    private boolean isConfiguredPreviewHintLine(String line) {
-        String plain = ChatColor.stripColor(color(line));
-        if (plain == null) {
-            return false;
+    private List<String> buildCaseButtonExtraLore(CaseDefinition def, int have, int need, int buyExp) {
+        String keyId = def.costKeyId() == null ? "" : def.costKeyId();
+        String keyName = keyId.isBlank() ? "" : keyNames.getOrDefault(keyId.toLowerCase(Locale.ROOT), keyId);
+        String keysBalance = def.costType() == CaseDefinition.CostType.KEY
+                ? plugin.getMessages().getOr("gui.case-button.keys-balance", "gui-keys-balance",
+                "have", String.valueOf(have),
+                "need", String.valueOf(need),
+                "key", keyId,
+                "key_name", keyName,
+                "key-name", keyName)
+                : "";
+        String buyHint = plugin.getMessages().getOr("gui.case-button.buy-xp-hint", "gui-buy-xp-hint",
+                "levels", String.valueOf(buyExp));
+        String previewLeftHint = plugin.getMessages().getOr("gui.case-button.preview-left-hint", "gui.case-button.buy-xp-disabled");
+        String openHint = plugin.getMessages().getOr("gui.case-button.open-hint", "gui-open-hint");
+        String previewHint = buyExp > 0
+                ? plugin.getMessages().getOr("gui.case-button.preview-hint", "gui.case-button.preview-hint")
+                : "";
+        if (previewHint.startsWith("§c[missing:")) {
+            previewHint = color("&7СКМ &8— &bпосмотреть содержимое");
         }
-        String normalized = plain.toLowerCase(Locale.ROOT);
-        return normalized.contains("содерж")
-                && (normalized.contains("скм")
-                || normalized.contains("лкм")
-                || normalized.contains("middle"));
+
+        List<String> lines = plugin.getMessages().getList("gui.case-button.extra-lore",
+                "case", def.name(),
+                "title", def.guiTitle(),
+                "material", def.openButton().getType().getKey().toString(),
+                "key", keyId,
+                "key_name", keyName,
+                "key-name", keyName,
+                "have", String.valueOf(have),
+                "need", String.valueOf(need),
+                "levels", String.valueOf(buyExp),
+                "keys-balance", keysBalance,
+                "buy-xp-hint", buyHint,
+                "preview-left-hint", previewLeftHint,
+                "left-click", buyExp > 0 ? buyHint : previewLeftHint,
+                "open-hint", openHint,
+                "right-click", openHint,
+                "preview-hint", previewHint,
+                "middle-click", previewHint);
+        trimTrailingEmptyLines(lines);
+        return lines;
+    }
+
+    private void trimTrailingEmptyLines(List<String> lines) {
+        while (!lines.isEmpty()) {
+            String last = ChatColor.stripColor(lines.get(lines.size() - 1));
+            if (last != null && !last.isBlank()) {
+                return;
+            }
+            lines.remove(lines.size() - 1);
+        }
     }
 
     public ItemStack buildAnimationSelectorItem(Player p) {
@@ -1430,7 +1456,7 @@ public class CaseManager {
             } catch (NumberFormatException ignored) {
             }
         }
-        return slots.isEmpty() ? fallback : slots;
+        return slots;
     }
 
     private List<Integer> filterSlots(List<Integer> slots, int size) {

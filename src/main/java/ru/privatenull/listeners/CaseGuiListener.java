@@ -141,10 +141,12 @@ public class CaseGuiListener implements Listener {
         if (!wantsBuy || buyLevels <= 0) {
             title = caseManager.getPlugin().getMessages().getOr("gui.open.no-keys", "not-enough-keys",
                     "have", String.valueOf(have), "need", String.valueOf(need));
-            lore.add("&cНедостаточно ключей");
-            lore.add(caseManager.getPlugin().getMessages().getOr("gui.case-button.keys-balance", "gui-keys-balance",
-                    "have", String.valueOf(have), "need", String.valueOf(need)));
-            lore.add("&7Получите ключ и попробуйте снова.");
+            String keysBalance = caseManager.getPlugin().getMessages().getOr("gui.case-button.keys-balance", "gui-keys-balance",
+                    "have", String.valueOf(have), "need", String.valueOf(need));
+            lore.addAll(caseManager.getPlugin().getMessages().getList("gui.open.no-keys-lore",
+                    "have", String.valueOf(have),
+                    "need", String.valueOf(need),
+                    "keys-balance", keysBalance));
             p.sendMessage(caseManager.getPlugin().getMessages().get("not-enough-keys",
                     "have", String.valueOf(have), "need", String.valueOf(need)));
         } else {

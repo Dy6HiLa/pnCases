@@ -77,6 +77,10 @@ gui:
   open:
     no-keys: "§x§C§8§5§5§5§5Недостаточно ключей"
     key-not-configured: "§x§C§8§5§5§5§5Ключ не настроен"
+    no-keys-lore:
+      - "&cНедостаточно ключей"
+      - "{keys-balance}"
+      - "&7Получите ключ и попробуйте снова."
   case-button:
     keys-balance: "&7Ключи: &f{have}&7/&f{need}"
     buy-xp-hint: "&7ЛКМ &8— &fкупить ключ за опыт: &8({levels} lvl)"
@@ -84,3 +88,10 @@ gui:
     preview-left-hint: "&7ЛКМ &8— &bпосмотреть содержимое"
     open-hint: "&7ПКМ &8— &aоткрыть кейс"
     preview-hint: "&7СКМ &8— &bпосмотреть содержимое"
+    extra-lore:
+      - ""
+      - "{keys-balance}"
+      - ""
+      - "{left-click}"
+      - "{right-click}"
+      - "{middle-click}"

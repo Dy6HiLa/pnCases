@@ -723,21 +723,20 @@ public final class MachineGuiListener implements Listener {
     }
 
     private Set<Integer> readSlotSet(ConfigurationSection section, List<Integer> fallback) {
-        Set<Integer> slots = new TreeSet<>();
-        if (section != null && section.isList("slots")) {
-            for (Object raw : section.getList("slots", List.of())) {
-                if (raw instanceof Number number) {
-                    slots.add(number.intValue());
-                    continue;
-                }
-                try {
-                    slots.add(Integer.parseInt(String.valueOf(raw)));
-                } catch (NumberFormatException ignored) {
-                }
-            }
+        if (section == null || !section.isList("slots")) {
+            return new TreeSet<>(fallback);
         }
-        if (slots.isEmpty()) {
-            slots.addAll(fallback);
+
+        Set<Integer> slots = new TreeSet<>();
+        for (Object raw : section.getList("slots", List.of())) {
+            if (raw instanceof Number number) {
+                slots.add(number.intValue());
+                continue;
+            }
+            try {
+                slots.add(Integer.parseInt(String.valueOf(raw)));
+            } catch (NumberFormatException ignored) {
+            }
         }
         slots.removeIf(slot -> slot == null || slot < 0 || slot >= 54);
         return slots;

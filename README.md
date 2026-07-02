@@ -1,15 +1,15 @@
 <p align="center">
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4.3">
-    <img src="assets/pncases-cover-v2.png" alt="pnCases 1.4.3" width="100%">
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4.4">
+    <img src="assets/pncases-cover-v2.png" alt="pnCases 1.4.4" width="100%">
   </a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.3/pnCases-1.4.3.jar">
-    <img src="https://img.shields.io/badge/%D0%A1%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-1.4.3-429F91?style=for-the-badge&labelColor=17241F" alt="Скачать pnCases 1.4.3">
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.4/pnCases-1.4.4.jar">
+    <img src="https://img.shields.io/badge/%D0%A1%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-1.4.4-429F91?style=for-the-badge&labelColor=17241F" alt="Скачать pnCases 1.4.4">
   </a>
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4.3">
-    <img src="https://img.shields.io/badge/Changelog-1.4.3-D8DF9D?style=for-the-badge&labelColor=17241F" alt="Changelog pnCases 1.4.3">
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4.4">
+    <img src="https://img.shields.io/badge/Changelog-1.4.4-D8DF9D?style=for-the-badge&labelColor=17241F" alt="Changelog pnCases 1.4.4">
   </a>
   <a href="LICENSE">
     <img src="https://img.shields.io/badge/License-MIT-429F91?style=for-the-badge&labelColor=17241F" alt="License MIT">
@@ -19,6 +19,12 @@
 # pnCases
 
 `pnCases` - бесплатный плагин кейсов для Paper 1.21.x с анимациями, GUI, историей открытий, preview наград, голограммами, LuckPerms, Vault и PlayerPoints-наградами.
+
+## pnCases 1.4.4
+
+`1.4.4` - hotfix для GUI кейса. Исправлено удаление всех слотов истории: если в machine-меню убрать часы истории, они больше не возвращаются после reload или перезапуска. Нижний блок подсказок на кнопке кейса теперь полностью настраивается в `messages.yml` через `gui.case-button.extra-lore`: можно менять строки про ключи, ЛКМ/ПКМ/СКМ и плейсхолдеры `{have}`, `{need}`, `{levels}`, `{key}`, `{key_name}`, `{material}`.
+
+Также настраивается lore временного barrier-предмета, который появляется при попытке открыть кейс без ключей: `gui.open.no-keys-lore`.
 
 ## pnCases 1.4.3
 
@@ -49,7 +55,7 @@
 
 ## Установка
 
-1. Скачайте `pnCases-1.4.3.jar`.
+1. Скачайте `pnCases-1.4.4.jar`.
 2. Положите файл в папку `plugins/`.
 3. Перезапустите сервер.
 4. Настройте `plugins/pnCases/config.yml` и `messages.yml`.

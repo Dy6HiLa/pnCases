@@ -5,6 +5,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,6 +34,7 @@ public final class MessagesConfig {
                 )
         );
         cfg.setDefaults(defaults);
+        copyMissingDefaults(defaults);
     }
 
     public String get(String path, String... replacements) {
@@ -92,5 +94,26 @@ public final class MessagesConfig {
 
     private static String color(String s) {
         return ChatColor.translateAlternateColorCodes('&', s == null ? "" : s);
+    }
+
+    private void copyMissingDefaults(YamlConfiguration defaults) {
+        boolean changed = false;
+        for (String path : defaults.getKeys(true)) {
+            if (defaults.isConfigurationSection(path) || cfg.contains(path, true)) {
+                continue;
+            }
+            cfg.set(path, defaults.get(path));
+            changed = true;
+        }
+
+        if (!changed) {
+            return;
+        }
+
+        try {
+            cfg.save(file);
+        } catch (IOException ex) {
+            plugin.getLogger().warning("Не удалось обновить messages.yml новыми настройками: " + ex.getMessage());
+        }
     }
 }
