@@ -5,10 +5,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.3/pnCases-1.4.3.jar">
+  <a href="https://github.com/Dy6HiLa/pnCases/raw/master/release/pnCases-1.4.3.jar">
     <img src="https://img.shields.io/badge/%D0%A1%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-1.4.3-429F91?style=for-the-badge&labelColor=17241F" alt="Скачать pnCases 1.4.3">
   </a>
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4.3">
+  <a href="https://github.com/Dy6HiLa/pnCases/blob/master/RELEASE-1.4.3.md">
     <img src="https://img.shields.io/badge/Changelog-1.4.3-D8DF9D?style=for-the-badge&labelColor=17241F" alt="Changelog pnCases 1.4.3">
   </a>
   <a href="LICENSE">
