@@ -3,6 +3,7 @@ package ru.privatenull.cases;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -10,6 +11,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import ru.privatenull.cases.animation.AnimationRegistry;
 import ru.privatenull.cases.animation.AnimationType;
 import ru.privatenull.cases.model.CaseDefinition;
+import ru.privatenull.cases.model.CaseGuiLayout;
 import ru.privatenull.cases.model.Reward;
 import ru.privatenull.listeners.CaseGuiHolder;
 import ru.privatenull.pnCases;
@@ -17,12 +19,15 @@ import ru.privatenull.storage.OpenHistoryStorage;
 import ru.privatenull.storage.PlayerPrefsStorage;
 import ru.privatenull.util.ItemFactory;
 
+import java.io.File;
+import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 public class CaseManager {
 
@@ -44,15 +49,24 @@ public class CaseManager {
             36, 37, 38, 39, 40, 41, 42, 43, 44
     };
     private static final DateTimeFormatter HISTORY_TIME_FORMAT = DateTimeFormatter.ofPattern("dd.MM HH:mm");
+    private static final List<String> DEFAULT_CASE_RESOURCES = List.of(
+            "cases/money.yml",
+            "cases/playerpoints.yml",
+            "cases/items.yml",
+            "cases/luckperms.yml"
+    );
 
     private final pnCases plugin;
 
     private final Map<String, CaseDefinition> casesByName = new HashMap<>();
     private final Map<BlockKey, String> caseByBlock = new HashMap<>();
+    private final Map<String, ConfigurationSection> caseSections = new HashMap<>();
+    private final Set<String> fileBackedCases = new HashSet<>();
     private final Map<String, String> keyNames = new HashMap<>();
 
     private final Set<UUID> openingPlayers = ConcurrentHashMap.newKeySet();
     private final Map<BlockKey, UUID> busyCases = new ConcurrentHashMap<>();
+    private final Map<UUID, BlockKey> selectedCaseBlocks = new ConcurrentHashMap<>();
     private final Map<UUID, AnimationType> playerAnimations = new ConcurrentHashMap<>();
 
     private final AnimationRegistry animationRegistry;
@@ -73,14 +87,33 @@ public class CaseManager {
         openingPlayers.clear();
         casesByName.clear();
         caseByBlock.clear();
+        caseSections.clear();
+        fileBackedCases.clear();
         keyNames.clear();
+        selectedCaseBlocks.clear();
         playerAnimations.clear();
     }
 
     public List<String> getCaseNames() { return new ArrayList<>(casesByName.keySet()); }
     public List<String> getConfiguredCaseNames() {
+        Set<String> names = new TreeSet<>();
         ConfigurationSection cases = plugin.getConfig().getConfigurationSection("cases");
-        return cases == null ? getCaseNames() : new ArrayList<>(cases.getKeys(false));
+        if (cases != null) {
+            names.addAll(cases.getKeys(false));
+        }
+
+        File[] files = getCaseFilesDirectory().listFiles((dir, name) -> name.toLowerCase(Locale.ROOT).endsWith(".yml"));
+        if (files != null) {
+            for (File file : files) {
+                String name = file.getName();
+                names.add(name.substring(0, name.length() - 4));
+            }
+        }
+
+        if (names.isEmpty()) {
+            names.addAll(getCaseNames());
+        }
+        return new ArrayList<>(names);
     }
     public List<String> getKeyNames()  { return new ArrayList<>(keyNames.keySet()); }
     public boolean keyExists(String keyId) { return keyNames.containsKey(keyId.toLowerCase()); }
@@ -89,6 +122,25 @@ public class CaseManager {
     public int getConfiguredKeyCount() { return keyNames.size(); }
 
     public CaseDefinition getCaseByName(String name) { return casesByName.get(name.toLowerCase()); }
+    public ConfigurationSection getCaseSection(String name) {
+        return name == null ? null : caseSections.get(name.toLowerCase(Locale.ROOT));
+    }
+
+    public boolean updateCaseConfig(String caseName, Consumer<ConfigurationSection> updater) {
+        if (caseName == null || caseName.isBlank() || updater == null) {
+            return false;
+        }
+
+        WritableCaseConfig writable = getExistingWritableCaseConfig(caseName);
+        if (writable == null || writable.section() == null) {
+            return false;
+        }
+
+        updater.accept(writable.section());
+        saveWritableCaseConfig(writable);
+        reloadFromConfig();
+        return getCaseByName(caseName) != null;
+    }
 
     public CaseDefinition getCaseByBlock(Block block) {
         String name = caseByBlock.get(BlockKey.of(block));
@@ -96,6 +148,127 @@ public class CaseManager {
     }
 
     public AnimationRegistry getAnimationRegistry() { return animationRegistry; }
+
+    public void exportMainCasesToFilesIfMissing() {
+        if (!plugin.getConfig().getBoolean("case-files.auto-export", true)) {
+            return;
+        }
+
+        File dir = getCaseFilesDirectory();
+        File[] existing = dir.listFiles((file, name) -> name.toLowerCase(Locale.ROOT).endsWith(".yml"));
+        if (existing != null && existing.length > 0) {
+            removeMainCasesFromConfigIfFileBacked();
+            return;
+        }
+
+        ConfigurationSection root = plugin.getConfig().getConfigurationSection("cases");
+        if (root == null) {
+            if (!dir.exists() && !dir.mkdirs()) {
+                plugin.getLogger().warning("Не удалось создать папку cases для отдельных конфигов кейсов.");
+                return;
+            }
+            saveBundledCaseFiles();
+            return;
+        }
+
+        if (!dir.exists() && !dir.mkdirs()) {
+            plugin.getLogger().warning("Не удалось создать папку cases для отдельных конфигов кейсов.");
+            return;
+        }
+
+        if (root.getKeys(false).isEmpty()) {
+            saveBundledCaseFiles();
+            return;
+        }
+
+        int exported = 0;
+        for (String caseName : root.getKeys(false)) {
+            ConfigurationSection source = root.getConfigurationSection(caseName);
+            if (source == null) continue;
+
+            YamlConfiguration yaml = new YamlConfiguration();
+            copySection(source, yaml);
+
+            File file = getCaseFile(caseName);
+            try {
+                yaml.save(file);
+                exported++;
+            } catch (IOException e) {
+                plugin.getLogger().warning("Не удалось создать отдельный конфиг кейса " + caseName + ": " + e.getMessage());
+            }
+        }
+
+        if (exported > 0) {
+            removeMainCasesFromConfigIfFileBacked();
+        }
+
+        if (exported > 0) {
+            plugin.getLogger().info("Созданы отдельные конфиги кейсов: plugins/pnCases/cases/*.yml (" + exported + ").");
+        }
+    }
+
+    private void removeMainCasesFromConfigIfFileBacked() {
+        ConfigurationSection root = plugin.getConfig().getConfigurationSection("cases");
+        if (root == null || root.getKeys(false).isEmpty()) {
+            return;
+        }
+
+        Set<String> fileCases = new HashSet<>();
+        File[] files = getCaseFilesDirectory().listFiles((dir, name) -> name.toLowerCase(Locale.ROOT).endsWith(".yml"));
+        if (files == null || files.length == 0) {
+            return;
+        }
+
+        for (File file : files) {
+            String name = file.getName();
+            fileCases.add(normalizeCaseName(name.substring(0, name.length() - 4)));
+        }
+
+        for (String caseName : root.getKeys(false)) {
+            if (!fileCases.contains(normalizeCaseName(caseName))) {
+                return;
+            }
+        }
+
+        File backup = new File(plugin.getDataFolder(), "config.cases-backup.yml");
+        if (!backup.exists()) {
+            try {
+                plugin.getConfig().save(backup);
+            } catch (IOException e) {
+                plugin.getLogger().warning("Не удалось сохранить backup перед переносом кейсов из config.yml: " + e.getMessage());
+                return;
+            }
+        }
+
+        plugin.getConfig().set("cases", null);
+        plugin.saveConfig();
+        plugin.getLogger().info("Секция cases перенесена в plugins/pnCases/cases/*.yml. Старый config сохранён как config.cases-backup.yml.");
+    }
+
+    private void saveBundledCaseFiles() {
+        int saved = 0;
+        for (String resource : DEFAULT_CASE_RESOURCES) {
+            if (plugin.getResource(resource) == null) {
+                continue;
+            }
+
+            File target = new File(plugin.getDataFolder(), resource);
+            if (target.exists()) {
+                continue;
+            }
+
+            try {
+                plugin.saveResource(resource, false);
+                saved++;
+            } catch (IllegalArgumentException ex) {
+                plugin.getLogger().warning("Не удалось распаковать пример кейса " + resource + ": " + ex.getMessage());
+            }
+        }
+
+        if (saved > 0) {
+            plugin.getLogger().info("Созданы отдельные конфиги кейсов: plugins/pnCases/cases/*.yml (" + saved + ").");
+        }
+    }
 
     public AnimationType getPlayerAnimation(UUID uuid) {
         return playerAnimations.computeIfAbsent(uuid, playerPrefs::getAnimation);
@@ -107,19 +280,18 @@ public class CaseManager {
     }
 
     public void bindCaseToBlock(String caseName, Block target) {
-        ConfigurationSection cases = plugin.getConfig().getConfigurationSection("cases");
-        if (cases == null) cases = plugin.getConfig().createSection("cases");
+        WritableCaseConfig writable = getWritableCaseConfig(caseName);
+        ConfigurationSection cs = writable.section();
 
-        ConfigurationSection cs = cases.getConfigurationSection(caseName);
-        if (cs == null) cs = cases.createSection(caseName);
-
-        ConfigurationSection blockSec = cs.getConfigurationSection("block");
-        if (blockSec == null) blockSec = cs.createSection("block");
-
-        blockSec.set("world", target.getWorld().getName());
-        blockSec.set("x", target.getX());
-        blockSec.set("y", target.getY());
-        blockSec.set("z", target.getZ());
+        List<Map<String, Object>> blocks = readConfiguredBlockMaps(cs);
+        addBlockMap(blocks, Map.of(
+                "world", target.getWorld().getName(),
+                "x", target.getX(),
+                "y", target.getY(),
+                "z", target.getZ()
+        ));
+        cs.set("block", null);
+        cs.set("blocks", blocks);
 
         if (!cs.isConfigurationSection("gui")) {
             ConfigurationSection gui = cs.createSection("gui");
@@ -156,7 +328,7 @@ public class CaseManager {
             )));
         }
 
-        plugin.saveConfig();
+        saveWritableCaseConfig(writable);
         reloadFromConfig();
     }
 
@@ -166,23 +338,26 @@ public class CaseManager {
         }
 
         String normalized = caseName.toLowerCase(Locale.ROOT);
-        ConfigurationSection cases = plugin.getConfig().getConfigurationSection("cases");
-        if (cases == null || !cases.isConfigurationSection(normalized)) {
+        WritableCaseConfig writable = getExistingWritableCaseConfig(normalized);
+        if (writable == null) {
             return UnbindCaseResult.NOT_FOUND;
         }
 
-        ConfigurationSection section = cases.getConfigurationSection(normalized);
-        if (section == null || !section.isConfigurationSection("block")) {
+        ConfigurationSection section = writable.section();
+        if (section == null || (!section.isConfigurationSection("block") && !section.isList("blocks"))) {
             return UnbindCaseResult.NOT_BOUND;
         }
 
         CaseDefinition loaded = casesByName.get(normalized);
-        if (loaded != null && loaded.blockLocation() != null) {
-            busyCases.remove(BlockKey.of(loaded.blockLocation()));
+        if (loaded != null) {
+            for (Location location : loaded.blockLocations()) {
+                busyCases.remove(BlockKey.of(location));
+            }
         }
 
         section.set("block", null);
-        plugin.saveConfig();
+        section.set("blocks", null);
+        saveWritableCaseConfig(writable);
         reloadFromConfig();
         return UnbindCaseResult.REMOVED;
     }
@@ -204,22 +379,24 @@ public class CaseManager {
             }
         }
 
-        ConfigurationSection root = plugin.getConfig().getConfigurationSection("cases");
-        if (root == null) {
-            plugin.getLogger().info("Loaded cases: 0, keys: " + keyNames.size());
+        List<CaseConfigSource> sources = loadCaseConfigSources();
+        if (sources.isEmpty()) {
+            plugin.getLogger().info("Loaded cases: 0, active blocks: 0, keys: " + keyNames.size());
             return;
         }
 
-        for (String caseName : root.getKeys(false)) {
-            ConfigurationSection cs = root.getConfigurationSection(caseName);
+        for (CaseConfigSource source : sources) {
+            String caseName = source.name();
+            ConfigurationSection cs = source.section();
             if (cs == null) continue;
 
-            Location blockLoc = readBlockLocation(cs);
+            List<Location> blockLocs = readBlockLocations(cs);
 
             ConfigurationSection gui = cs.getConfigurationSection("gui");
             String title = gui != null ? gui.getString("title", "&8Case") : "&8Case";
             ItemStack openBtn = ItemFactory.fromSection(gui != null ? gui.getConfigurationSection("open-item") : null);
             if (openBtn == null) openBtn = new ItemStack(Material.CHEST);
+            CaseGuiLayout guiLayout = readGuiLayout(gui);
 
             ConfigurationSection cost = cs.getConfigurationSection("cost");
             String typeStr = cost != null ? cost.getString("type", "NONE") : "NONE";
@@ -231,8 +408,12 @@ public class CaseManager {
             if (costKeyId != null) costKeyId = costKeyId.toLowerCase(Locale.ROOT);
             int buyXp = 0;
             if (cost != null) {
-                buyXp = cost.getInt("buy_xp_levels", 0);
-                if (buyXp <= 0) buyXp = cost.getInt("buy-xp-levels", 0);
+                boolean buyXpEnabled = getBooleanAlias(cost, true,
+                        "buy_xp_enabled", "buy-xp-enabled", "buy_key_with_xp", "buy-key-with-xp");
+                if (buyXpEnabled) {
+                    buyXp = cost.getInt("buy_xp_levels", 0);
+                    if (buyXp <= 0) buyXp = cost.getInt("buy-xp-levels", 0);
+                }
             }
 
             ConfigurationSection an = cs.getConfigurationSection("animation");
@@ -240,6 +421,7 @@ public class CaseManager {
             int cycleEvery = getIntAlias(an, 2, "cycle_every_ticks", "cycle-every-ticks");
             double rise = getDoubleAlias(an, 1.2, "rise_blocks", "rise-blocks");
             float spin = (float) getDoubleAlias(an, 18.0, "spin_degrees_per_tick", "spin-degrees-per-tick");
+            AnimationType fixedAnimation = readFixedAnimation(an);
 
             List<ItemStack> animItems = new ArrayList<>();
             if (an != null && an.isList("items")) {
@@ -319,13 +501,19 @@ public class CaseManager {
             }
 
             CaseDefinition def = new CaseDefinition(
-                    caseName.toLowerCase(Locale.ROOT), blockLoc, title, openBtn,
+                    caseName.toLowerCase(Locale.ROOT), blockLocs, title, openBtn, guiLayout,
                     costType, costAmount, costKeyId, buyXp,
-                    duration, cycleEvery, rise, spin, animItems, rewards
+                    duration, cycleEvery, rise, spin, fixedAnimation, animItems, rewards
             );
             casesByName.put(def.name(), def);
-            if (blockLoc != null) {
-                caseByBlock.put(BlockKey.of(blockLoc), def.name());
+            caseSections.put(def.name(), cs);
+            if (source.fileBacked()) {
+                fileBackedCases.add(def.name());
+            }
+            for (Location blockLoc : blockLocs) {
+                if (blockLoc != null) {
+                    caseByBlock.put(BlockKey.of(blockLoc), def.name());
+                }
             }
         }
 
@@ -338,9 +526,11 @@ public class CaseManager {
         ItemMeta meta = it.getItemMeta();
         if (meta == null) return it;
 
+        int buyExp = Math.max(0, def.buyKeyWithXpLevels());
         List<String> lore = meta.hasLore()
                 ? new ArrayList<>(Objects.requireNonNull(meta.getLore()))
                 : new ArrayList<>();
+        lore.removeIf(this::isConfiguredPreviewHintLine);
         lore.add(" ");
 
         if (def.costType() == CaseDefinition.CostType.KEY) {
@@ -352,20 +542,46 @@ public class CaseManager {
                     "need", String.valueOf(need)));
         }
 
-        int buyExp = Math.max(0, def.buyKeyWithXpLevels());
         if (buyExp > 0) {
             lore.add(plugin.getMessages().getOr("gui.case-button.buy-xp-hint", "gui-buy-xp-hint", "levels", String.valueOf(buyExp)));
         } else {
-            lore.add(plugin.getMessages().getOr("gui.case-button.buy-xp-disabled", "gui-buy-xp-disabled"));
+            lore.add(plugin.getMessages().getOr("gui.case-button.preview-left-hint", "gui.case-button.buy-xp-disabled"));
         }
         lore.add(plugin.getMessages().getOr("gui.case-button.open-hint", "gui-open-hint"));
+        if (buyExp > 0) {
+            String previewHint = plugin.getMessages().getOr("gui.case-button.preview-hint", "gui.case-button.preview-hint");
+            if (previewHint.startsWith("§c[missing:")) {
+                previewHint = color("&7СКМ &8— &bпосмотреть содержимое");
+            }
+            lore.add(previewHint);
+        }
 
         meta.setLore(lore);
         it.setItemMeta(meta);
         return it;
     }
 
+    private boolean isConfiguredPreviewHintLine(String line) {
+        String plain = ChatColor.stripColor(color(line));
+        if (plain == null) {
+            return false;
+        }
+        String normalized = plain.toLowerCase(Locale.ROOT);
+        return normalized.contains("содерж")
+                && (normalized.contains("скм")
+                || normalized.contains("лкм")
+                || normalized.contains("middle"));
+    }
+
     public ItemStack buildAnimationSelectorItem(Player p) {
+        return buildAnimationSelectorItem(p, null);
+    }
+
+    public ItemStack buildAnimationSelectorItem(Player p, CaseDefinition def) {
+        if (def != null && def.guiLayout().animationItem() != null) {
+            return def.guiLayout().animationItem().clone();
+        }
+
         AnimationType current = getPlayerAnimation(p.getUniqueId());
         ItemStack it = new ItemStack(current.icon());
         ItemMeta meta = it.getItemMeta();
@@ -385,6 +601,10 @@ public class CaseManager {
     }
 
     public ItemStack buildPreviewButton(CaseDefinition def) {
+        if (def.guiLayout().previewItem() != null) {
+            return def.guiLayout().previewItem().clone();
+        }
+
         ItemStack item = new ItemStack(Material.ENDER_EYE);
         ItemMeta meta = item.getItemMeta();
         if (meta == null) return item;
@@ -524,35 +744,34 @@ public class CaseManager {
         for (int i = 0; i < inv.getSize(); i++) {
             inv.setItem(i, null);
         }
-        fillDecor(inv);
-        inv.setItem(22, buildGuiOpenItem(p, def));
+        CaseGuiLayout layout = def.guiLayout();
+        fillDecor(inv, layout);
+        inv.setItem(layout.openSlot(), buildGuiOpenItem(p, def));
         fillHistory(inv, def);
-        inv.setItem(ANIMATION_SLOT, buildAnimationSelectorItem(p));
-        inv.setItem(PREVIEW_SLOT, buildPreviewButton(def));
+        if (def.fixedAnimation() == null) {
+            inv.setItem(layout.animationSlot(), buildAnimationSelectorItem(p, def));
+        }
     }
 
-    private void fillDecor(Inventory inv) {
-        ItemStack pane = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
-        ItemMeta meta = pane.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(" ");
-            pane.setItemMeta(meta);
-        }
-
-        for (int slot : DECOR_SLOTS) {
+    private void fillDecor(Inventory inv, CaseGuiLayout layout) {
+        ItemStack pane = layout.decorItem() == null ? new ItemStack(Material.GRAY_STAINED_GLASS_PANE) : layout.decorItem().clone();
+        for (int slot : layout.decorSlots()) {
             if (slot >= 0 && slot < inv.getSize()) {
-                inv.setItem(slot, pane);
+                inv.setItem(slot, pane.clone());
             }
         }
     }
 
     private void fillHistory(Inventory inv, CaseDefinition def) {
         List<OpenHistoryStorage.Entry> history = openHistoryStorage.get(def.name());
-        for (int i = 0; i < HISTORY_SLOTS.length; i++) {
+        List<Integer> historySlots = def.guiLayout().historySlots();
+        for (int i = 0; i < historySlots.size(); i++) {
+            int slot = historySlots.get(i);
+            if (slot < 0 || slot >= inv.getSize()) continue;
             if (i < history.size()) {
-                inv.setItem(HISTORY_SLOTS[i], buildHistoryItem(def, history.get(i)));
+                inv.setItem(slot, buildHistoryItem(def, history.get(i)));
             } else {
-                inv.setItem(HISTORY_SLOTS[i], buildEmptyHistoryItem());
+                inv.setItem(slot, buildEmptyHistoryItem(def));
             }
         }
     }
@@ -599,10 +818,15 @@ public class CaseManager {
         return fallback;
     }
 
-    private ItemStack buildEmptyHistoryItem() {
-        ItemStack it = new ItemStack(Material.BARRIER);
+    private ItemStack buildEmptyHistoryItem(CaseDefinition def) {
+        ItemStack configured = def.guiLayout().emptyHistoryItem();
+        ItemStack it = configured == null ? new ItemStack(Material.BARRIER) : configured.clone();
         ItemMeta meta = it.getItemMeta();
         if (meta == null) return it;
+
+        if (meta.hasDisplayName() || meta.hasLore()) {
+            return it;
+        }
 
         meta.setDisplayName("§8История пуста");
 
@@ -655,9 +879,20 @@ public class CaseManager {
     }
 
     public void openCaseGui(Player p, CaseDefinition def) {
-        Inventory inv = Bukkit.createInventory(CaseGuiHolder.caseGui(def.name()), 54, color(def.guiTitle()));
+        BlockKey selected = selectedCaseBlocks.get(p.getUniqueId());
+        if (selected == null && def.blockLocation() != null) {
+            selectedCaseBlocks.put(p.getUniqueId(), BlockKey.of(def.blockLocation()));
+        }
+        Inventory inv = Bukkit.createInventory(CaseGuiHolder.caseGui(def.name()), def.guiLayout().size(), color(def.guiTitle()));
         fillCaseGui(inv, p, def);
         p.openInventory(inv);
+    }
+
+    public void openCaseGui(Player p, CaseDefinition def, Block sourceBlock) {
+        if (sourceBlock != null) {
+            selectedCaseBlocks.put(p.getUniqueId(), BlockKey.of(sourceBlock));
+        }
+        openCaseGui(p, def);
     }
 
     public void tryOpenCase(Player p, CaseDefinition def) {
@@ -665,32 +900,35 @@ public class CaseManager {
             p.sendMessage(plugin.getMessages().get("already-opening"));
             return;
         }
-        if (!tryLockCase(p, def)) {
+        BlockKey sourceBlock = selectedBlockKey(p, def);
+        if (!tryLockCase(p, sourceBlock)) {
             p.sendMessage(plugin.getMessages().get("case-busy"));
             return;
         }
         if (!checkAndTakeCost(p, def)) {
-            unlockCase(p, def);
+            unlockCase(sourceBlock);
+            selectedCaseBlocks.remove(p.getUniqueId());
             return;
         }
 
         p.closeInventory();
         openingPlayers.add(p.getUniqueId());
-        runAnimationAndReward(p, def);
+        runAnimationAndReward(p, def, sourceBlock);
     }
 
     public boolean openCasePaidByXp(Player p, CaseDefinition def, int levels) {
         if (openingPlayers.contains(p.getUniqueId()) || levels <= 0) return false;
-        if (!tryLockCase(p, def)) return false;
+        BlockKey sourceBlock = selectedBlockKey(p, def);
+        if (!tryLockCase(p, sourceBlock)) return false;
         if (p.getLevel() < levels) {
-            unlockCase(p, def);
+            unlockCase(sourceBlock);
             return false;
         }
 
         p.setLevel(p.getLevel() - levels);
         p.closeInventory();
         openingPlayers.add(p.getUniqueId());
-        runAnimationAndReward(p, def);
+        runAnimationAndReward(p, def, sourceBlock);
         return true;
     }
 
@@ -727,25 +965,42 @@ public class CaseManager {
         return true;
     }
 
-    private void runAnimationAndReward(Player p, CaseDefinition def) {
-        Location base = def.blockLocation().clone().add(0.5, 0.0, 0.5);
+    private void runAnimationAndReward(Player p, CaseDefinition def, BlockKey sourceBlock) {
+        Location sourceLocation = locationFromBlockKey(sourceBlock);
+        if (sourceLocation == null && def.blockLocation() != null) {
+            sourceLocation = def.blockLocation();
+        }
+        if (sourceLocation == null) {
+            openingPlayers.remove(p.getUniqueId());
+            selectedCaseBlocks.remove(p.getUniqueId());
+            unlockCase(sourceBlock);
+            return;
+        }
+
+        Location caseBlockLocation = sourceLocation.clone();
+        Location base = sourceLocation.clone().add(0.5, 0.0, 0.5);
         World w = base.getWorld();
         if (w == null) {
             openingPlayers.remove(p.getUniqueId());
+            selectedCaseBlocks.remove(p.getUniqueId());
+            unlockCase(sourceBlock);
             return;
         }
 
         var holograms = plugin.getHolograms();
-        if (holograms != null) holograms.hideCase(def);
+        if (holograms != null) holograms.hideCase(def, caseBlockLocation);
 
         Reward finalReward = pickReward(def.rewards());
 
-        AnimationType animationType = getPlayerAnimation(p.getUniqueId());
+        AnimationType animationType = def.fixedAnimation() == null
+                ? getPlayerAnimation(p.getUniqueId())
+                : def.fixedAnimation();
         animationRegistry.get(animationType).play(p, def, finalReward, base, () -> {
             giveReward(p, def, finalReward);
             openingPlayers.remove(p.getUniqueId());
-            unlockCase(p, def);
-            if (holograms != null) holograms.showCase(def);
+            selectedCaseBlocks.remove(p.getUniqueId());
+            unlockCase(sourceBlock);
+            if (holograms != null) holograms.showCase(def, caseBlockLocation);
         });
     }
 
@@ -988,6 +1243,216 @@ public class CaseManager {
         return null;
     }
 
+    private List<CaseConfigSource> loadCaseConfigSources() {
+        Map<String, CaseConfigSource> sources = new LinkedHashMap<>();
+
+        ConfigurationSection root = plugin.getConfig().getConfigurationSection("cases");
+        if (root != null) {
+            for (String caseName : root.getKeys(false)) {
+                ConfigurationSection section = root.getConfigurationSection(caseName);
+                if (section == null) continue;
+                String normalized = normalizeCaseName(caseName);
+                sources.put(normalized, new CaseConfigSource(normalized, section, false));
+            }
+        }
+
+        File[] files = getCaseFilesDirectory().listFiles((dir, name) -> name.toLowerCase(Locale.ROOT).endsWith(".yml"));
+        if (files != null) {
+            Arrays.sort(files, Comparator.comparing(File::getName, String.CASE_INSENSITIVE_ORDER));
+            for (File file : files) {
+                YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
+                String fallbackName = file.getName().substring(0, file.getName().length() - 4);
+                ConfigurationSection section = readCaseFileSection(yaml);
+                String explicitId = getStringAlias(section, null, "id", "case_id", "case-id");
+                String caseName = normalizeCaseName(explicitId == null || explicitId.isBlank() ? fallbackName : explicitId);
+                sources.put(caseName, new CaseConfigSource(caseName, section, true));
+            }
+        }
+
+        return new ArrayList<>(sources.values());
+    }
+
+    private ConfigurationSection readCaseFileSection(YamlConfiguration yaml) {
+        ConfigurationSection nested = yaml.getConfigurationSection("case");
+        return nested == null ? yaml : nested;
+    }
+
+    private WritableCaseConfig getWritableCaseConfig(String caseName) {
+        String normalized = normalizeCaseName(caseName);
+        File caseFile = getCaseFile(normalized);
+        if (caseFile.isFile()) {
+            YamlConfiguration yaml = YamlConfiguration.loadConfiguration(caseFile);
+            return new WritableCaseConfig(readCaseFileSection(yaml), yaml, caseFile, true);
+        }
+
+        ConfigurationSection cases = plugin.getConfig().getConfigurationSection("cases");
+        if (cases == null) cases = plugin.getConfig().createSection("cases");
+
+        ConfigurationSection section = cases.getConfigurationSection(normalized);
+        if (section == null) section = cases.createSection(normalized);
+        return new WritableCaseConfig(section, null, null, false);
+    }
+
+    private WritableCaseConfig getExistingWritableCaseConfig(String caseName) {
+        String normalized = normalizeCaseName(caseName);
+        File caseFile = getCaseFile(normalized);
+        if (caseFile.isFile()) {
+            YamlConfiguration yaml = YamlConfiguration.loadConfiguration(caseFile);
+            return new WritableCaseConfig(readCaseFileSection(yaml), yaml, caseFile, true);
+        }
+
+        ConfigurationSection cases = plugin.getConfig().getConfigurationSection("cases");
+        if (cases == null || !cases.isConfigurationSection(normalized)) {
+            return null;
+        }
+        return new WritableCaseConfig(cases.getConfigurationSection(normalized), null, null, false);
+    }
+
+    private void saveWritableCaseConfig(WritableCaseConfig writable) {
+        if (writable.fileBacked()) {
+            try {
+                writable.yaml().save(writable.file());
+            } catch (IOException e) {
+                plugin.getLogger().severe("Не удалось сохранить файл кейса " + writable.file().getName() + ": " + e.getMessage());
+            }
+            return;
+        }
+
+        plugin.saveConfig();
+    }
+
+    private File getCaseFilesDirectory() {
+        return new File(plugin.getDataFolder(), "cases");
+    }
+
+    private File getCaseFile(String caseName) {
+        return new File(getCaseFilesDirectory(), normalizeCaseName(caseName) + ".yml");
+    }
+
+    private String normalizeCaseName(String caseName) {
+        return (caseName == null ? "" : caseName.trim()).toLowerCase(Locale.ROOT);
+    }
+
+    private boolean isValidCaseId(String caseName) {
+        return caseName != null && caseName.matches("[a-z0-9_-]{1,64}");
+    }
+
+    private void copySection(ConfigurationSection source, ConfigurationSection target) {
+        for (String key : source.getKeys(false)) {
+            Object value = source.get(key);
+            if (value instanceof ConfigurationSection nested) {
+                ConfigurationSection child = target.createSection(key);
+                copySection(nested, child);
+            } else {
+                target.set(key, value);
+            }
+        }
+    }
+
+    private CaseGuiLayout readGuiLayout(ConfigurationSection gui) {
+        CaseGuiLayout defaults = CaseGuiLayout.defaults();
+        if (gui == null) {
+            return defaults;
+        }
+
+        int size = normalizeInventorySize(getIntAlias(gui, defaults.size(), "size", "rows"));
+        if (gui.contains("rows")) {
+            size = normalizeInventorySize(gui.getInt("rows", 6) * 9);
+        }
+
+        int openSlot = getIntAlias(gui, defaults.openSlot(), "open_slot", "open-slot", "open_item_slot", "open-item-slot");
+        int animationSlot = getIntAlias(gui, defaults.animationSlot(), "animation_slot", "animation-slot");
+        int previewSlot = getIntAlias(gui, defaults.previewSlot(), "preview_slot", "preview-slot", "rewards_slot", "rewards-slot");
+
+        ConfigurationSection decor = gui.getConfigurationSection("decor");
+        List<Integer> decorSlots = readSlotList(decor, defaults.decorSlots(), "slots");
+        ItemStack decorItem = readGuiItem(decor, "item", null, Material.GRAY_STAINED_GLASS_PANE, " ");
+
+        ConfigurationSection history = gui.getConfigurationSection("history");
+        List<Integer> historySlots = readSlotList(history, defaults.historySlots(), "slots");
+        ItemStack emptyHistoryItem = readGuiItem(history, "empty-item", null, Material.BARRIER, "§8История пуста");
+
+        ItemStack animationItem = readGuiItem(gui, "animation-item", null, null, null);
+        ItemStack previewItem = readGuiItem(gui, "preview-item", null, null, null);
+
+        return new CaseGuiLayout(
+                size,
+                clampSlot(openSlot, size, defaults.openSlot()),
+                clampSlot(animationSlot, size, defaults.animationSlot()),
+                clampSlot(previewSlot, size, defaults.previewSlot()),
+                filterSlots(historySlots, size),
+                filterSlots(decorSlots, size),
+                decorItem,
+                animationItem,
+                previewItem,
+                emptyHistoryItem
+        );
+    }
+
+    private ItemStack readGuiItem(ConfigurationSection root, String key, ItemStack fallback, Material fallbackMaterial, String fallbackName) {
+        if (root != null) {
+            ConfigurationSection section = root.getConfigurationSection(key);
+            ItemStack item = ItemFactory.fromSection(section);
+            if (item != null) {
+                return item;
+            }
+        }
+
+        if (fallback != null) {
+            return fallback.clone();
+        }
+        if (fallbackMaterial == null) {
+            return null;
+        }
+
+        ItemStack item = new ItemStack(fallbackMaterial);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null && fallbackName != null) {
+            meta.setDisplayName(color(fallbackName));
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private List<Integer> readSlotList(ConfigurationSection section, List<Integer> fallback, String key) {
+        if (section == null || !section.isList(key)) {
+            return fallback;
+        }
+
+        List<Integer> slots = new ArrayList<>();
+        for (Object raw : section.getList(key, Collections.emptyList())) {
+            if (raw instanceof Number number) {
+                slots.add(number.intValue());
+                continue;
+            }
+            try {
+                slots.add(Integer.parseInt(String.valueOf(raw)));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return slots.isEmpty() ? fallback : slots;
+    }
+
+    private List<Integer> filterSlots(List<Integer> slots, int size) {
+        List<Integer> out = new ArrayList<>();
+        for (Integer slot : slots) {
+            if (slot != null && slot >= 0 && slot < size && !out.contains(slot)) {
+                out.add(slot);
+            }
+        }
+        return out;
+    }
+
+    private int normalizeInventorySize(int raw) {
+        int size = raw <= 6 ? raw * 9 : raw;
+        size = Math.max(9, Math.min(54, size));
+        return ((size + 8) / 9) * 9;
+    }
+
+    private int clampSlot(int slot, int size, int fallback) {
+        return slot >= 0 && slot < size ? slot : Math.min(fallback, size - 1);
+    }
+
     private String getDisplayName(ItemStack item) {
         if (item == null) return "Награда";
 
@@ -1128,14 +1593,36 @@ public class CaseManager {
         try { return Integer.parseInt(String.valueOf(o)); } catch (Exception e) { return def; }
     }
 
-    private Location readBlockLocation(ConfigurationSection caseSection) {
-        ConfigurationSection block = caseSection.getConfigurationSection("block");
+    private List<Location> readBlockLocations(ConfigurationSection caseSection) {
+        List<Location> locations = new ArrayList<>();
+        for (Map<String, Object> block : readConfiguredBlockMaps(caseSection)) {
+            Location location = readBlockLocation(block);
+            if (location == null) {
+                continue;
+            }
+
+            BlockKey key = BlockKey.of(location);
+            boolean exists = false;
+            for (Location existing : locations) {
+                if (BlockKey.of(existing).equals(key)) {
+                    exists = true;
+                    break;
+                }
+            }
+            if (!exists) {
+                locations.add(location);
+            }
+        }
+        return locations;
+    }
+
+    private Location readBlockLocation(Map<String, Object> block) {
         if (block == null) {
             return null;
         }
 
-        String worldName = block.getString("world");
-        if (worldName == null || worldName.isBlank()) {
+        String worldName = String.valueOf(block.getOrDefault("world", "")).trim();
+        if (worldName.isBlank()) {
             return null;
         }
 
@@ -1144,11 +1631,131 @@ public class CaseManager {
             return null;
         }
 
-        if (!block.contains("x") || !block.contains("y") || !block.contains("z")) {
+        return new Location(
+                world,
+                asInt(block.get("x"), 0),
+                asInt(block.get("y"), 0),
+                asInt(block.get("z"), 0)
+        );
+    }
+
+    private List<Map<String, Object>> readConfiguredBlockMaps(ConfigurationSection caseSection) {
+        List<Map<String, Object>> blocks = new ArrayList<>();
+        if (caseSection == null) {
+            return blocks;
+        }
+
+        addBlockMap(blocks, blockMapFromSection(caseSection.getConfigurationSection("block")));
+
+        List<?> rawBlocks = caseSection.getList("blocks", Collections.emptyList());
+        for (Object raw : rawBlocks) {
+            addBlockMap(blocks, blockMapFromObject(raw));
+        }
+        return blocks;
+    }
+
+    private void addBlockMap(List<Map<String, Object>> blocks, Map<String, Object> candidate) {
+        Map<String, Object> normalized = normalizeBlockMap(candidate);
+        if (normalized == null) {
+            return;
+        }
+
+        String key = blockMapKey(normalized);
+        for (Map<String, Object> existing : blocks) {
+            if (blockMapKey(existing).equals(key)) {
+                return;
+            }
+        }
+        blocks.add(normalized);
+    }
+
+    private Map<String, Object> blockMapFromSection(ConfigurationSection section) {
+        if (section == null) {
             return null;
         }
 
-        return new Location(world, block.getInt("x"), block.getInt("y"), block.getInt("z"));
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("world", section.getString("world", ""));
+        map.put("x", section.get("x"));
+        map.put("y", section.get("y"));
+        map.put("z", section.get("z"));
+        return map;
+    }
+
+    private Map<String, Object> blockMapFromObject(Object raw) {
+        if (raw instanceof ConfigurationSection section) {
+            return blockMapFromSection(section);
+        }
+        if (raw instanceof Map<?, ?> map) {
+            Map<String, Object> copy = new LinkedHashMap<>();
+            copy.put("world", map.get("world"));
+            copy.put("x", map.get("x"));
+            copy.put("y", map.get("y"));
+            copy.put("z", map.get("z"));
+            return copy;
+        }
+        return null;
+    }
+
+    private Map<String, Object> normalizeBlockMap(Map<String, Object> raw) {
+        if (raw == null) {
+            return null;
+        }
+
+        Object worldRaw = raw.get("world");
+        String worldName = worldRaw == null ? "" : String.valueOf(worldRaw).trim();
+        if (worldName.isBlank() || !raw.containsKey("x") || !raw.containsKey("y") || !raw.containsKey("z")) {
+            return null;
+        }
+
+        Map<String, Object> normalized = new LinkedHashMap<>();
+        normalized.put("world", worldName);
+        normalized.put("x", asInt(raw.get("x"), 0));
+        normalized.put("y", asInt(raw.get("y"), 0));
+        normalized.put("z", asInt(raw.get("z"), 0));
+        return normalized;
+    }
+
+    private String blockMapKey(Map<String, Object> block) {
+        return String.valueOf(block.get("world")).toLowerCase(Locale.ROOT)
+                + ":" + asInt(block.get("x"), 0)
+                + ":" + asInt(block.get("y"), 0)
+                + ":" + asInt(block.get("z"), 0);
+    }
+
+    private static AnimationType readFixedAnimation(ConfigurationSection animation) {
+        String raw = getStringAlias(animation, null,
+                "fixed", "fixed_animation", "fixed-animation", "case_animation", "case-animation", "type");
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+
+        String normalized = raw.trim().toUpperCase(Locale.ROOT);
+        if (normalized.equals("PLAYER")
+                || normalized.equals("PLAYERS")
+                || normalized.equals("CHOICE")
+                || normalized.equals("SELECT")
+                || normalized.equals("NONE")
+                || normalized.equals("FALSE")
+                || normalized.equals("OFF")) {
+            return null;
+        }
+
+        try {
+            return AnimationType.valueOf(normalized);
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
+    }
+
+    private static String getStringAlias(ConfigurationSection section, String def, String... keys) {
+        if (section == null) return def;
+        for (String key : keys) {
+            if (section.contains(key)) {
+                return section.getString(key, def);
+            }
+        }
+        return def;
     }
 
     private static int getIntAlias(ConfigurationSection section, int def, String... keys) {
@@ -1156,6 +1763,16 @@ public class CaseManager {
         for (String key : keys) {
             if (section.contains(key)) {
                 return section.getInt(key, def);
+            }
+        }
+        return def;
+    }
+
+    private static boolean getBooleanAlias(ConfigurationSection section, boolean def, String... keys) {
+        if (section == null) return def;
+        for (String key : keys) {
+            if (section.contains(key)) {
+                return section.getBoolean(key, def);
             }
         }
         return def;
@@ -1186,22 +1803,53 @@ public class CaseManager {
     public boolean isOpening(UUID playerId) { return openingPlayers.contains(playerId); }
 
     public boolean isCaseBusy(CaseDefinition def, UUID viewer) {
-        if (def.blockLocation() == null) return false;
-        UUID who = busyCases.get(BlockKey.of(def.blockLocation()));
+        BlockKey key = def.blockLocation() == null ? null : BlockKey.of(def.blockLocation());
+        return isCaseBusy(key, viewer);
+    }
+
+    public boolean isCaseBusy(CaseDefinition def, UUID viewer, Block block) {
+        BlockKey key = block == null ? null : BlockKey.of(block);
+        return isCaseBusy(key, viewer);
+    }
+
+    private boolean isCaseBusy(BlockKey key, UUID viewer) {
+        if (key == null) return false;
+        UUID who = busyCases.get(key);
         return who != null && !who.equals(viewer);
     }
 
-    private boolean tryLockCase(Player p, CaseDefinition def) {
-        if (def.blockLocation() == null) return false;
-        UUID prev = busyCases.putIfAbsent(BlockKey.of(def.blockLocation()), p.getUniqueId());
+    private boolean tryLockCase(Player p, BlockKey key) {
+        if (key == null) return false;
+        UUID prev = busyCases.putIfAbsent(key, p.getUniqueId());
         return prev == null || prev.equals(p.getUniqueId());
     }
 
-    private void unlockCase(Player p, CaseDefinition def) {
-        if (def.blockLocation() == null) return;
-        BlockKey k = BlockKey.of(def.blockLocation());
-        UUID cur = busyCases.get(k);
-        if (cur != null && cur.equals(p.getUniqueId())) busyCases.remove(k);
+    private void unlockCase(BlockKey key) {
+        if (key != null) {
+            busyCases.remove(key);
+        }
+    }
+
+    private BlockKey selectedBlockKey(Player player, CaseDefinition def) {
+        BlockKey selected = selectedCaseBlocks.get(player.getUniqueId());
+        if (selected != null) {
+            return selected;
+        }
+        return def.blockLocation() == null ? null : BlockKey.of(def.blockLocation());
+    }
+
+    private Location locationFromBlockKey(BlockKey key) {
+        if (key == null) {
+            return null;
+        }
+        World world = Bukkit.getWorld(key.world());
+        return world == null ? null : new Location(world, key.x(), key.y(), key.z());
+    }
+
+    private record CaseConfigSource(String name, ConfigurationSection section, boolean fileBacked) {
+    }
+
+    private record WritableCaseConfig(ConfigurationSection section, YamlConfiguration yaml, File file, boolean fileBacked) {
     }
 
     public record BlockKey(String world, int x, int y, int z) {

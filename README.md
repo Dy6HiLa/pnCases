@@ -1,15 +1,15 @@
 <p align="center">
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4.2">
-    <img src="assets/pncases-cover-v2.png" alt="pnCases 1.4.2" width="100%">
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4.3">
+    <img src="assets/pncases-cover-v2.png" alt="pnCases 1.4.3" width="100%">
   </a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.2/pnCases-1.4.2.jar">
-    <img src="https://img.shields.io/badge/%D0%A1%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-1.4.2-429F91?style=for-the-badge&labelColor=17241F" alt="Скачать pnCases 1.4.2">
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.3/pnCases-1.4.3.jar">
+    <img src="https://img.shields.io/badge/%D0%A1%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-1.4.3-429F91?style=for-the-badge&labelColor=17241F" alt="Скачать pnCases 1.4.3">
   </a>
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4.2">
-    <img src="https://img.shields.io/badge/Changelog-1.4.2-D8DF9D?style=for-the-badge&labelColor=17241F" alt="Changelog pnCases 1.4.2">
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4.3">
+    <img src="https://img.shields.io/badge/Changelog-1.4.3-D8DF9D?style=for-the-badge&labelColor=17241F" alt="Changelog pnCases 1.4.3">
   </a>
   <a href="LICENSE">
     <img src="https://img.shields.io/badge/License-MIT-429F91?style=for-the-badge&labelColor=17241F" alt="License MIT">
@@ -19,6 +19,12 @@
 # pnCases
 
 `pnCases` - бесплатный плагин кейсов для Paper 1.21.x с анимациями, GUI, историей открытий, preview наград, голограммами, LuckPerms, Vault и PlayerPoints-наградами.
+
+## pnCases 1.4.3
+
+`1.4.3` - обновление для удобной настройки кейсов. Теперь один и тот же кейс можно поставить сразу на несколько блоков обычной командой `/pncases setcase <кейс>`: новый блок добавится к списку, а старые не пропадут. После перезапуска сервера привязки кейсов сохраняются, голограммы создаются отдельно над каждым блоком, а при открытии прячется только та голограмма, где игрок реально открыл кейс.
+
+Также исправлены сообщения в меню: если у игрока нет ключей, он видит понятное `Недостаточно ключей`, а не непонятную ошибку покупки. Лишние команды удаления убраны - осталась одна нормальная команда `/pncases delcase <кейс>`. Добавлена анимация **Круг фортуны**, улучшено меню настройки кейса через `/pncases machine`, а примеры кейсов вынесены в отдельные файлы, чтобы config.yml не превращался в огромную кашу.
 
 ## pnCases 1.4.2
 
@@ -36,14 +42,14 @@
 - Добавлена редкость наград: `COMMON`, `UNCOMMON`, `RARE`, `EPIC`, `LEGENDARY`, `MYTHIC`.
 - Данные ключей, предпочтений, истории и pending-наград перенесены в SQLite `data.db`.
 - Добавлена миграция старых `keys.yml`, `player_prefs.yml`, `open_history.yml`, `pending_rewards.yml`.
-- Добавлена поддержка FancyHolograms, DecentHolograms и fallback-голограмм через TextDisplay.
+- Добавлена поддержка FancyHolograms и DecentHolograms.
 - Исправлен `visual:` для денежных, поинтовых и LuckPerms-наград: визуальный предмет больше не выдается игроку вместо валюты или группы.
 - Улучшена валидация старых конфигов.
 - Анимации стали тише и плавнее.
 
 ## Установка
 
-1. Скачайте `pnCases-1.4.2.jar`.
+1. Скачайте `pnCases-1.4.3.jar`.
 2. Положите файл в папку `plugins/`.
 3. Перезапустите сервер.
 4. Настройте `plugins/pnCases/config.yml` и `messages.yml`.
@@ -63,8 +69,8 @@
 |---|---|
 | `/pncases` | Показать список команд, версию и статус обновления |
 | `/pncases reload` | Перезагрузить `config.yml` и `messages.yml` |
-| `/pncases setcase <кейс>` | Привязать кейс к блоку |
-| `/pncases delcase <кейс>` | Убрать привязку кейса к блоку без удаления настроек |
+| `/pncases setcase <кейс>` | Добавить этот кейс на блок, на который вы смотрите |
+| `/pncases delcase <кейс>` | Убрать все блоки этого кейса без удаления настроек |
 | `/pncases givekey <игрок> <ключ> <кол-во>` | Выдать ключи |
 | `/pncases takekey <игрок> <ключ> <кол-во>` | Забрать ключи |
 
@@ -137,7 +143,7 @@ hologram:
     - "&7ПКМ, чтобы открыть"
 ```
 
-pnCases выбирает доступный провайдер голограмм автоматически: FancyHolograms, DecentHolograms или встроенный TextDisplay fallback.
+pnCases выбирает доступный провайдер голограмм автоматически: FancyHolograms или DecentHolograms. Если ни один плагин голограмм не установлен, кейсы продолжают работать без голограммы.
 
 ## Обновления
 

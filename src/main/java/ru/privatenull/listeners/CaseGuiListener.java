@@ -6,6 +6,7 @@ import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -26,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class CaseGuiListener implements Listener {
 
-    private static final int[] ANIMATION_SLOTS = {10, 11, 13, 15, 16};
+    private static final int[] ANIMATION_SLOTS = {10, 11, 12, 14, 15, 16};
     private static final int[] PREVIEW_REWARD_SLOTS = {
             10, 11, 12, 13, 14, 15, 16,
             19, 20, 21, 22, 23, 24, 25,
@@ -68,20 +69,25 @@ public class CaseGuiListener implements Listener {
             return;
         }
 
-        if (slot == CaseManager.ANIMATION_SLOT) {
+        CaseDefinition def = caseManager.getCaseByName(holder.caseName());
+        if (def == null) return;
+
+        if (slot == def.guiLayout().animationSlot() && def.fixedAnimation() == null) {
             openAnimationSelectGui(p, holder.caseName());
             return;
         }
 
-        if (slot == CaseManager.PREVIEW_SLOT) {
+        if (slot != def.guiLayout().openSlot()) return;
+
+        if (e.getClick() == ClickType.MIDDLE) {
             openRewardPreviewGui(p, holder.caseName(), 0);
             return;
         }
 
-        if (slot != 22) return;
-
-        CaseDefinition def = caseManager.getCaseByName(holder.caseName());
-        if (def == null) return;
+        if (e.getClick().isLeftClick() && Math.max(0, def.buyKeyWithXpLevels()) <= 0) {
+            openRewardPreviewGui(p, holder.caseName(), 0);
+            return;
+        }
 
         UUID uuid = p.getUniqueId();
         if (clickLock.contains(uuid)) return;
@@ -95,6 +101,18 @@ public class CaseGuiListener implements Listener {
 
         String keyId = def.costKeyId();
         int need = Math.max(1, def.costAmount());
+        if (keyId == null || keyId.isEmpty() || !caseManager.keyExists(keyId)) {
+            String title = caseManager.getPlugin().getMessages().getOr("gui.open.key-not-configured", "key-not-configured");
+            e.getInventory().setItem(def.guiLayout().openSlot(), pane(Material.BARRIER, title, List.of(
+                    "&7У этого кейса не выбран рабочий ключ.",
+                    "&7Проверь настройку &fcost.key&7."
+            )));
+            p.sendMessage(caseManager.getPlugin().getMessages().get("key-not-configured"));
+            p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.24f, 1.0f);
+            scheduleRefresh(p, holder.caseName(), def, uuid, 30L);
+            return;
+        }
+
         int have = (keyId == null) ? 0 : caseManager.getPlugin().getKeyStorage().get(uuid, keyId);
 
         if (have >= need) {
@@ -104,13 +122,14 @@ public class CaseGuiListener implements Listener {
         }
 
         int buyLevels = Math.max(0, def.buyKeyWithXpLevels());
-        boolean canBuy = buyLevels > 0 && p.getLevel() >= buyLevels && keyId != null && !keyId.isEmpty();
+        boolean wantsBuy = e.getClick().isLeftClick();
+        boolean canBuy = wantsBuy && buyLevels > 0 && p.getLevel() >= buyLevels;
 
         if (canBuy) {
             int give = need - have;
             p.setLevel(p.getLevel() - buyLevels);
             caseManager.getPlugin().getKeyStorage().add(uuid, keyId, give);
-            e.getInventory().setItem(22, pane(Material.LIME_STAINED_GLASS_PANE,
+            e.getInventory().setItem(def.guiLayout().openSlot(), pane(Material.LIME_STAINED_GLASS_PANE,
                     caseManager.getPlugin().getMessages().getOr("gui.buy.success", "gui-buy-success"), Collections.emptyList()));
             p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.28f, 1.2f);
             scheduleRefresh(p, holder.caseName(), def, uuid, 30L);
@@ -119,15 +138,20 @@ public class CaseGuiListener implements Listener {
 
         String title;
         List<String> lore = new ArrayList<>();
-        if (buyLevels <= 0) {
-            title = caseManager.getPlugin().getMessages().getOr("gui.buy.unavailable", "gui-buy-unavailable");
+        if (!wantsBuy || buyLevels <= 0) {
+            title = caseManager.getPlugin().getMessages().getOr("gui.open.no-keys", "not-enough-keys",
+                    "have", String.valueOf(have), "need", String.valueOf(need));
+            lore.add("&cНедостаточно ключей");
             lore.add(caseManager.getPlugin().getMessages().getOr("gui.case-button.keys-balance", "gui-keys-balance",
+                    "have", String.valueOf(have), "need", String.valueOf(need)));
+            lore.add("&7Получите ключ и попробуйте снова.");
+            p.sendMessage(caseManager.getPlugin().getMessages().get("not-enough-keys",
                     "have", String.valueOf(have), "need", String.valueOf(need)));
         } else {
             title = caseManager.getPlugin().getMessages().getOr("gui.buy.no-levels", "gui-buy-no-levels");
         }
 
-        e.getInventory().setItem(22, pane(Material.RED_STAINED_GLASS_PANE, title, lore));
+        e.getInventory().setItem(def.guiLayout().openSlot(), pane(Material.BARRIER, title, lore));
         p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.24f, 1.0f);
         scheduleRefresh(p, holder.caseName(), def, uuid, 30L);
     }
@@ -310,6 +334,10 @@ public class CaseGuiListener implements Listener {
                 p.playSound(p.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 0.13f, 1.65f);
                 p.playSound(p.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.15f, 1.85f);
             }
+            case FORTUNE_RING -> {
+                p.playSound(p.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.14f, 1.55f);
+                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.10f, 1.85f);
+            }
         }
     }
 
@@ -365,8 +393,8 @@ public class CaseGuiListener implements Listener {
         ItemStack it = new ItemStack(mat);
         ItemMeta meta = it.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(name);
-            meta.setLore(lore);
+            meta.setDisplayName(color(name));
+            meta.setLore(lore.stream().map(CaseGuiListener::color).toList());
             it.setItemMeta(meta);
         }
         return it;

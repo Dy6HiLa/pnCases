@@ -448,7 +448,12 @@ public class PoisonAnimation extends CaseAnimation {
     }
 
     private void applySlimeFacing(Location loc, CaseDefinition def, Player player) {
-        ConfigurationSection poison = plugin.getConfig().getConfigurationSection("cases." + def.name() + ".animation.poison");
+        ConfigurationSection caseSection = plugin.getCaseManager() == null ? null : plugin.getCaseManager().getCaseSection(def.name());
+        ConfigurationSection animation = caseSection == null ? null : caseSection.getConfigurationSection("animation");
+        ConfigurationSection poison = animation == null ? null : animation.getConfigurationSection("poison");
+        if (poison == null) {
+            poison = plugin.getConfig().getConfigurationSection("cases." + def.name() + ".animation.poison");
+        }
         if (poison == null) {
             loc.setYaw(0f);
             loc.setPitch(0f);

@@ -1,0 +1,95 @@
+name: luckperms
+
+hologram:
+  enabled: true
+  type: TEXT
+  y: 1.5
+  lines:
+    - "§x§F§F§8§6§0§0§lДонат кейс"
+    - "&7Нажмите ПКМ, чтобы открыть"
+
+gui:
+  title: "&8Донат кейс"
+  size: 54
+  open_slot: 22
+  animation_slot: 49
+  decor:
+    slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 17, 18, 26, 27, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44]
+    item:
+      material: GRAY_STAINED_GLASS_PANE
+      name: " "
+  history:
+    slots: [45, 46, 47, 48, 51, 52, 53]
+    empty-item:
+      material: BARRIER
+      name: "&8История пуста"
+  animation-item:
+    material: CLOCK
+    name: "§x§4§2§9§F§9§1Выбор анимации"
+    lore:
+      - "&7Нажмите, чтобы выбрать анимацию открытия."
+  open-item:
+    material: NETHER_STAR
+    name: "§x§F§F§8§6§0§0Донат кейс"
+    lore:
+      - ""
+      - "&7Можно получить группу или право LuckPerms."
+      - ""
+
+cost:
+  type: KEY
+  key: donate_key
+  amount: 1
+  buy_xp_enabled: false
+  buy_xp_levels: 60
+
+animation:
+  duration_ticks: 80
+  cycle_every_ticks: 2
+  rise_blocks: 1.2
+  spin_degrees_per_tick: 18
+  poison:
+    slime-facing: PLAYER
+    slime-pitch: 0
+  items:
+    - material: IRON_BLOCK
+      name: "&7VIP"
+    - material: GOLD_BLOCK
+      name: "&6Premium"
+    - material: DIAMOND_BLOCK
+      name: "&bFly"
+
+rewards:
+  - chance: 50
+    rarity: COMMON
+    type: LUCKPERMS
+    luckperms:
+      group: vip
+      duration: 7d
+      display_name: "&7VIP &fна 7 дней"
+    visual:
+      material: IRON_BLOCK
+      name: "&7VIP &fна 7 дней"
+    message: "&dВы получили привилегию &7VIP &fна 7 дней&d!"
+  - chance: 35
+    rarity: RARE
+    type: LUCKPERMS
+    luckperms:
+      group: premium
+      duration: 14d
+      display_name: "&6Premium &fна 14 дней"
+    visual:
+      material: GOLD_BLOCK
+      name: "&6Premium &fна 14 дней"
+    message: "&dВы получили привилегию &6Premium &fна 14 дней&d!"
+  - chance: 15
+    rarity: EPIC
+    type: LUCKPERMS
+    luckperms:
+      node: essentials.fly
+      duration: 30d
+      display_name: "&bПраво essentials.fly &fна 30 дней"
+    visual:
+      material: DIAMOND_BLOCK
+      name: "&bFly &fна 30 дней"
+    message: "&dВы получили право &bessentials.fly &fна 30 дней&d!"

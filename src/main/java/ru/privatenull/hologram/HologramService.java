@@ -17,11 +17,9 @@ import ru.privatenull.util.ItemFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -33,7 +31,6 @@ public final class HologramService {
 
     private final pnCases plugin;
     private final Set<String> externalNames = new HashSet<>();
-    private final Map<String, List<TextDisplay>> nativeDisplays = new HashMap<>();
 
     private HologramProvider provider;
 
@@ -64,14 +61,16 @@ public final class HologramService {
 
         for (CaseDefinition def : defs) {
             try {
-                if (def.blockLocation() == null) {
+                if (blockLocations(def).isEmpty()) {
                     continue;
                 }
                 ConfigurationSection config = getHologramSection(def);
                 if (config == null || !config.getBoolean("enabled", false)) {
                     continue;
                 }
-                createCaseHologram(def, config);
+                for (Location location : blockLocations(def)) {
+                    createCaseHologram(def, config, location);
+                }
             } catch (Throwable t) {
                 plugin.getLogger().warning("Holograms: ошибка создания голограммы для кейса '" + def.name() + "': " + t.getMessage());
             }
@@ -82,56 +81,88 @@ public final class HologramService {
         reloadProvider();
         if (def == null) return;
 
-        String name = hologramName(def);
-        removeExternal(name, provider);
+        String prefix = hologramPrefix(def);
+        for (String name : new ArrayList<>(externalNames)) {
+            if (name.equals(legacyHologramName(def)) || name.startsWith(prefix + "_")) {
+                removeExternal(name, provider);
+                externalNames.remove(name);
+            }
+        }
+        removeExternal(legacyHologramName(def), provider);
+        clearNativeDisplays(def.name());
+    }
 
+    public void hideCase(CaseDefinition def, Location blockLocation) {
+        reloadProvider();
+        if (def == null || blockLocation == null) return;
+
+        String name = hologramName(def, blockLocation);
+        removeExternal(name, provider);
         externalNames.remove(name);
         clearNativeDisplays(def.name());
     }
 
     public void showCase(CaseDefinition def) {
         reloadProvider();
-        if (def == null || def.blockLocation() == null) return;
+        if (def == null || blockLocations(def).isEmpty()) return;
 
         try {
             ConfigurationSection config = getHologramSection(def);
             if (config == null || !config.getBoolean("enabled", false)) {
                 return;
             }
-            createCaseHologram(def, config);
+            for (Location location : blockLocations(def)) {
+                createCaseHologram(def, config, location);
+            }
         } catch (Throwable t) {
             plugin.getLogger().warning("Holograms: ошибка showCase для '" + def.name() + "': " + t.getMessage());
         }
     }
 
-    private void createCaseHologram(CaseDefinition def, ConfigurationSection config) {
-        HologramSpec spec = buildSpec(def, config);
-        hideCase(def);
+    public void showCase(CaseDefinition def, Location blockLocation) {
+        reloadProvider();
+        if (def == null || blockLocation == null) return;
 
-        HologramProvider currentProvider = provider;
-        if (currentProvider != null) {
-            try {
-                if (!currentProvider.isAvailable()) {
-                    throw new IllegalStateException("провайдер выключен");
-                }
-                currentProvider.create(spec);
-                externalNames.add(spec.name());
+        try {
+            ConfigurationSection config = getHologramSection(def);
+            if (config == null || !config.getBoolean("enabled", false)) {
                 return;
-            } catch (Throwable t) {
-                provider = null;
-                plugin.getLogger().warning("Holograms: внешний провайдер недоступен для '" + def.name() + "', создаю обычный TextDisplay: " + t.getMessage());
             }
+            createCaseHologram(def, config, blockLocation);
+        } catch (Throwable t) {
+            plugin.getLogger().warning("Holograms: showCase error for '" + def.name() + "': " + t.getMessage());
         }
-
-        createNativeTextDisplay(spec);
     }
 
-    private HologramSpec buildSpec(CaseDefinition def, ConfigurationSection config) {
-        HologramType type = readType(config);
-        Location loc = readLocation(def, config);
-        String name = hologramName(def);
+    private void createCaseHologram(CaseDefinition def, ConfigurationSection config, Location blockLocation) {
+        HologramSpec spec = buildSpec(def, config, blockLocation);
+        removeExternal(spec.name(), provider);
+        externalNames.remove(spec.name());
 
-        List<String> lines = readLines(def, config);
+        HologramProvider currentProvider = provider;
+        if (currentProvider == null) {
+            plugin.getLogger().warning("Holograms: для кейса '" + def.name() + "' не найден FancyHolograms или DecentHolograms. TextDisplay fallback отключен.");
+            return;
+        }
+
+        try {
+            if (!currentProvider.isAvailable()) {
+                throw new IllegalStateException("провайдер выключен");
+            }
+            currentProvider.create(spec);
+            externalNames.add(spec.name());
+        } catch (Throwable t) {
+            provider = null;
+            plugin.getLogger().warning("Holograms: внешний провайдер недоступен для '" + def.name() + "'. TextDisplay fallback отключен: " + t.getMessage());
+        }
+    }
+
+    private HologramSpec buildSpec(CaseDefinition def, ConfigurationSection config, Location blockLocation) {
+        HologramType type = readType(config);
+        Location loc = readLocation(blockLocation, config);
+        String name = hologramName(def, blockLocation);
+
+        List<String> lines = readLines(def, config, blockLocation);
         ItemStack item = readItem(config);
         Material block = readBlock(config);
 
@@ -157,31 +188,6 @@ public final class HologramService {
                 parseVector(config, "translation"),
                 readBrightness(config)
         );
-    }
-
-    private void createNativeTextDisplay(HologramSpec spec) {
-        World world = spec.location().getWorld();
-        if (world == null) return;
-
-        List<String> out = new ArrayList<>(spec.lines().size());
-        for (String line : spec.lines()) {
-            out.add(ChatColor.translateAlternateColorCodes('&', line));
-        }
-
-        TextDisplay display = world.spawn(spec.location(), TextDisplay.class, textDisplay -> {
-            textDisplay.setPersistent(false);
-            textDisplay.setText(String.join("\n", out));
-            textDisplay.setBillboard(spec.billboard() == null ? Display.Billboard.CENTER : spec.billboard());
-            textDisplay.setAlignment(spec.textAlignment() == null ? TextDisplay.TextAlignment.CENTER : spec.textAlignment());
-            textDisplay.setShadowed(spec.textShadow() == null || spec.textShadow());
-            textDisplay.setSeeThrough(spec.seeThrough() == null || spec.seeThrough());
-            textDisplay.setDefaultBackground(false);
-            textDisplay.setViewRange((float) Math.max(1, spec.visibilityDistance() == null ? 64 : spec.visibilityDistance()));
-            textDisplay.addScoreboardTag("pncases_hologram");
-            textDisplay.addScoreboardTag("pncases_" + spec.caseName());
-        });
-
-        nativeDisplays.computeIfAbsent(spec.caseName(), ignored -> new ArrayList<>()).add(display);
     }
 
     private void removeExternal(String name, HologramProvider currentProvider) {
@@ -218,15 +224,29 @@ public final class HologramService {
     }
 
     private void clearNativeDisplays() {
-        for (List<TextDisplay> displays : new ArrayList<>(nativeDisplays.values())) {
-            removeDisplays(displays);
+        for (World world : Bukkit.getWorlds()) {
+            for (TextDisplay display : world.getEntitiesByClass(TextDisplay.class)) {
+                if (display.getScoreboardTags().contains("pncases_hologram")) {
+                    display.remove();
+                }
+            }
         }
-        nativeDisplays.clear();
     }
 
     private void clearNativeDisplays(String caseName) {
-        List<TextDisplay> displays = nativeDisplays.remove(caseName);
-        removeDisplays(displays);
+        if (caseName == null || caseName.isBlank()) {
+            return;
+        }
+
+        String caseTag = "pncases_" + caseName;
+        for (World world : Bukkit.getWorlds()) {
+            for (TextDisplay display : world.getEntitiesByClass(TextDisplay.class)) {
+                Set<String> tags = display.getScoreboardTags();
+                if (tags.contains("pncases_hologram") && tags.contains(caseTag)) {
+                    display.remove();
+                }
+            }
+        }
     }
 
     private void reloadProvider() {
@@ -290,7 +310,12 @@ public final class HologramService {
     }
 
     private ConfigurationSection getHologramSection(CaseDefinition def) {
-        ConfigurationSection config = plugin.getConfig().getConfigurationSection("cases." + def.name());
+        ConfigurationSection config = plugin.getCaseManager() == null
+                ? null
+                : plugin.getCaseManager().getCaseSection(def.name());
+        if (config == null) {
+            config = plugin.getConfig().getConfigurationSection("cases." + def.name());
+        }
         return config == null ? null : config.getConfigurationSection("hologram");
     }
 
@@ -303,8 +328,8 @@ public final class HologramService {
         }
     }
 
-    private static Location readLocation(CaseDefinition def, ConfigurationSection config) {
-        Location loc = def.blockLocation().clone().add(0.5, 0.0, 0.5);
+    private static Location readLocation(Location blockLocation, ConfigurationSection config) {
+        Location loc = blockLocation.clone().add(0.5, 0.0, 0.5);
 
         double ox = config.getDouble("x", 0.0);
         double oy = config.contains("height") ? config.getDouble("height") : config.getDouble("y", 1.8);
@@ -320,7 +345,7 @@ public final class HologramService {
         return loc.add(ox, oy, oz);
     }
 
-    private static List<String> readLines(CaseDefinition def, ConfigurationSection config) {
+    private static List<String> readLines(CaseDefinition def, ConfigurationSection config, Location blockLocation) {
         List<String> lines = config.getStringList("lines");
         if (lines == null || lines.isEmpty()) {
             String one = config.getString("line", null);
@@ -334,7 +359,7 @@ public final class HologramService {
 
         List<String> out = new ArrayList<>(lines.size());
         for (String line : lines) {
-            out.add(applyPlaceholders(line, def));
+            out.add(applyPlaceholders(line, def, blockLocation));
         }
         return out;
     }
@@ -387,35 +412,53 @@ public final class HologramService {
         return material == null ? fallback : material;
     }
 
-    private static void removeDisplays(List<TextDisplay> displays) {
-        if (displays == null) return;
-
-        for (TextDisplay display : new ArrayList<>(displays)) {
-            if (display != null && !display.isDead()) {
-                display.remove();
-            }
-        }
-        displays.clear();
-    }
-
-    private static String applyPlaceholders(String value, CaseDefinition def) {
+    private static String applyPlaceholders(String value, CaseDefinition def, Location blockLocation) {
         if (value == null) return "";
 
         String guiRaw = def.guiTitle() == null ? "" : def.guiTitle();
         String guiPlain = ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&', guiRaw));
+        World world = blockLocation.getWorld();
 
         return value
                 .replace("{case}", def.name())
                 .replace("{gui_title}", guiRaw)
                 .replace("{gui_title_plain}", guiPlain == null ? "" : guiPlain)
-                .replace("{world}", def.blockLocation().getWorld() == null ? "world" : def.blockLocation().getWorld().getName())
-                .replace("{x}", String.valueOf(def.blockLocation().getBlockX()))
-                .replace("{y}", String.valueOf(def.blockLocation().getBlockY()))
-                .replace("{z}", String.valueOf(def.blockLocation().getBlockZ()));
+                .replace("{world}", world == null ? "world" : world.getName())
+                .replace("{x}", String.valueOf(blockLocation.getBlockX()))
+                .replace("{y}", String.valueOf(blockLocation.getBlockY()))
+                .replace("{z}", String.valueOf(blockLocation.getBlockZ()));
     }
 
-    private static String hologramName(CaseDefinition def) {
+    private static List<Location> blockLocations(CaseDefinition def) {
+        if (def == null) {
+            return List.of();
+        }
+        if (!def.blockLocations().isEmpty()) {
+            return def.blockLocations();
+        }
+        return def.blockLocation() == null ? List.of() : List.of(def.blockLocation());
+    }
+
+    private static String hologramName(CaseDefinition def, Location location) {
+        World world = location.getWorld();
+        String worldName = world == null ? "world" : world.getName();
+        return hologramPrefix(def)
+                + "_" + sanitizeName(worldName)
+                + "_" + location.getBlockX()
+                + "_" + location.getBlockY()
+                + "_" + location.getBlockZ();
+    }
+
+    private static String hologramPrefix(CaseDefinition def) {
+        return "pncases_" + sanitizeName(def.name());
+    }
+
+    private static String legacyHologramName(CaseDefinition def) {
         return "pncases_" + def.name();
+    }
+
+    private static String sanitizeName(String value) {
+        return (value == null ? "case" : value).replaceAll("[^a-zA-Z0-9_-]", "_");
     }
 
     private static Color parseColor(String value) {

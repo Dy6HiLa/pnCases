@@ -61,9 +61,10 @@ public final class SqliteDatabase implements AutoCloseable {
     private void configure() throws SQLException {
         try (Statement statement = connection.createStatement()) {
             statement.execute("PRAGMA foreign_keys = ON");
-            statement.execute("PRAGMA journal_mode = WAL");
+            statement.execute("PRAGMA journal_mode = DELETE");
             statement.execute("PRAGMA busy_timeout = 5000");
         }
+        deleteWalSidecarFiles();
     }
 
     private void createSchema() throws SQLException {
@@ -339,6 +340,22 @@ public final class SqliteDatabase implements AutoCloseable {
             statement.setString(1, key);
             statement.setString(2, value);
             statement.executeUpdate();
+        }
+    }
+
+    private void deleteWalSidecarFiles() {
+        deleteIfExists(new File(file.getAbsolutePath() + "-wal"));
+        deleteIfExists(new File(file.getAbsolutePath() + "-shm"));
+    }
+
+    private void deleteIfExists(File sidecar) {
+        if (!sidecar.isFile()) {
+            return;
+        }
+
+        if (!sidecar.delete() && sidecar.exists()) {
+            plugin.getLogger().warning("Не удалось удалить старый SQLite файл " + sidecar.getName()
+                    + ". Он должен исчезнуть после остановки сервера.");
         }
     }
 

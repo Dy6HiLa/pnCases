@@ -6,10 +6,12 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 public final class ConfigValidator {
@@ -25,9 +27,11 @@ public final class ConfigValidator {
 
         boolean changed = patchMissing(config, patches, "reward-symbols.vault", "$");
         changed |= patchMissing(config, patches, "reward-symbols.playerpoints", "✦");
+        changed |= patchMissing(config, patches, "case-files.auto-export", true);
+        changed |= patchMissing(config, patches, "holograms.provider", "AUTO");
 
         Set<String> knownKeys = validateKeys(config, warnings, errors);
-        validateCases(config, knownKeys, warnings, errors);
+        validateCases(plugin, config, knownKeys, warnings, errors);
 
         if (changed) {
             plugin.saveConfig();
@@ -83,10 +87,12 @@ public final class ConfigValidator {
         return knownKeys;
     }
 
-    private static void validateCases(FileConfiguration config, Set<String> knownKeys, List<String> warnings, List<String> errors) {
+    private static void validateCases(JavaPlugin plugin, FileConfiguration config, Set<String> knownKeys, List<String> warnings, List<String> errors) {
         ConfigurationSection cases = config.getConfigurationSection("cases");
         if (cases == null) {
-            errors.add("Секция cases отсутствует. Плагин не загрузит ни одного кейса.");
+            if (!hasCaseFiles(plugin) && !hasBundledCaseFiles(plugin)) {
+                errors.add("Секция cases отсутствует и plugins/pnCases/cases/*.yml не найдены. Плагин не загрузит ни одного кейса.");
+            }
             return;
         }
 
@@ -106,7 +112,33 @@ public final class ConfigValidator {
         }
     }
 
+    private static boolean hasCaseFiles(JavaPlugin plugin) {
+        File dir = new File(plugin.getDataFolder(), "cases");
+        File[] files = dir.listFiles((file, name) -> name.toLowerCase(Locale.ROOT).endsWith(".yml"));
+        return files != null && files.length > 0;
+    }
+
+    private static boolean hasBundledCaseFiles(JavaPlugin plugin) {
+        return plugin.getResource("cases/money.yml") != null
+                || plugin.getResource("cases/playerpoints.yml") != null
+                || plugin.getResource("cases/items.yml") != null
+                || plugin.getResource("cases/luckperms.yml") != null;
+    }
+
     private static void validateBlock(String path, ConfigurationSection section, List<String> warnings) {
+        List<?> blocks = section.getList("blocks");
+        if (blocks != null && !blocks.isEmpty()) {
+            for (int i = 0; i < blocks.size(); i++) {
+                Object entry = blocks.get(i);
+                if (entry instanceof Map<?, ?> map) {
+                    validateBlockMap(path + ".blocks[" + i + "]", map, warnings);
+                } else {
+                    warnings.add(path + ".blocks[" + i + "] must be a section with world, x, y, z.");
+                }
+            }
+            return;
+        }
+
         ConfigurationSection block = section.getConfigurationSection("block");
         if (block == null) {
             warnings.add(path + ".block отсутствует. Кейс загружен как настройка, но не привязан к блоку. Используйте /pncases setcase <кейс>.");
@@ -123,6 +155,31 @@ public final class ConfigValidator {
         requireInt(block, path + ".block", "x", warnings);
         requireInt(block, path + ".block", "y", warnings);
         requireInt(block, path + ".block", "z", warnings);
+    }
+
+    private static void validateBlockMap(String path, Map<?, ?> block, List<String> warnings) {
+        Object worldRaw = block.get("world");
+        String world = worldRaw == null ? null : String.valueOf(worldRaw);
+        if (world == null || world.isBlank()) {
+            warnings.add(path + ".world is missing. The case config is loaded, but this block is inactive.");
+        } else if (Bukkit.getWorld(world) == null) {
+            warnings.add(path + ".world = '" + world + "' is not loaded on the server. The case block will work after the world exists or after /pncases setcase <case>.");
+        }
+
+        requireIntValue(block.get("x"), path, "x", warnings);
+        requireIntValue(block.get("y"), path, "y", warnings);
+        requireIntValue(block.get("z"), path, "z", warnings);
+    }
+
+    private static void requireIntValue(Object value, String path, String key, List<String> warnings) {
+        if (value instanceof Number) {
+            return;
+        }
+        try {
+            Integer.parseInt(String.valueOf(value));
+        } catch (Exception ignored) {
+            warnings.add(path + "." + key + " must be an integer.");
+        }
     }
 
     private static void validateGui(String path, ConfigurationSection section, List<String> warnings) {

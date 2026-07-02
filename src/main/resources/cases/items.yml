@@ -1,0 +1,86 @@
+name: items
+
+hologram:
+  enabled: true
+  type: TEXT
+  y: 1.5
+  lines:
+    - "§x§0§0§9§8§F§F§lКейс с ресурсами"
+    - "&7Нажмите ПКМ, чтобы открыть"
+
+gui:
+  title: "&8Кейс с ресурсами"
+  size: 54
+  open_slot: 22
+  animation_slot: 49
+  decor:
+    slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 17, 18, 26, 27, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44]
+    item:
+      material: GRAY_STAINED_GLASS_PANE
+      name: " "
+  history:
+    slots: [45, 46, 47, 48, 51, 52, 53]
+    empty-item:
+      material: BARRIER
+      name: "&8История пуста"
+  animation-item:
+    material: CLOCK
+    name: "§x§4§2§9§F§9§1Выбор анимации"
+    lore:
+      - "&7Нажмите, чтобы выбрать анимацию открытия."
+  open-item:
+    material: DIAMOND_PICKAXE
+    name: "§x§0§0§9§8§F§FКейс с ресурсами"
+    lore:
+      - ""
+      - "&7Можно получить полезные предметы."
+      - ""
+
+cost:
+  type: KEY
+  key: items_key
+  amount: 1
+  buy_xp_enabled: false
+  buy_xp_levels: 30
+
+animation:
+  duration_ticks: 80
+  cycle_every_ticks: 2
+  rise_blocks: 1.2
+  spin_degrees_per_tick: 18
+  poison:
+    slime-facing: PLAYER
+    slime-pitch: 0
+  items:
+    - material: IRON_INGOT
+      name: "&fЖелезо"
+    - material: GOLD_INGOT
+      name: "&eЗолото"
+    - material: DIAMOND
+      name: "&bАлмазы"
+
+rewards:
+  - chance: 55
+    rarity: COMMON
+    type: ITEM
+    item:
+      material: IRON_INGOT
+      amount: 16
+      name: "&fЖелезо x16"
+    message: "&aВы получили &f{reward}&a!"
+  - chance: 30
+    rarity: RARE
+    type: ITEM
+    item:
+      material: GOLD_INGOT
+      amount: 12
+      name: "&eЗолото x12"
+    message: "&aВы получили &f{reward}&a!"
+  - chance: 15
+    rarity: EPIC
+    type: ITEM
+    item:
+      material: DIAMOND
+      amount: 4
+      name: "&bАлмазы x4"
+    message: "&aВы получили &f{reward}&a!"

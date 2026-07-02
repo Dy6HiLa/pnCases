@@ -9,6 +9,8 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import ru.privatenull.cases.CaseManager;
+import ru.privatenull.cases.model.CaseDefinition;
+import ru.privatenull.listeners.MachineGuiListener;
 import ru.privatenull.pnCases;
 import ru.privatenull.update.UpdateChecker;
 
@@ -19,10 +21,12 @@ public class CasesCMD implements CommandExecutor {
 
     private final pnCases plugin;
     private final CaseManager caseManager;
+    private final MachineGuiListener machineGui;
 
-    public CasesCMD(pnCases plugin, CaseManager caseManager) {
+    public CasesCMD(pnCases plugin, CaseManager caseManager, MachineGuiListener machineGui) {
         this.plugin = plugin;
         this.caseManager = caseManager;
+        this.machineGui = machineGui;
     }
 
     @Override
@@ -169,7 +173,7 @@ public class CasesCMD implements CommandExecutor {
             return true;
         }
 
-        if (isDeleteCaseCommand(args[0])) {
+        if (args[0].equalsIgnoreCase("delcase")) {
             if (args.length < 2) {
                 sender.sendMessage(plugin.getMessages().get("delcase-usage"));
                 return true;
@@ -182,6 +186,31 @@ public class CasesCMD implements CommandExecutor {
                 case NOT_BOUND -> sender.sendMessage(plugin.getMessages().get("delcase-not-bound", "case", caseName));
                 case NOT_FOUND -> sender.sendMessage(plugin.getMessages().get("delcase-not-found", "case", caseName));
             }
+            return true;
+        }
+
+        if (args[0].equalsIgnoreCase("machine")) {
+            if (!(sender instanceof Player p)) {
+                sender.sendMessage(plugin.getMessages().get("only-player"));
+                return true;
+            }
+
+            CaseDefinition def = null;
+            if (args.length >= 2) {
+                def = caseManager.getCaseByName(args[1].toLowerCase(Locale.ROOT));
+            } else {
+                Block target = p.getTargetBlockExact(6);
+                if (target != null) {
+                    def = caseManager.getCaseByBlock(target);
+                }
+            }
+
+            if (def == null) {
+                p.sendMessage("§c[pnCases] Посмотри на блок кейса или используй §f/pncases machine <кейс>§c.");
+                return true;
+            }
+
+            machineGui.openMain(p, def.name());
             return true;
         }
 
@@ -251,13 +280,6 @@ public class CasesCMD implements CommandExecutor {
 
     private static String nullToUnknown(String value) {
         return value == null || value.isBlank() ? "неизвестно" : value;
-    }
-
-    private static boolean isDeleteCaseCommand(String value) {
-        return value.equalsIgnoreCase("delcase")
-                || value.equalsIgnoreCase("deletecase")
-                || value.equalsIgnoreCase("removecase")
-                || value.equalsIgnoreCase("unsetcase");
     }
 
     private static OfflinePlayer resolveOfflinePlayer(String input) {

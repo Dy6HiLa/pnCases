@@ -3,6 +3,7 @@ package ru.privatenull;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import ru.privatenull.cases.CaseManager;
 import ru.privatenull.cases.model.Reward;
@@ -13,6 +14,7 @@ import ru.privatenull.config.MessagesConfig;
 import ru.privatenull.hologram.HologramService;
 import ru.privatenull.integrations.PlayerPointsProvider;
 import ru.privatenull.integrations.VaultEconomyProvider;
+import ru.privatenull.listeners.MachineGuiListener;
 import ru.privatenull.storage.KeyStorage;
 import ru.privatenull.storage.PendingRewardStorage;
 import ru.privatenull.storage.SqliteDatabase;
@@ -45,7 +47,13 @@ public final class pnCases extends JavaPlugin {
         holograms = new HologramService(this);
 
         caseManager = new CaseManager(this);
+        caseManager.exportMainCasesToFilesIfMissing();
         caseManager.reloadFromConfig();
+        getServer().getScheduler().runTaskLater(this, () -> {
+            if (caseManager != null) {
+                caseManager.reloadFromConfig();
+            }
+        }, 40L);
         setupUpdateChecker();
 
         for (UUID uuid : pendingRewards.getAll()) {
@@ -63,6 +71,15 @@ public final class pnCases extends JavaPlugin {
         }
 
         getServer().getPluginManager().registerEvents(new Listener() {
+            @EventHandler
+            public void onWorldLoad(WorldLoadEvent e) {
+                getServer().getScheduler().runTaskLater(pnCases.this, () -> {
+                    if (caseManager != null) {
+                        caseManager.reloadFromConfig();
+                    }
+                }, 20L);
+            }
+
             @EventHandler
             public void onJoin(PlayerJoinEvent e) {
                 if (updateChecker != null) {
@@ -86,7 +103,8 @@ public final class pnCases extends JavaPlugin {
         }, this);
 
         var cmd = getCommand("pncases");
-        var exec = new CasesCMD(this, caseManager);
+        var machineGui = new MachineGuiListener(caseManager);
+        var exec = new CasesCMD(this, caseManager, machineGui);
         cmd.setExecutor(exec);
         cmd.setTabCompleter(new CasesCMDTabCompliter(caseManager));
 
@@ -96,6 +114,7 @@ public final class pnCases extends JavaPlugin {
         getServer().getPluginManager().registerEvents(
                 new ru.privatenull.listeners.CaseGuiListener(caseManager), this
         );
+        getServer().getPluginManager().registerEvents(machineGui, this);
 
         getLogger().info("██████╗░██████╗░██╗██╗░░░██╗░█████╗░████████╗███████╗███╗░░██╗██╗░░░██╗██╗░░░░░██╗░░░░░");
         getLogger().info("██╔══██╗██╔══██╗██║██║░░░██║██╔══██╗╚══██╔══╝██╔════╝████╗░██║██║░░░██║██║░░░░░██║░░░░░");

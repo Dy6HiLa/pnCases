@@ -9,6 +9,7 @@ public class AnimationRegistry {
     private final PortalAnimation portal;
     private final PoisonAnimation poison;
     private final CauldronRouletteAnimation cauldron;
+    private final FortuneRingAnimation fortuneRing;
 
     public AnimationRegistry(pnCases plugin) {
         this.anvil = new AnvilAnimation(plugin);
@@ -16,6 +17,7 @@ public class AnimationRegistry {
         this.portal = new PortalAnimation(plugin);
         this.poison = new PoisonAnimation(plugin);
         this.cauldron = new CauldronRouletteAnimation(plugin);
+        this.fortuneRing = new FortuneRingAnimation(plugin);
     }
 
     public CaseAnimation get(AnimationType type) {
@@ -25,6 +27,7 @@ public class AnimationRegistry {
             case PORTAL -> portal;
             case POISON -> poison;
             case CAULDRON -> cauldron;
+            case FORTUNE_RING -> fortuneRing;
         };
     }
 
@@ -34,5 +37,6 @@ public class AnimationRegistry {
         portal.cancelAll();
         poison.cancelAll();
         cauldron.cancelAll();
+        fortuneRing.cancelAll();
     }
 }

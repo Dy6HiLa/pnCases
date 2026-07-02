@@ -37,11 +37,11 @@ public class CaseBlockListener implements Listener {
             return;
         }
 
-        if (caseManager.isCaseBusy(def, p.getUniqueId())) {
+        if (caseManager.isCaseBusy(def, p.getUniqueId(), e.getClickedBlock())) {
             p.sendMessage(msg.get("case-busy"));
             return;
         }
 
-        caseManager.openCaseGui(p, def);
+        caseManager.openCaseGui(p, def, e.getClickedBlock());
     }
 }

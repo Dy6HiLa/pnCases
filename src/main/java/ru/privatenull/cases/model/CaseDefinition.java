@@ -2,6 +2,7 @@ package ru.privatenull.cases.model;
 
 import org.bukkit.Location;
 import org.bukkit.inventory.ItemStack;
+import ru.privatenull.cases.animation.AnimationType;
 
 import java.util.List;
 
@@ -11,9 +12,11 @@ public class CaseDefinition {
 
     private final String name;
     private final Location blockLocation;
+    private final List<Location> blockLocations;
 
     private final String guiTitle;
     private final ItemStack openButton;
+    private final CaseGuiLayout guiLayout;
 
     private final CostType costType;
     private final int costAmount;
@@ -24,15 +27,17 @@ public class CaseDefinition {
     private final int cycleEveryTicks;
     private final double riseBlocks;
     private final float spinDegreesPerTick;
+    private final AnimationType fixedAnimation;
     private final List<ItemStack> animationItems;
 
     private final List<Reward> rewards;
 
     public CaseDefinition(
             String name,
-            Location blockLocation,
+            List<Location> blockLocations,
             String guiTitle,
             ItemStack openButton,
+            CaseGuiLayout guiLayout,
             CostType costType,
             int costAmount,
             String costKeyId,
@@ -41,13 +46,18 @@ public class CaseDefinition {
             int cycleEveryTicks,
             double riseBlocks,
             float spinDegreesPerTick,
+            AnimationType fixedAnimation,
             List<ItemStack> animationItems,
             List<Reward> rewards
     ) {
         this.name = name;
-        this.blockLocation = blockLocation;
+        this.blockLocations = blockLocations == null
+                ? List.of()
+                : List.copyOf(blockLocations.stream().filter(location -> location != null).toList());
+        this.blockLocation = this.blockLocations.isEmpty() ? null : this.blockLocations.get(0);
         this.guiTitle = guiTitle;
         this.openButton = openButton;
+        this.guiLayout = guiLayout == null ? CaseGuiLayout.defaults() : guiLayout;
         this.costType = costType;
         this.costAmount = costAmount;
         this.costKeyId = costKeyId;
@@ -56,14 +66,17 @@ public class CaseDefinition {
         this.cycleEveryTicks = cycleEveryTicks;
         this.riseBlocks = riseBlocks;
         this.spinDegreesPerTick = spinDegreesPerTick;
+        this.fixedAnimation = fixedAnimation;
         this.animationItems = animationItems;
         this.rewards = rewards;
     }
 
     public String name() { return name; }
     public Location blockLocation() { return blockLocation; }
+    public List<Location> blockLocations() { return blockLocations; }
     public String guiTitle() { return guiTitle; }
     public ItemStack openButton() { return openButton; }
+    public CaseGuiLayout guiLayout() { return guiLayout; }
 
     public CostType costType() { return costType; }
     public int costAmount() { return costAmount; }
@@ -75,6 +88,7 @@ public class CaseDefinition {
     public int cycleEveryTicks() { return cycleEveryTicks; }
     public double riseBlocks() { return riseBlocks; }
     public float spinDegreesPerTick() { return spinDegreesPerTick; }
+    public AnimationType fixedAnimation() { return fixedAnimation; }
     public List<ItemStack> animationItems() { return animationItems; }
 
     public List<Reward> rewards() { return rewards; }
