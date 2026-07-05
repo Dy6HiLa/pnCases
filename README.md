@@ -1,3 +1,6 @@
+<img src="assets/pncases-cover-1.4.6.png"
+     alt="Paper и Purpur 1.19–1.21.11"
+     style="width: 100%;">
 <p align="center">
   <a href="https://github.com/Dy6HiLa/pnCases/releases -cover-v2.png" alt="pnCases — плагин кейсов для Minecraft" width="100%">
   </a>
