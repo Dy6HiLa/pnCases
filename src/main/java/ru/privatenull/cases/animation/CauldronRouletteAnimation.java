@@ -522,7 +522,15 @@ public class CauldronRouletteAnimation extends CaseAnimation {
     }
 
     private static void spawnDragonBreath(World world, Location loc, int count, double offsetX, double offsetY, double offsetZ, double extra) {
-        world.spawnParticle(Particle.DRAGON_BREATH, loc, count, offsetX, offsetY, offsetZ, extra, 1.0F);
+        try {
+            world.spawnParticle(Particle.DRAGON_BREATH, loc, count, offsetX, offsetY, offsetZ, extra);
+        } catch (IllegalArgumentException noDataRejected) {
+            try {
+                world.spawnParticle(Particle.DRAGON_BREATH, loc, count, offsetX, offsetY, offsetZ, extra, 1.0F);
+            } catch (IllegalArgumentException dataRejected) {
+                world.spawnParticle(Particle.END_ROD, loc, count, offsetX, offsetY, offsetZ, extra);
+            }
+        }
     }
 
     private static double angle(int index, int total, double rotation) {
