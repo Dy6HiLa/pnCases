@@ -12,6 +12,7 @@ import ru.privatenull.cases.animation.AnimationRegistry;
 import ru.privatenull.cases.animation.AnimationType;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.cases.model.CaseGuiLayout;
+import ru.privatenull.cases.model.IdleParticleSettings;
 import ru.privatenull.cases.model.Reward;
 import ru.privatenull.listeners.CaseGuiHolder;
 import ru.privatenull.pnCases;
@@ -70,12 +71,14 @@ public class CaseManager {
     private final Map<UUID, AnimationType> playerAnimations = new ConcurrentHashMap<>();
 
     private final AnimationRegistry animationRegistry;
+    private final IdleParticleService idleParticles;
     private final OpenHistoryStorage openHistoryStorage;
     private final PlayerPrefsStorage playerPrefs;
 
     public CaseManager(pnCases plugin) {
         this.plugin = plugin;
         this.animationRegistry = new AnimationRegistry(plugin);
+        this.idleParticles = new IdleParticleService(plugin, this);
         this.openHistoryStorage = new OpenHistoryStorage(plugin.getDatabase());
         this.playerPrefs = new PlayerPrefsStorage(plugin.getDatabase());
     }
@@ -84,6 +87,7 @@ public class CaseManager {
 
     public void shutdown() {
         animationRegistry.shutdownAll();
+        idleParticles.shutdown();
         openingPlayers.clear();
         casesByName.clear();
         caseByBlock.clear();
@@ -381,6 +385,7 @@ public class CaseManager {
 
         List<CaseConfigSource> sources = loadCaseConfigSources();
         if (sources.isEmpty()) {
+            idleParticles.syncCases(List.of());
             plugin.getLogger().info("Loaded cases: 0, active blocks: 0, keys: " + keyNames.size());
             return;
         }
@@ -397,6 +402,7 @@ public class CaseManager {
             ItemStack openBtn = ItemFactory.fromSection(gui != null ? gui.getConfigurationSection("open-item") : null);
             if (openBtn == null) openBtn = new ItemStack(Material.CHEST);
             CaseGuiLayout guiLayout = readGuiLayout(gui);
+            IdleParticleSettings idleParticleSettings = readIdleParticles(cs.getConfigurationSection("idle-particles"));
 
             ConfigurationSection cost = cs.getConfigurationSection("cost");
             String typeStr = cost != null ? cost.getString("type", "NONE") : "NONE";
@@ -501,7 +507,7 @@ public class CaseManager {
             }
 
             CaseDefinition def = new CaseDefinition(
-                    caseName.toLowerCase(Locale.ROOT), blockLocs, title, openBtn, guiLayout,
+                    caseName.toLowerCase(Locale.ROOT), blockLocs, title, openBtn, guiLayout, idleParticleSettings,
                     costType, costAmount, costKeyId, buyXp,
                     duration, cycleEvery, rise, spin, fixedAnimation, animItems, rewards
             );
@@ -518,6 +524,7 @@ public class CaseManager {
         }
 
         if (holograms != null) holograms.syncCases(casesByName.values());
+        idleParticles.syncCases(casesByName.values());
         plugin.getLogger().info("Loaded cases: " + casesByName.size() + ", active blocks: " + caseByBlock.size() + ", keys: " + keyNames.size());
     }
 
@@ -1415,6 +1422,48 @@ public class CaseManager {
         );
     }
 
+    private IdleParticleSettings readIdleParticles(ConfigurationSection section) {
+        IdleParticleSettings defaults = IdleParticleSettings.defaults();
+        if (section == null) {
+            return defaults;
+        }
+
+        return new IdleParticleSettings(
+                section.getBoolean("enabled", defaults.enabled()),
+                section.getBoolean("effects", section.getBoolean("effects_enabled", defaults.effectsEnabled())),
+                readIdleParticleStyle(section.getString("style"), defaults.style()),
+                readIdleParticleTheme(section.getString("theme"), defaults.theme()),
+                Math.max(2, getIntAlias(section, defaults.intervalTicks(), "interval_ticks", "interval-ticks", "period_ticks", "period-ticks")),
+                clamp(getDoubleAlias(section, defaults.radius(), "radius"), 0.25, 2.50),
+                clamp(getDoubleAlias(section, defaults.height(), "height"), 0.30, 3.00),
+                clamp(getDoubleAlias(section, defaults.speed(), "speed"), 0.02, 0.80),
+                clamp(getDoubleAlias(section, defaults.viewDistance(), "view_distance", "view-distance"), 4.0, 64.0),
+                readGuiItem(section, "item", defaults.displayItem(), null, null)
+        );
+    }
+
+    private IdleParticleSettings.Style readIdleParticleStyle(String raw, IdleParticleSettings.Style fallback) {
+        if (raw == null || raw.isBlank()) {
+            return fallback;
+        }
+        try {
+            return IdleParticleSettings.Style.valueOf(raw.trim().toUpperCase(Locale.ROOT).replace('-', '_'));
+        } catch (IllegalArgumentException ignored) {
+            return fallback;
+        }
+    }
+
+    private IdleParticleSettings.Theme readIdleParticleTheme(String raw, IdleParticleSettings.Theme fallback) {
+        if (raw == null || raw.isBlank()) {
+            return fallback;
+        }
+        try {
+            return IdleParticleSettings.Theme.valueOf(raw.trim().toUpperCase(Locale.ROOT).replace('-', '_'));
+        } catch (IllegalArgumentException ignored) {
+            return fallback;
+        }
+    }
+
     private ItemStack readGuiItem(ConfigurationSection root, String key, ItemStack fallback, Material fallbackMaterial, String fallbackName) {
         if (root != null) {
             ConfigurationSection section = root.getConfigurationSection(key);
@@ -1826,6 +1875,10 @@ public class CaseManager {
         return String.format(Locale.US, "%.2f", amount);
     }
 
+    private static double clamp(double value, double min, double max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
     public boolean isOpening(UUID playerId) { return openingPlayers.contains(playerId); }
 
     public boolean isCaseBusy(CaseDefinition def, UUID viewer) {
@@ -1836,6 +1889,10 @@ public class CaseManager {
     public boolean isCaseBusy(CaseDefinition def, UUID viewer, Block block) {
         BlockKey key = block == null ? null : BlockKey.of(block);
         return isCaseBusy(key, viewer);
+    }
+
+    public boolean isCaseBlockBusy(Location blockLocation) {
+        return blockLocation != null && busyCases.containsKey(BlockKey.of(blockLocation));
     }
 
     private boolean isCaseBusy(BlockKey key, UUID viewer) {

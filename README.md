@@ -1,15 +1,15 @@
 <p align="center">
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4.4">
-    <img src="assets/pncases-cover-v2.png" alt="pnCases 1.4.4" width="100%">
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4.5">
+    <img src="assets/pncases-cover-v2.png" alt="pnCases 1.4.5" width="100%">
   </a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.4/pnCases-1.4.4.jar">
-    <img src="https://img.shields.io/badge/%D0%A1%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-1.4.4-429F91?style=for-the-badge&labelColor=17241F" alt="Скачать pnCases 1.4.4">
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.5/pnCases-1.4.5.jar">
+    <img src="https://img.shields.io/badge/%D0%A1%D0%BA%D0%B0%D1%87%D0%B0%D1%82%D1%8C-1.4.5-429F91?style=for-the-badge&labelColor=17241F" alt="Скачать pnCases 1.4.5">
   </a>
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4.4">
-    <img src="https://img.shields.io/badge/Changelog-1.4.4-D8DF9D?style=for-the-badge&labelColor=17241F" alt="Changelog pnCases 1.4.4">
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4.5">
+    <img src="https://img.shields.io/badge/Changelog-1.4.5-D8DF9D?style=for-the-badge&labelColor=17241F" alt="Changelog pnCases 1.4.5">
   </a>
   <a href="LICENSE">
     <img src="https://img.shields.io/badge/License-MIT-429F91?style=for-the-badge&labelColor=17241F" alt="License MIT">
@@ -19,6 +19,23 @@
 # pnCases
 
 `pnCases` - бесплатный плагин кейсов для Paper 1.21.x с анимациями, GUI, историей открытий, preview наград, голограммами, LuckPerms, Vault и PlayerPoints-наградами.
+
+## pnCases 1.4.5
+
+`1.4.5` - обновление витрины кейса. Теперь над свободным кейсом может красиво вращаться отдельный предмет, который настраивается прямо в `/pncases machine`. Эффекты вокруг витрины можно выключить отдельно: если нужны только предмет и чистый вид без частиц, это теперь делается одной кнопкой.
+
+Что нового:
+
+- Добавлена живая витрина над кейсом: предмет плавно висит и вращается, пока кейс никто не открывает.
+- Предмет витрины можно поставить самому через machine-меню: возьмите предмет на курсор и нажмите по кнопке `Предмет витрины`.
+- ПКМ по `Предмет витрины` без предмета на курсоре возвращает стандартный предмет кнопки кейса.
+- Эффекты витрины можно выключить отдельно от самой витрины.
+- В примеры кейсов добавлены готовые настройки `idle-particles.effects` и `idle-particles.item`.
+
+Что исправлено:
+
+- Исправлен краш частиц на новых сборках Paper/Purpur 1.21.11.
+- Витрина стала спокойнее: меньше визуального шума, меньше лишних частиц, больше акцента на самом предмете.
 
 ## pnCases 1.4.4
 
@@ -55,7 +72,7 @@
 
 ## Установка
 
-1. Скачайте `pnCases-1.4.4.jar`.
+1. Скачайте `pnCases-1.4.5.jar`.
 2. Положите файл в папку `plugins/`.
 3. Перезапустите сервер.
 4. Настройте `plugins/pnCases/config.yml` и `messages.yml`.
@@ -135,6 +152,26 @@ animation:
   poison:
     slime-facing: PLAYER # NORTH / SOUTH / EAST / WEST / PLAYER / число yaw
     slime-pitch: 0
+```
+
+## Витрина Кейса
+
+Витрина показывает предмет над свободным кейсом. Предмет можно выбрать в `/pncases machine`, а эффекты вокруг него можно оставить или выключить.
+
+```yaml
+idle-particles:
+  enabled: true        # вся витрина
+  effects: true        # только эффекты вокруг предмета
+  style: AURORA
+  theme: MAGIC
+  interval_ticks: 2
+  radius: 0.85
+  height: 1.35
+  speed: 0.14
+  view_distance: 28
+  item:
+    material: NETHER_STAR
+    name: "&aДонат кейс"
 ```
 
 ## Голограммы

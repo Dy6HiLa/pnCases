@@ -302,12 +302,14 @@ public final class UpdateChecker {
                 Установлена: %s
                 Новая:       %s
                 Скачать:     %s
+                Поддержка:   %s
                 После замены JAR перезапустите сервер.
                 ============================================================
                 """.formatted(
                 plugin.getDescription().getVersion(),
                 latestVersion,
-                downloadUrl == null || downloadUrl.isBlank() ? DEFAULT_DOWNLOAD_URL : downloadUrl
+                downloadUrl == null || downloadUrl.isBlank() ? DEFAULT_DOWNLOAD_URL : downloadUrl,
+                plugin.getSupportDiscord()
         );
     }
 
@@ -320,6 +322,9 @@ public final class UpdateChecker {
         player.sendMessage(Component.text("§x§4§2§9§F§9§1▸ §fСкачать обновление: §x§D§8§D§F§9§D§n" + url)
                 .clickEvent(ClickEvent.openUrl(url))
                 .hoverEvent(HoverEvent.showText(Component.text("§fНажмите, чтобы открыть ссылку"))));
+        player.sendMessage(Component.text("§x§4§2§9§F§9§1▸ §fПоддержка Discord: §x§D§8§D§F§9§D§n" + plugin.getSupportDiscord())
+                .clickEvent(ClickEvent.openUrl(plugin.getSupportDiscord()))
+                .hoverEvent(HoverEvent.showText(Component.text("§fНажмите, чтобы открыть Discord"))));
 
         player.sendTitle(
                 "§x§4§2§9§F§9§1§lpnCases",
@@ -339,6 +344,7 @@ public final class UpdateChecker {
                 "§x§4§2§9§F§9§1▸ §fУстановлена: §7" + current,
                 "§x§4§2§9§F§9§1▸ §fНовая версия: §x§D§8§D§F§9§D" + latestVersion,
                 "§x§4§2§9§F§9§1▸ §fЗамените JAR и перезапустите сервер.",
+                "§x§4§2§9§F§9§1▸ §fПоддержка: §x§D§8§D§F§9§D" + plugin.getSupportDiscord(),
                 "",
                 "§x§4§2§9§F§9§1▸ §7Ссылка ниже кликабельная:",
                 "§8§m                                                  ",

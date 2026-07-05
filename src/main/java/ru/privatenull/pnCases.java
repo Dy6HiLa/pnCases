@@ -24,6 +24,8 @@ import java.util.UUID;
 
 public final class pnCases extends JavaPlugin {
 
+    public static final String SUPPORT_DISCORD = "https://discord.gg/rRbzq6cnc6";
+
     private CaseManager caseManager;
     private KeyStorage keyStorage;
     private HologramService holograms;
@@ -123,7 +125,8 @@ public final class pnCases extends JavaPlugin {
         getLogger().info("██║░░░░░██║░░██║██║░░╚██╔╝░░██║░░██║░░░██║░░░███████╗██║░╚███║╚██████╔╝███████╗███████╗");
         getLogger().info("╚═╝░░░░░╚═╝░░╚═╝╚═╝░░░╚═╝░░░╚═╝░░╚═╝░░░╚═╝░░░╚══════╝╚═╝░░╚══╝░╚═════╝░╚══════╝╚══════╝");
         getLogger().info("");
-        getLogger().info("pnCases v" + getDescription().getVersion() + " успешно включён! | ds: privatenull");
+        getLogger().info("pnCases v" + getDescription().getVersion() + " успешно включён!");
+        getLogger().info("Поддержка pnCases: " + SUPPORT_DISCORD);
     }
 
     @Override
@@ -151,7 +154,8 @@ public final class pnCases extends JavaPlugin {
         getLogger().info("██║░░░░░██║░░██║██║░░╚██╔╝░░██║░░██║░░░██║░░░███████╗██║░╚███║╚██████╔╝███████╗███████╗");
         getLogger().info("╚═╝░░░░░╚═╝░░╚═╝╚═╝░░░╚═╝░░░╚═╝░░╚═╝░░░╚═╝░░░╚══════╝╚═╝░░╚══╝░╚═════╝░╚══════╝╚══════╝");
         getLogger().info("");
-        getLogger().info("pnCases отключён | ds: privatenull");
+        getLogger().info("pnCases отключён");
+        getLogger().info("Поддержка pnCases: " + SUPPORT_DISCORD);
     }
 
     public CaseManager getCaseManager() {
@@ -202,6 +206,10 @@ public final class pnCases extends JavaPlugin {
 
     public UpdateChecker getUpdateChecker() {
         return updateChecker;
+    }
+
+    public String getSupportDiscord() {
+        return SUPPORT_DISCORD;
     }
 
     public void reloadRuntimeConfig() {

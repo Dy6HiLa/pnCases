@@ -14,9 +14,11 @@ command-help:
   - "§x§4§2§9§F§9§1§l▸ §x§4§2§9§F§9§1/pncases takekey <игрок> <ключ> <кол-во> &8— &7забрать ключи"
   - "§x§4§2§9§F§9§1§l▸ §x§4§2§9§F§9§1/pncases setcase <кейс> &8— &7добавить кейс на блок"
   - "§x§4§2§9§F§9§1§l▸ §x§4§2§9§F§9§1/pncases delcase <кейс> &8— &7убрать блоки этого кейса"
+  - "§x§4§2§9§F§9§1§l▸ §x§4§2§9§F§9§1/pncases machine <кейс> &8— &7настроить кейс через GUI"
   - ""
 
 command-version: "{prefix} &8| &fВерсия плагина: §x§4§2§9§F§9§1{version}"
+command-discord: "{prefix} &8| &fПоддержка: §x§D§8§D§F§9§D{discord}"
 command-update-checking: "{prefix} &8| &7Проверка обновлений ещё выполняется."
 command-update-latest: "{prefix} &8| &aУстановлена последняя версия: &f{latest}"
 command-update-available: "{prefix} &8| &eДоступно обновление: &f{current} &8→ §x§D§8§D§F§9§D{latest}"

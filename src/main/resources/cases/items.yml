@@ -8,6 +8,20 @@ hologram:
     - "§x§0§0§9§8§F§F§lКейс с ресурсами"
     - "&7Нажмите ПКМ, чтобы открыть"
 
+idle-particles:
+  enabled: true
+  effects: true
+  style: VERTICAL_SPIRAL
+  theme: ELECTRIC
+  interval_ticks: 2
+  radius: 0.80
+  height: 1.55
+  speed: 0.16
+  view_distance: 28
+  item:
+    material: DIAMOND_PICKAXE
+    name: "§x§0§0§9§8§F§FКейс с ресурсами"
+
 gui:
   title: "&8Кейс с ресурсами"
   size: 54

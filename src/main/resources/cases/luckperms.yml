@@ -8,6 +8,20 @@ hologram:
     - "§x§F§F§8§6§0§0§lДонат кейс"
     - "&7Нажмите ПКМ, чтобы открыть"
 
+idle-particles:
+  enabled: true
+  effects: true
+  style: CROWN
+  theme: MAGIC
+  interval_ticks: 2
+  radius: 0.95
+  height: 1.50
+  speed: 0.14
+  view_distance: 28
+  item:
+    material: NETHER_STAR
+    name: "§x§F§F§8§6§0§0Донат кейс"
+
 gui:
   title: "&8Донат кейс"
   size: 54

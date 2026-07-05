@@ -251,6 +251,7 @@ public class CasesCMD implements CommandExecutor {
     private void sendVersionInfo(CommandSender sender) {
         String current = plugin.getDescription().getVersion();
         sender.sendMessage(plugin.getMessages().get("command-version", "version", current));
+        sender.sendMessage(plugin.getMessages().get("command-discord", "discord", plugin.getSupportDiscord()));
 
         UpdateChecker checker = plugin.getUpdateChecker();
         if (checker == null || !checker.isCheckCompleted()) {

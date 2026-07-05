@@ -210,7 +210,7 @@ public class CauldronRouletteAnimation extends CaseAnimation {
                 spawnHelix(world, base.clone().add(0, 0.25, 0), tick, 1.2, 2.4, Particle.END_ROD);
                 spawnGroundSigil(world, base.clone().add(0, 0.06, 0), 1.55, tick * 0.14);
                 world.spawnParticle(Particle.PORTAL, base.clone().add(0, 1.55, 0), 12, 0.45, 0.35, 0.45, 0.22);
-                world.spawnParticle(Particle.DRAGON_BREATH, base.clone().add(0, 1.45, 0), 4, 0.25, 0.18, 0.25, 0.01);
+                spawnDragonBreath(world, base.clone().add(0, 1.45, 0), 4, 0.25, 0.18, 0.25, 0.01);
 
                 if (tick > CHARGE_END - 22) {
                     double appear = clamp((tick - (CHARGE_END - 22)) / 22.0);
@@ -291,7 +291,7 @@ public class CauldronRouletteAnimation extends CaseAnimation {
                 setBlockScale(halo, (float) (2.10 - progress * 0.65));
 
                 world.spawnParticle(Particle.REVERSE_PORTAL, base.clone().add(0, 1.55, 0), 28, 0.65, 0.45, 0.65, 0.18);
-                world.spawnParticle(Particle.DRAGON_BREATH, base.clone().add(0, 1.55, 0), 12, 0.38, 0.26, 0.38, 0.02);
+                spawnDragonBreath(world, base.clone().add(0, 1.55, 0), 12, 0.38, 0.26, 0.38, 0.02);
 
                 if (tick % 5 == 0) {
                     world.playSound(base, Sound.ENTITY_ENDERMAN_TELEPORT, 0.12f, 0.75f + (float) progress * 0.45f);
@@ -518,7 +518,11 @@ public class CauldronRouletteAnimation extends CaseAnimation {
         world.spawnParticle(Particle.ELECTRIC_SPARK, loc, 90, 0.48, 0.32, 0.48, 0.08);
         world.spawnParticle(Particle.ENCHANT, loc, 110, 0.55, 0.40, 0.55, 0.42);
         world.spawnParticle(Particle.FIREWORK, loc, 34, 0.32, 0.26, 0.32, 0.04);
-        world.spawnParticle(Particle.DRAGON_BREATH, loc, 26, 0.34, 0.18, 0.34, 0.03);
+        spawnDragonBreath(world, loc, 26, 0.34, 0.18, 0.34, 0.03);
+    }
+
+    private static void spawnDragonBreath(World world, Location loc, int count, double offsetX, double offsetY, double offsetZ, double extra) {
+        world.spawnParticle(Particle.DRAGON_BREATH, loc, count, offsetX, offsetY, offsetZ, extra, 1.0F);
     }
 
     private static double angle(int index, int total, double rotation) {

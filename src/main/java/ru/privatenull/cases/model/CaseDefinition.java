@@ -17,6 +17,7 @@ public class CaseDefinition {
     private final String guiTitle;
     private final ItemStack openButton;
     private final CaseGuiLayout guiLayout;
+    private final IdleParticleSettings idleParticles;
 
     private final CostType costType;
     private final int costAmount;
@@ -38,6 +39,7 @@ public class CaseDefinition {
             String guiTitle,
             ItemStack openButton,
             CaseGuiLayout guiLayout,
+            IdleParticleSettings idleParticles,
             CostType costType,
             int costAmount,
             String costKeyId,
@@ -58,6 +60,7 @@ public class CaseDefinition {
         this.guiTitle = guiTitle;
         this.openButton = openButton;
         this.guiLayout = guiLayout == null ? CaseGuiLayout.defaults() : guiLayout;
+        this.idleParticles = idleParticles == null ? IdleParticleSettings.defaults() : idleParticles;
         this.costType = costType;
         this.costAmount = costAmount;
         this.costKeyId = costKeyId;
@@ -77,6 +80,7 @@ public class CaseDefinition {
     public String guiTitle() { return guiTitle; }
     public ItemStack openButton() { return openButton; }
     public CaseGuiLayout guiLayout() { return guiLayout; }
+    public IdleParticleSettings idleParticles() { return idleParticles; }
 
     public CostType costType() { return costType; }
     public int costAmount() { return costAmount; }

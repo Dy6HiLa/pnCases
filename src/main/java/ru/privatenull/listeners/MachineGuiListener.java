@@ -20,8 +20,10 @@ import ru.privatenull.cases.CaseManager;
 import ru.privatenull.cases.animation.AnimationType;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.cases.model.CaseGuiLayout;
+import ru.privatenull.cases.model.IdleParticleSettings;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +37,7 @@ public final class MachineGuiListener implements Listener {
     private static final int SLOT_MAIN_ANIMATION = 11;
     private static final int SLOT_MAIN_MENU = 13;
     private static final int SLOT_MAIN_HOLOGRAM = 15;
+    private static final int SLOT_MAIN_PARTICLES = 22;
     private static final int SLOT_MAIN_PURCHASE = 29;
     private static final int SLOT_MAIN_PREVIEW = 31;
     private static final int SLOT_MAIN_CLOSE = 33;
@@ -47,6 +50,16 @@ public final class MachineGuiListener implements Listener {
     private static final int SLOT_HOLOGRAM_TOGGLE = 20;
     private static final int SLOT_HOLOGRAM_HEIGHT = 22;
     private static final int SLOT_HOLOGRAM_LINES = 24;
+
+    private static final int SLOT_PARTICLES_TOGGLE = 18;
+    private static final int SLOT_PARTICLES_EFFECTS = 20;
+    private static final int SLOT_PARTICLES_ITEM = 22;
+    private static final int SLOT_PARTICLES_STYLE = 24;
+    private static final int SLOT_PARTICLES_THEME = 26;
+    private static final int SLOT_PARTICLES_RADIUS = 29;
+    private static final int SLOT_PARTICLES_HEIGHT = 31;
+    private static final int SLOT_PARTICLES_SPEED = 33;
+    private static final int SLOT_PARTICLES_INTERVAL = 35;
 
     private static final int SLOT_XP_BUY = 21;
     private static final int SLOT_XP_LEVELS = 23;
@@ -129,6 +142,19 @@ public final class MachineGuiListener implements Listener {
                         "",
                         "&7ЛКМ &8— &fоткрыть раздел"
                 )));
+        inv.setItem(SLOT_MAIN_PARTICLES, sectionButton(def.idleParticles().theme().icon(),
+                "&x&4&2&9&F&9&1Витрина кейса",
+                List.of(
+                        "&7Предмет над кейсом и аккуратные эффекты вокруг.",
+                        "&7Витрина скрывается, когда кейс открывают.",
+                        "",
+                        "&7Статус: " + (def.idleParticles().enabled() ? "&aвключены" : "&cвыключены"),
+                        "&7Эффекты: " + (def.idleParticles().effectsEnabled() ? "&aвключены" : "&cвыключены"),
+                        "&7Стиль: &f" + def.idleParticles().style().displayName(),
+                        "&7Тема: &f" + def.idleParticles().theme().displayName(),
+                        "",
+                        "&7ЛКМ &8— &fоткрыть раздел"
+                )));
         inv.setItem(SLOT_MAIN_PURCHASE, sectionButton(Material.EXPERIENCE_BOTTLE,
                 "&x&4&2&9&F&9&1Покупка за опыт",
                 List.of(
@@ -185,6 +211,7 @@ public final class MachineGuiListener implements Listener {
             case ANIMATION -> handleAnimationClick(player, event, def, slot);
             case LAYOUT -> handleLayoutClick(player, event, def, slot);
             case HOLOGRAM -> handleHologramClick(player, event, def, slot);
+            case PARTICLES -> handleParticlesClick(player, event, def, slot);
             case MENU -> handleMenuClick(player, event, def, slot);
             case PURCHASE -> handlePurchaseClick(player, event, def, slot);
         }
@@ -226,6 +253,11 @@ public final class MachineGuiListener implements Listener {
 
         if (slot == SLOT_MAIN_HOLOGRAM) {
             openHologram(player, def.name());
+            return;
+        }
+
+        if (slot == SLOT_MAIN_PARTICLES) {
+            openParticles(player, def.name());
             return;
         }
 
@@ -450,6 +482,133 @@ public final class MachineGuiListener implements Listener {
 
         if (slot == SLOT_HOLOGRAM_LINES) {
             startTextEdit(player, def, TextEditType.HOLOGRAM_LINES);
+        }
+    }
+
+    private void openParticles(Player player, String caseName) {
+        CaseDefinition def = caseManager.getCaseByName(caseName);
+        if (def == null) return;
+
+        Inventory inv = Bukkit.createInventory(
+                MachineGuiHolder.particles(caseName),
+                54,
+                color("&8Витрина кейса")
+        );
+
+        IdleParticleSettings settings = def.idleParticles();
+        fill(inv, pane(Material.BLACK_STAINED_GLASS_PANE, " ", List.of()));
+        inv.setItem(4, button(settings.theme().icon(),
+                "&x&4&2&9&F&9&1Раздел: Витрина кейса",
+                List.of(
+                        "",
+                        "&7Над свободным кейсом вращается предмет.",
+                        "&7Эффекты можно оставить или выключить отдельно.",
+                        "&7Когда игрок открывает этот блок, витрина скрывается.",
+                        ""
+                )));
+        inv.setItem(SLOT_PARTICLES_TOGGLE, particlesToggleItem(settings));
+        inv.setItem(SLOT_PARTICLES_EFFECTS, particlesEffectsItem(settings));
+        inv.setItem(SLOT_PARTICLES_ITEM, particlesDisplayItem(def, settings));
+        inv.setItem(SLOT_PARTICLES_STYLE, particlesStyleItem(settings));
+        inv.setItem(SLOT_PARTICLES_THEME, particlesThemeItem(settings));
+        inv.setItem(SLOT_PARTICLES_RADIUS, particlesNumberItem(Material.ENDER_PEARL,
+                "&x&4&2&9&F&9&1Радиус", settings.radius(), "блока",
+                List.of("&7ЛКМ &8— &f+0.1", "&7ПКМ &8— &f-0.1", "&7Shift &8— &fшаг 0.5")));
+        inv.setItem(SLOT_PARTICLES_HEIGHT, particlesNumberItem(Material.FEATHER,
+                "&x&4&2&9&F&9&1Высота", settings.height(), "блока",
+                List.of("&7ЛКМ &8— &f+0.1", "&7ПКМ &8— &f-0.1", "&7Shift &8— &fшаг 0.5")));
+        inv.setItem(SLOT_PARTICLES_SPEED, particlesNumberItem(Material.REPEATER,
+                "&x&4&2&9&F&9&1Скорость", settings.speed(), "",
+                List.of("&7ЛКМ &8— &fбыстрее", "&7ПКМ &8— &fмедленнее", "&7Shift &8— &fкрупный шаг")));
+        inv.setItem(SLOT_PARTICLES_INTERVAL, particlesNumberItem(Material.COMPARATOR,
+                "&x&4&2&9&F&9&1Частота", settings.intervalTicks(), "тиков",
+                List.of("&7ЛКМ &8— &fреже", "&7ПКМ &8— &fчаще", "&7Shift &8— &fшаг 4 тика")));
+        inv.setItem(SLOT_BACK, backButton());
+        player.openInventory(inv);
+        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.18f, 1.25f);
+    }
+
+    private void handleParticlesClick(Player player, InventoryClickEvent event, CaseDefinition def, int slot) {
+        if (slot == SLOT_BACK) {
+            openMain(player, def.name());
+            return;
+        }
+
+        IdleParticleSettings settings = def.idleParticles();
+        ItemStack cursor = event.getCursor();
+        if (slot == SLOT_PARTICLES_ITEM && isRealItem(cursor)) {
+            update(player, def.name(), section -> writeExactItem(section(section, "idle-particles"), "item", cursor));
+            openParticles(player, def.name());
+            return;
+        }
+
+        if (slot == SLOT_PARTICLES_TOGGLE) {
+            update(player, def.name(), section -> section(section, "idle-particles").set("enabled", !settings.enabled()));
+            openParticles(player, def.name());
+            return;
+        }
+
+        if (slot == SLOT_PARTICLES_EFFECTS) {
+            update(player, def.name(), section -> section(section, "idle-particles").set("effects", !settings.effectsEnabled()));
+            openParticles(player, def.name());
+            return;
+        }
+
+        if (slot == SLOT_PARTICLES_ITEM) {
+            if (event.isRightClick()) {
+                update(player, def.name(), section -> section(section, "idle-particles").set("item", null));
+                openParticles(player, def.name());
+            }
+            return;
+        }
+
+        if (slot == SLOT_PARTICLES_STYLE) {
+            IdleParticleSettings.Style next = nextEnum(settings.style(), IdleParticleSettings.Style.values(), event.isRightClick());
+            update(player, def.name(), section -> section(section, "idle-particles").set("style", next.name()));
+            openParticles(player, def.name());
+            return;
+        }
+
+        if (slot == SLOT_PARTICLES_THEME) {
+            IdleParticleSettings.Theme next = nextEnum(settings.theme(), IdleParticleSettings.Theme.values(), event.isRightClick());
+            update(player, def.name(), section -> section(section, "idle-particles").set("theme", next.name()));
+            openParticles(player, def.name());
+            return;
+        }
+
+        if (slot == SLOT_PARTICLES_RADIUS) {
+            double step = event.isShiftClick() ? 0.5 : 0.1;
+            if (event.isRightClick()) step = -step;
+            double next = clamp(round1(settings.radius() + step), 0.25, 2.50);
+            update(player, def.name(), section -> section(section, "idle-particles").set("radius", next));
+            openParticles(player, def.name());
+            return;
+        }
+
+        if (slot == SLOT_PARTICLES_HEIGHT) {
+            double step = event.isShiftClick() ? 0.5 : 0.1;
+            if (event.isRightClick()) step = -step;
+            double next = clamp(round1(settings.height() + step), 0.30, 3.00);
+            update(player, def.name(), section -> section(section, "idle-particles").set("height", next));
+            openParticles(player, def.name());
+            return;
+        }
+
+        if (slot == SLOT_PARTICLES_SPEED) {
+            double step = event.isShiftClick() ? 0.10 : 0.02;
+            if (event.isRightClick()) step = -step;
+            double next = clamp(round2(settings.speed() + step), 0.02, 0.80);
+            update(player, def.name(), section -> section(section, "idle-particles").set("speed", next));
+            openParticles(player, def.name());
+            return;
+        }
+
+        if (slot == SLOT_PARTICLES_INTERVAL) {
+            int step = event.isShiftClick() ? 4 : 1;
+            if (event.isRightClick()) step = -step;
+            int next = Math.max(2, Math.min(40, settings.intervalTicks() + step));
+            update(player, def.name(), section -> section(section, "idle-particles").set("interval_ticks", next));
+            openParticles(player, def.name());
         }
     }
 
@@ -845,6 +1004,82 @@ public final class MachineGuiListener implements Listener {
         ));
     }
 
+    private ItemStack particlesToggleItem(IdleParticleSettings settings) {
+        return button(settings.enabled() ? Material.LIME_DYE : Material.GRAY_DYE,
+                "&x&4&2&9&F&9&1Витрина",
+                List.of(
+                        "",
+                        "&7Статус: " + (settings.enabled() ? "&aвключена" : "&cвыключена"),
+                        "&7Если выключить, над кейсом ничего не будет.",
+                        "",
+                        "&7ЛКМ &8— &fпереключить"
+                ));
+    }
+
+    private ItemStack particlesEffectsItem(IdleParticleSettings settings) {
+        return button(settings.effectsEnabled() ? Material.AMETHYST_SHARD : Material.GRAY_DYE,
+                "&x&4&2&9&F&9&1Эффекты витрины",
+                List.of(
+                        "",
+                        "&7Статус: " + (settings.effectsEnabled() ? "&aвключены" : "&cвыключены"),
+                        "&7Если выключить, останется только предмет.",
+                        "",
+                        "&7ЛКМ &8— &fпереключить"
+                ));
+    }
+
+    private ItemStack particlesDisplayItem(CaseDefinition def, IdleParticleSettings settings) {
+        ItemStack configured = settings.displayItem();
+        boolean custom = configured != null && !configured.getType().isAir();
+        ItemStack item = custom ? configured : def.openButton();
+        if (item == null || item.getType().isAir()) {
+            item = new ItemStack(Material.CHEST);
+        }
+
+        List<String> lore = new ArrayList<>();
+        lore.add("");
+        lore.add("&7Этот предмет будет вращаться над кейсом.");
+        lore.add("&7Сейчас: &f" + readableItemName(item));
+        lore.add("&7Режим: " + (custom ? "&aсвой предмет" : "&fпредмет кнопки кейса"));
+        lore.add("");
+        lore.add("&7Предмет на курсоре &8— &fпоставить новый");
+        lore.add("&7ПКМ без предмета &8— &fвернуть предмет кнопки кейса");
+        return button(item, "&x&4&2&9&F&9&1Предмет витрины", lore);
+    }
+
+    private ItemStack particlesStyleItem(IdleParticleSettings settings) {
+        return button(settings.style().icon(),
+                "&x&4&2&9&F&9&1Стиль витрины",
+                List.of(
+                        "",
+                        "&7Сейчас: &f" + settings.style().displayName(),
+                        "",
+                        "&7ЛКМ &8— &fследующий стиль",
+                        "&7ПКМ &8— &fпредыдущий стиль"
+                ));
+    }
+
+    private ItemStack particlesThemeItem(IdleParticleSettings settings) {
+        return button(settings.theme().icon(),
+                "&x&4&2&9&F&9&1Тема витрины",
+                List.of(
+                        "",
+                        "&7Сейчас: &f" + settings.theme().displayName(),
+                        "",
+                        "&7ЛКМ &8— &fследующая тема",
+                        "&7ПКМ &8— &fпредыдущая тема"
+                ));
+    }
+
+    private ItemStack particlesNumberItem(Material material, String name, Number value, String unit, List<String> controls) {
+        List<String> lore = new ArrayList<>();
+        lore.add("");
+        lore.add("&7Сейчас: &f" + value + (unit == null || unit.isBlank() ? "" : " " + unit));
+        lore.add("");
+        lore.addAll(controls);
+        return button(material, name, lore);
+    }
+
     private ItemStack xpBuyItem(CaseDefinition def) {
         boolean enabled = isXpBuyEnabled(def);
         return button(enabled ? Material.EXPERIENCE_BOTTLE : Material.GLASS_BOTTLE,
@@ -1147,6 +1382,23 @@ public final class MachineGuiListener implements Listener {
         }
     }
 
+    private static void writeExactItem(ConfigurationSection parent, String key, ItemStack source) {
+        ItemStack item = source.clone();
+        item.setAmount(1);
+        writeItem(parent, key, item);
+
+        ConfigurationSection section = parent.getConfigurationSection(key);
+        if (section == null) {
+            return;
+        }
+
+        try {
+            section.set("item_data", Base64.getEncoder().encodeToString(item.serializeAsBytes()));
+        } catch (IllegalArgumentException ignored) {
+            section.set("item_data", null);
+        }
+    }
+
     private static boolean isRealItem(ItemStack item) {
         return item != null && !item.getType().isAir() && item.getAmount() > 0;
     }
@@ -1155,8 +1407,29 @@ public final class MachineGuiListener implements Listener {
         return Math.round(value * 10.0) / 10.0;
     }
 
+    private static double round2(double value) {
+        return Math.round(value * 100.0) / 100.0;
+    }
+
     private static double clamp(double value, double min, double max) {
         return Math.max(min, Math.min(max, value));
+    }
+
+    private static <T extends Enum<T>> T nextEnum(T current, T[] values, boolean backwards) {
+        if (values.length == 0) {
+            return current;
+        }
+        int index = 0;
+        for (int i = 0; i < values.length; i++) {
+            if (values[i] == current) {
+                index = i;
+                break;
+            }
+        }
+        index = backwards
+                ? (index - 1 + values.length) % values.length
+                : (index + 1) % values.length;
+        return values[index];
     }
 
     private static String color(String value) {

@@ -9,6 +9,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -22,6 +23,11 @@ public class ItemFactory {
 
     public static ItemStack fromSection(ConfigurationSection sec) {
         if (sec == null) return null;
+
+        ItemStack exact = deserializeItem(sec.getString("item_data", sec.getString("item-data")));
+        if (exact != null) {
+            return exact;
+        }
 
         String base64 = normalizeBase64(sec.getString("base64"));
         if (base64 == null) {
@@ -41,6 +47,12 @@ public class ItemFactory {
     }
 
     public static ItemStack fromMap(Map<?, ?> map) {
+        Object exactRaw = map.containsKey("item_data") ? map.get("item_data") : map.get("item-data");
+        ItemStack exact = deserializeItem(asString(exactRaw, null));
+        if (exact != null) {
+            return exact;
+        }
+
         String base64 = normalizeBase64(asString(map.get("base64"), null));
         if (base64 == null) {
             base64 = normalizeBase64(asString(map.get("texture"), null));
@@ -137,6 +149,18 @@ public class ItemFactory {
             return null;
         }
         return normalizeBase64(normalized);
+    }
+
+    private static ItemStack deserializeItem(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            ItemStack item = ItemStack.deserializeBytes(Base64.getDecoder().decode(value));
+            return item == null || item.getType().isAir() ? null : item;
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
     }
 
     private static int asInt(Object o, int def) {

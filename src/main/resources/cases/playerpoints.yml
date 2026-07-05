@@ -8,6 +8,20 @@ hologram:
     - "§x§0§0§D§5§F§F§lКейс PlayerPoints"
     - "&7Нажмите ПКМ, чтобы открыть"
 
+idle-particles:
+  enabled: true
+  effects: true
+  style: DOUBLE_ORBIT
+  theme: PORTAL
+  interval_ticks: 2
+  radius: 0.90
+  height: 1.45
+  speed: 0.13
+  view_distance: 28
+  item:
+    material: SUNFLOWER
+    name: "§x§0§0§D§5§F§FКейс PlayerPoints"
+
 gui:
   title: "&8Кейс PlayerPoints"
   size: 54
