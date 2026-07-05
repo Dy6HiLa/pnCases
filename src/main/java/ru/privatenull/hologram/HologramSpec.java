@@ -3,10 +3,7 @@ package ru.privatenull.hologram;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.entity.Display;
-import org.bukkit.entity.TextDisplay;
 import org.bukkit.inventory.ItemStack;
-import org.joml.Vector3f;
 
 import java.util.List;
 
@@ -18,8 +15,8 @@ public record HologramSpec(
         List<String> lines,
         ItemStack item,
         Material block,
-        Display.Billboard billboard,
-        TextDisplay.TextAlignment textAlignment,
+        String billboard,
+        String textAlignment,
         Boolean textShadow,
         Boolean seeThrough,
         Color background,
@@ -28,8 +25,13 @@ public record HologramSpec(
         Float shadowStrength,
         Integer visibilityDistance,
         Integer interpolationDuration,
-        Vector3f scale,
-        Vector3f translation,
-        Display.Brightness brightness
+        HologramVector scale,
+        HologramVector translation,
+        HologramBrightness brightness
 ) {
+    public record HologramVector(float x, float y, float z) {
+    }
+
+    public record HologramBrightness(int block, int sky) {
+    }
 }

@@ -1,5 +1,6 @@
 # Архив релизов
 
+- [pnCases 1.4.6](RELEASE-1.4.6.md)
 - [pnCases 1.4.5](RELEASE-1.4.5.md)
 - [pnCases 1.4.4](RELEASE-1.4.4.md)
 - [pnCases 1.4.3](RELEASE-1.4.3.md)

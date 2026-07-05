@@ -16,6 +16,7 @@ import ru.privatenull.cases.CaseManager;
 import ru.privatenull.cases.animation.AnimationType;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.cases.model.Reward;
+import ru.privatenull.util.EnchantmentCompat;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -368,7 +369,10 @@ public class CaseGuiListener implements Listener {
         meta.setLore(lore);
 
         if (selected) {
-            meta.addEnchant(org.bukkit.enchantments.Enchantment.UNBREAKING, 1, true);
+            var unbreaking = EnchantmentCompat.unbreaking();
+            if (unbreaking != null) {
+                meta.addEnchant(unbreaking, 1, true);
+            }
             meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
         }
 

@@ -37,8 +37,7 @@ public class CasesCMD implements CommandExecutor {
         }
 
         if (args.length == 0) {
-            sendVersionInfo(sender);
-            plugin.getMessages().getList("command-help").forEach(sender::sendMessage);
+            sendCommandMenu(sender);
             return true;
         }
 
@@ -243,44 +242,50 @@ public class CasesCMD implements CommandExecutor {
         }
 
         sender.sendMessage(plugin.getMessages().get("unknown-command"));
-        sendVersionInfo(sender);
-        plugin.getMessages().getList("command-help").forEach(sender::sendMessage);
+        sendCommandMenu(sender);
         return true;
     }
 
-    private void sendVersionInfo(CommandSender sender) {
+    private void sendCommandMenu(CommandSender sender) {
         String current = plugin.getDescription().getVersion();
-        sender.sendMessage(plugin.getMessages().get("command-version", "version", current));
-        sender.sendMessage(plugin.getMessages().get("command-discord", "discord", plugin.getSupportDiscord()));
+        UpdateInfo updateInfo = buildUpdateInfo(current);
+        plugin.getMessages().getList("command-menu",
+                "version", current,
+                "discord", plugin.getSupportDiscord(),
+                "support", plugin.getSupportDiscord(),
+                "update", updateInfo.status(),
+                "latest", updateInfo.latest(),
+                "download", updateInfo.download()
+        ).forEach(sender::sendMessage);
+    }
 
+    private UpdateInfo buildUpdateInfo(String current) {
         UpdateChecker checker = plugin.getUpdateChecker();
         if (checker == null || !checker.isCheckCompleted()) {
-            sender.sendMessage(plugin.getMessages().get("command-update-checking"));
-            return;
+            return new UpdateInfo("&7проверяется", "неизвестно", "");
         }
 
         if (checker.isUpdateAvailable()) {
-            sender.sendMessage(plugin.getMessages().get("command-update-available",
-                    "current", current,
-                    "latest", nullToUnknown(checker.getLatestVersion())));
-            sender.sendMessage(plugin.getMessages().get("command-update-download",
-                    "url", checker.getDownloadUrl()));
-            return;
+            String latest = nullToUnknown(checker.getLatestVersion());
+            return new UpdateInfo("&eдоступно &f" + current + " &8→ §x§D§8§D§F§9§D" + latest,
+                    latest,
+                    nullToUnknown(checker.getDownloadUrl()));
         }
 
         String error = checker.getLastError();
         if (error != null && !error.isBlank()) {
-            sender.sendMessage(plugin.getMessages().get("command-update-error",
-                    "error", ChatColor.stripColor(error) == null ? error : ChatColor.stripColor(error)));
-            return;
+            String cleanError = ChatColor.stripColor(error) == null ? error : ChatColor.stripColor(error);
+            return new UpdateInfo("&cошибка проверки: &f" + cleanError, nullToUnknown(checker.getLatestVersion()), "");
         }
 
-        sender.sendMessage(plugin.getMessages().get("command-update-latest",
-                "latest", nullToUnknown(checker.getLatestVersion())));
+        return new UpdateInfo("&aпоследняя версия", nullToUnknown(checker.getLatestVersion()), "");
     }
 
     private static String nullToUnknown(String value) {
         return value == null || value.isBlank() ? "неизвестно" : value;
+    }
+
+    private record UpdateInfo(String status, String latest, String download) {
     }
 
     private static OfflinePlayer resolveOfflinePlayer(String input) {

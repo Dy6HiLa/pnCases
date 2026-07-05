@@ -19,6 +19,7 @@ import ru.privatenull.storage.KeyStorage;
 import ru.privatenull.storage.PendingRewardStorage;
 import ru.privatenull.storage.SqliteDatabase;
 import ru.privatenull.update.UpdateChecker;
+import ru.privatenull.util.ServerCompatibility;
 
 import java.util.UUID;
 
@@ -38,6 +39,13 @@ public final class pnCases extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        if (!ServerCompatibility.isSupportedServer()) {
+            getLogger().severe("pnCases 1.4.6 GlobalVersion поддерживает Minecraft 1.19 - 1.21.11. Плагин отключён.");
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+        ServerCompatibility.logCompatibility(this);
+
         saveDefaultConfig();
         validateCurrentConfig();
 

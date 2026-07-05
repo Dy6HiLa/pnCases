@@ -5,7 +5,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -21,6 +20,7 @@ import ru.privatenull.cases.animation.AnimationType;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.cases.model.CaseGuiLayout;
 import ru.privatenull.cases.model.IdleParticleSettings;
+import ru.privatenull.util.EnchantmentCompat;
 
 import java.util.ArrayList;
 import java.util.Base64;
@@ -1231,7 +1231,10 @@ public final class MachineGuiListener implements Listener {
         if (selected) {
             ItemMeta meta = item.getItemMeta();
             if (meta != null) {
-                meta.addEnchant(Enchantment.UNBREAKING, 1, true);
+                var unbreaking = EnchantmentCompat.unbreaking();
+                if (unbreaking != null) {
+                    meta.addEnchant(unbreaking, 1, true);
+                }
                 meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
                 item.setItemMeta(meta);
             }

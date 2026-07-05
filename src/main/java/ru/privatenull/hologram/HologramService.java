@@ -7,10 +7,8 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.entity.Display;
-import org.bukkit.entity.TextDisplay;
+import org.bukkit.entity.Entity;
 import org.bukkit.inventory.ItemStack;
-import org.joml.Vector3f;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.pnCases;
 import ru.privatenull.util.ItemFactory;
@@ -225,9 +223,9 @@ public final class HologramService {
 
     private void clearNativeDisplays() {
         for (World world : Bukkit.getWorlds()) {
-            for (TextDisplay display : world.getEntitiesByClass(TextDisplay.class)) {
-                if (display.getScoreboardTags().contains("pncases_hologram")) {
-                    display.remove();
+            for (Entity entity : world.getEntities()) {
+                if (entity.getScoreboardTags().contains("pncases_hologram")) {
+                    entity.remove();
                 }
             }
         }
@@ -240,10 +238,10 @@ public final class HologramService {
 
         String caseTag = "pncases_" + caseName;
         for (World world : Bukkit.getWorlds()) {
-            for (TextDisplay display : world.getEntitiesByClass(TextDisplay.class)) {
-                Set<String> tags = display.getScoreboardTags();
+            for (Entity entity : world.getEntities()) {
+                Set<String> tags = entity.getScoreboardTags();
                 if (tags.contains("pncases_hologram") && tags.contains(caseTag)) {
-                    display.remove();
+                    entity.remove();
                 }
             }
         }
@@ -378,25 +376,33 @@ public final class HologramService {
         return readMaterial(config.getString("block", config.getString("block_material", "CHEST")), Material.CHEST);
     }
 
-    private static Display.Billboard readBillboard(ConfigurationSection config) {
+    private static String readBillboard(ConfigurationSection config) {
         String raw = config.getString("billboard", "CENTER");
         try {
-            return Display.Billboard.valueOf(raw == null ? "CENTER" : raw.toUpperCase(Locale.ROOT));
+            String normalized = raw == null ? "CENTER" : raw.toUpperCase(Locale.ROOT);
+            return switch (normalized) {
+                case "FIXED", "VERTICAL", "HORIZONTAL", "CENTER" -> normalized;
+                default -> "CENTER";
+            };
         } catch (IllegalArgumentException ignored) {
-            return Display.Billboard.CENTER;
+            return "CENTER";
         }
     }
 
-    private static TextDisplay.TextAlignment readTextAlignment(ConfigurationSection config) {
+    private static String readTextAlignment(ConfigurationSection config) {
         String raw = config.getString("text_alignment", "CENTER");
         try {
-            return TextDisplay.TextAlignment.valueOf(raw == null ? "CENTER" : raw.toUpperCase(Locale.ROOT));
+            String normalized = raw == null ? "CENTER" : raw.toUpperCase(Locale.ROOT);
+            return switch (normalized) {
+                case "LEFT", "RIGHT", "CENTER" -> normalized;
+                default -> "CENTER";
+            };
         } catch (IllegalArgumentException ignored) {
-            return TextDisplay.TextAlignment.CENTER;
+            return "CENTER";
         }
     }
 
-    private static Display.Brightness readBrightness(ConfigurationSection config) {
+    private static HologramSpec.HologramBrightness readBrightness(ConfigurationSection config) {
         ConfigurationSection brightness = config.getConfigurationSection("brightness");
         if (brightness == null || (!brightness.contains("block") && !brightness.contains("sky"))) {
             return null;
@@ -404,7 +410,7 @@ public final class HologramService {
 
         int block = clamp(brightness.getInt("block", 15), 0, 15);
         int sky = clamp(brightness.getInt("sky", 15), 0, 15);
-        return new Display.Brightness(block, sky);
+        return new HologramSpec.HologramBrightness(block, sky);
     }
 
     private static Material readMaterial(String raw, Material fallback) {
@@ -492,7 +498,7 @@ public final class HologramService {
         return null;
     }
 
-    private static Vector3f parseVector(ConfigurationSection root, String key) {
+    private static HologramSpec.HologramVector parseVector(ConfigurationSection root, String key) {
         if (root == null || key == null) return null;
 
         if (root.isConfigurationSection(key)) {
@@ -500,7 +506,7 @@ public final class HologramService {
             if (section == null) return null;
             if (!section.contains("x") && !section.contains("y") && !section.contains("z")) return null;
 
-            return new Vector3f(
+            return new HologramSpec.HologramVector(
                     (float) section.getDouble("x", 0.0),
                     (float) section.getDouble("y", 0.0),
                     (float) section.getDouble("z", 0.0)
@@ -512,7 +518,7 @@ public final class HologramService {
             if (raw == null || raw.size() < 3) return null;
 
             try {
-                return new Vector3f(
+                return new HologramSpec.HologramVector(
                         (float) Double.parseDouble(String.valueOf(raw.get(0))),
                         (float) Double.parseDouble(String.valueOf(raw.get(1))),
                         (float) Double.parseDouble(String.valueOf(raw.get(2)))

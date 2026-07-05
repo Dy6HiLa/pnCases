@@ -3,6 +3,7 @@ package ru.privatenull.cases.model;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.inventory.ItemStack;
+import ru.privatenull.util.ParticleCompat;
 
 public record IdleParticleSettings(
         boolean enabled,
@@ -33,7 +34,7 @@ public record IdleParticleSettings(
     public enum Style {
         AURORA("Сияние", Material.AMETHYST_SHARD),
         HORIZONTAL_RING("Горизонтальное кольцо", Material.ENDER_EYE),
-        VERTICAL_SPIRAL("Вертикальная спираль", Material.BREEZE_ROD),
+        VERTICAL_SPIRAL("Вертикальная спираль", Material.BLAZE_ROD),
         DOUBLE_ORBIT("Двойная орбита", Material.RECOVERY_COMPASS),
         CROWN("Корона", Material.NETHER_STAR);
 
@@ -55,18 +56,18 @@ public record IdleParticleSettings(
     }
 
     public enum Theme {
-        MAGIC("Магия", Material.AMETHYST_SHARD, Particle.END_ROD, Particle.ENCHANT),
-        PORTAL("Портал", Material.ENDER_EYE, Particle.PORTAL, Particle.REVERSE_PORTAL),
-        ELECTRIC("Искры", Material.LIGHTNING_ROD, Particle.ELECTRIC_SPARK, Particle.END_ROD),
-        FIRE("Пламя", Material.BLAZE_POWDER, Particle.FLAME, Particle.LAVA),
-        TOXIC("Яд", Material.SLIME_BALL, Particle.WITCH, Particle.ENCHANT);
+        MAGIC("Магия", Material.AMETHYST_SHARD, new String[]{"END_ROD"}, new String[]{"ENCHANT", "ENCHANTMENT_TABLE"}),
+        PORTAL("Портал", Material.ENDER_EYE, new String[]{"PORTAL"}, new String[]{"REVERSE_PORTAL", "PORTAL"}),
+        ELECTRIC("Искры", Material.LIGHTNING_ROD, new String[]{"ELECTRIC_SPARK", "END_ROD"}, new String[]{"END_ROD"}),
+        FIRE("Пламя", Material.BLAZE_POWDER, new String[]{"FLAME"}, new String[]{"LAVA"}),
+        TOXIC("Яд", Material.SLIME_BALL, new String[]{"WITCH", "SPELL_WITCH"}, new String[]{"ENCHANT", "ENCHANTMENT_TABLE"});
 
         private final String displayName;
         private final Material icon;
-        private final Particle primary;
-        private final Particle secondary;
+        private final String[] primary;
+        private final String[] secondary;
 
-        Theme(String displayName, Material icon, Particle primary, Particle secondary) {
+        Theme(String displayName, Material icon, String[] primary, String[] secondary) {
             this.displayName = displayName;
             this.icon = icon;
             this.primary = primary;
@@ -82,11 +83,11 @@ public record IdleParticleSettings(
         }
 
         public Particle primary() {
-            return primary;
+            return ParticleCompat.first(primary);
         }
 
         public Particle secondary() {
-            return secondary;
+            return ParticleCompat.first(secondary);
         }
     }
 }

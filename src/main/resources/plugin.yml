@@ -1,7 +1,7 @@
 name: pnCases
 version: '${version}'
 main: ru.privatenull.pnCases
-api-version: '1.21'
+api-version: '1.19'
 authors: [ privatenull ]
 softdepend: [LuckPerms, FancyHolograms, DecentHolograms, Vault, PlayerPoints]
 commands:

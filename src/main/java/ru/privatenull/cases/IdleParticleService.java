@@ -4,16 +4,12 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.World;
-import org.bukkit.entity.Display;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.joml.Vector3f;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.cases.model.IdleParticleSettings;
 import ru.privatenull.pnCases;
+import ru.privatenull.util.VisualEntity;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -29,7 +25,7 @@ public final class IdleParticleService {
     private final pnCases plugin;
     private final CaseManager caseManager;
     private final List<Entry> entries = new ArrayList<>();
-    private final Map<String, ItemDisplay> displays = new HashMap<>();
+    private final Map<String, VisualEntity> displays = new HashMap<>();
 
     private org.bukkit.scheduler.BukkitTask task;
     private long tick;
@@ -104,7 +100,7 @@ public final class IdleParticleService {
                 continue;
             }
 
-            ItemDisplay display = ensureDisplay(entry, base);
+            VisualEntity display = ensureDisplay(entry, base);
             Location displayLocation = updateDisplay(display, base, settings);
 
             if (settings.effectsEnabled() && tick % settings.intervalTicks() == 0) {
@@ -113,31 +109,20 @@ public final class IdleParticleService {
         }
     }
 
-    private ItemDisplay ensureDisplay(Entry entry, Location base) {
-        ItemDisplay current = displays.get(entry.key());
+    private VisualEntity ensureDisplay(Entry entry, Location base) {
+        VisualEntity current = displays.get(entry.key());
         if (current != null && current.isValid() && !current.isDead()) {
             return current;
         }
 
-        World world = base.getWorld();
-        ItemDisplay display = (ItemDisplay) world.spawnEntity(displayLocation(base, entry.settings(), 0.0), EntityType.ITEM_DISPLAY);
-        display.setItemStack(entry.displayItem().clone());
-        display.setBillboard(Display.Billboard.FIXED);
-        display.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.FIXED);
-        display.setBrightness(new Display.Brightness(15, 15));
-        display.setViewRange((float) Math.max(8.0, entry.settings().viewDistance()));
-        display.setInterpolationDuration(2);
-        display.setPersistent(false);
-        display.setSilent(true);
-        display.setGravity(false);
-        display.setInvulnerable(true);
+        VisualEntity display = VisualEntity.item(displayLocation(base, entry.settings(), 0.0), entry.displayItem().clone());
         display.addScoreboardTag(DISPLAY_TAG);
         setScale(display, displayScale(entry.settings()));
         displays.put(entry.key(), display);
         return display;
     }
 
-    private Location updateDisplay(ItemDisplay display, Location base, IdleParticleSettings settings) {
+    private Location updateDisplay(VisualEntity display, Location base, IdleParticleSettings settings) {
         double bob = Math.sin(tick * 0.075 + settings.speed() * 4.0) * 0.055;
         Location location = displayLocation(base, settings, bob);
         float yaw = (float) ((tick * settings.speed() * 34.0) % 360.0);
@@ -332,18 +317,18 @@ public final class IdleParticleService {
     }
 
     private void removeDisplays() {
-        for (ItemDisplay display : displays.values()) {
+        for (VisualEntity display : displays.values()) {
             safeRemove(display);
         }
         displays.clear();
     }
 
     private void removeDisplay(String key) {
-        ItemDisplay display = displays.remove(key);
+        VisualEntity display = displays.remove(key);
         safeRemove(display);
     }
 
-    private void safeRemove(Entity entity) {
+    private void safeRemove(VisualEntity entity) {
         if (entity != null && entity.isValid()) {
             entity.remove();
         }
@@ -376,14 +361,8 @@ public final class IdleParticleService {
         return new ItemStack(Material.CHEST);
     }
 
-    private static void setScale(ItemDisplay display, float scale) {
-        org.bukkit.util.Transformation tf = display.getTransformation();
-        display.setTransformation(new org.bukkit.util.Transformation(
-                tf.getTranslation(),
-                tf.getLeftRotation(),
-                new Vector3f(scale, scale, scale),
-                tf.getRightRotation()
-        ));
+    private static void setScale(VisualEntity display, float scale) {
+        display.setScale(scale);
     }
 
     private static String entryKey(Location location) {
