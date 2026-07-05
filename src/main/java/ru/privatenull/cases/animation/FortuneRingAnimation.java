@@ -5,6 +5,8 @@ import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -22,6 +24,8 @@ import ru.privatenull.pnCases;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class FortuneRingAnimation extends CaseAnimation {
 
@@ -31,8 +35,16 @@ public final class FortuneRingAnimation extends CaseAnimation {
     private static final int SLOW_END = 178;
     private static final int REVEAL_END = 226;
 
+    private final Set<HiddenCaseBlock> hiddenBlocks = ConcurrentHashMap.newKeySet();
+
     public FortuneRingAnimation(pnCases plugin) {
         super(plugin);
+    }
+
+    @Override
+    public void cancelAll() {
+        super.cancelAll();
+        restoreHiddenBlocks();
     }
 
     @Override
@@ -48,6 +60,7 @@ public final class FortuneRingAnimation extends CaseAnimation {
         List<ItemDisplay> orbitItems = new ArrayList<>();
         Vector rightAxis = rightAxis(player, base);
         Location center = base.clone().add(0.0, 1.55, 0.0);
+        HiddenCaseBlock hiddenBlock = hideCaseBlock(base);
 
         for (int i = 0; i < ITEM_COUNT; i++) {
             ItemDisplay display = (ItemDisplay) world.spawnEntity(center, EntityType.ITEM_DISPLAY);
@@ -214,6 +227,7 @@ public final class FortuneRingAnimation extends CaseAnimation {
                 }
                 safeRemove(rewardDisplay);
                 safeRemove(label);
+                restoreHiddenBlock(hiddenBlock);
                 untrack(rewardDisplay);
                 untrack(label);
                 if (taskHolder[0] != null) {
@@ -224,6 +238,33 @@ public final class FortuneRingAnimation extends CaseAnimation {
             }
         }.runTaskTimer(plugin, 0L, 1L);
         track(taskHolder[0]);
+    }
+
+    private HiddenCaseBlock hideCaseBlock(Location base) {
+        Block block = base.getBlock();
+        if (block.getType().isAir()) {
+            return null;
+        }
+
+        HiddenCaseBlock hiddenBlock = new HiddenCaseBlock(block, block.getBlockData());
+        hiddenBlocks.add(hiddenBlock);
+        block.setType(Material.AIR, false);
+        return hiddenBlock;
+    }
+
+    private void restoreHiddenBlock(HiddenCaseBlock hiddenBlock) {
+        if (hiddenBlock == null) {
+            return;
+        }
+        hiddenBlocks.remove(hiddenBlock);
+        hiddenBlock.restore();
+    }
+
+    private void restoreHiddenBlocks() {
+        for (HiddenCaseBlock hiddenBlock : hiddenBlocks) {
+            hiddenBlock.restore();
+        }
+        hiddenBlocks.clear();
     }
 
     private List<ItemStack> buildVisuals(CaseDefinition def, ItemStack rewardVisual) {
@@ -320,6 +361,15 @@ public final class FortuneRingAnimation extends CaseAnimation {
                 entity.remove();
             }
         } catch (Exception ignored) {
+        }
+    }
+
+    private record HiddenCaseBlock(Block block, BlockData blockData) {
+        private void restore() {
+            if (block == null || blockData == null || !block.getType().isAir()) {
+                return;
+            }
+            block.setBlockData(blockData, false);
         }
     }
 }
