@@ -1,4 +1,4 @@
-<img src="assets/pncases-cover-1.4.6.png"
+<img src="assets/pncases-cover-1.4.7.png"
      alt="Paper и Purpur 1.19–1.21.11"
      style="width: 100%;">
 <p align="center">
@@ -15,11 +15,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.6/pnCases-1.4.6.jar">
-    <img src="https://img.shields.io/badge/Скачать-1.4.6-429F91?style=for-the-badge&labelColor=17241F" alt="Скачать pnCases 1.4.6">
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.7/pnCases-1.4.7.jar">
+    <img src="https://img.shields.io/badge/Скачать-1.4.7-429F91?style=for-the-badge&labelColor=17241F" alt="Скачать pnCases 1.4.7">
   </a>
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4.6">
-    <img src="https://img.shields.io/badge/Changelog-1.4.6-D8DF9D?style=for-the-badge&labelColor=17241F" alt="Changelog pnCases 1.4.6">
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4.7">
+    <img src="https://img.shields.io/badge/Changelog-1.4.7-D8DF9D?style=for-the-badge&labelColor=17241F" alt="Changelog pnCases 1.4.7">
   </a>
   <a href="LICENSE">
     <img src="https://img.shields.io/badge/License-MIT-429F91?style=for-the-badge&labelColor=17241F" alt="Лицензия MIT">
@@ -119,12 +119,12 @@
 
 <hr>
 
-<h2>🚀 pnCases 1.4.6 GlobalVersion</h2>
+<h2>🚀 pnCases 1.4.7</h2>
 
 <p>
-  <strong>pnCases 1.4.6 GlobalVersion</strong> — обновление совместимости,
-  позволяющее использовать один JAR-файл на серверах
-  Paper и Purpur версий <code>1.19–1.21.11</code>.
+  <strong>pnCases 1.4.7</strong> — небольшое обновление команд выдачи ключей.
+  Основная цель — дать скрытно выдавать ключи, например при автоматической
+  выдаче после покупки на сайте.
 </p>
 
 <table>
@@ -133,7 +133,7 @@
       <strong>Версия плагина</strong>
     </td>
     <td>
-      <code>1.4.6 GlobalVersion</code>
+      <code>1.4.7</code>
     </td>
   </tr>
   <tr>
@@ -166,39 +166,36 @@
 
 <ul>
   <li>
-    Добавлена проверка версии сервера при запуске.
-    На версиях ниже 1.19 плагин отключается с понятным сообщением.
+    У команды <code>/pncases givekey &lt;игрок&gt; &lt;ключ&gt; &lt;кол-во&gt;</code>
+    появился необязательный флаг <code>-s</code> (или <code>-silent</code>).
   </li>
   <li>
-    На Minecraft 1.21+ используются полноценные визуальные анимации pnCases.
+    Если указан флаг <code>-s</code>, игрок не получает сообщение о выдаче ключа в чат.
   </li>
   <li>
-    Для Minecraft 1.19–1.20 добавлен совместимый режим анимаций.
+    Ключ всё равно добавляется на баланс игрока как обычно.
   </li>
   <li>
-    Устранена зависимость витрины кейса от нового API <code>ItemDisplay</code>.
+    Администратору или системе, которая выполнила команду
+    (например, сайт через RCON), по-прежнему приходит подтверждение выдачи.
   </li>
   <li>
-    Голограммы работают через FancyHolograms или DecentHolograms.
-  </li>
-  <li>
-    Команда <code>/pncases</code> получила обновлённое информационное сообщение.
+    Флаг добавлен в автодополнение команды.
   </li>
 </ul>
 
 <details>
-  <summary><strong>Технические изменения</strong></summary>
+  <summary><strong>Пример использования</strong></summary>
 
   <br>
 
-  <ul>
-    <li>Сборка переведена на Java 17 bytecode.</li>
-    <li><code>api-version</code> изменён на <code>1.19</code>.</li>
-    <li>Добавлены безопасные варианты материалов для старых версий.</li>
-    <li>Добавлены совместимые варианты частиц и визуальных эффектов.</li>
-    <li>Переработана GUI-подсветка для Minecraft 1.19–1.20.</li>
-    <li>Улучшен выбор доступного провайдера голограмм.</li>
-  </ul>
+<pre><code>/pncases givekey Evgeniy51234 donate_key 1 -s</code></pre>
+
+  <p>
+    Ключ будет выдан скрытно — игрок не увидит уведомление в чате, но получит
+    ключ на баланс. Удобно для связки с сайтом: после доната сайт выполняет
+    команду через RCON или консоль.
+  </p>
 </details>
 
 <p>
@@ -213,8 +210,8 @@
 <ol>
   <li>
     Скачайте
-    <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.6/pnCases-1.4.6.jar">
-      <code>pnCases-1.4.6.jar</code>
+    <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.7/pnCases-1.4.7.jar">
+      <code>pnCases-1.4.7.jar</code>
     </a>.
   </li>
   <li>Переместите JAR-файл в папку <code>plugins/</code>.</li>
@@ -305,8 +302,8 @@
       <td>Удалить установленные блоки кейса без удаления его настроек</td>
     </tr>
     <tr>
-      <td><code>/pncases givekey &lt;игрок&gt; &lt;ключ&gt; &lt;количество&gt;</code></td>
-      <td>Выдать игроку ключи</td>
+      <td><code>/pncases givekey &lt;игрок&gt; &lt;ключ&gt; &lt;количество&gt; [-s]</code></td>
+      <td>Выдать игроку ключи (<code>-s</code> — скрытно)</td>
     </tr>
     <tr>
       <td><code>/pncases takekey &lt;игрок&gt; &lt;ключ&gt; &lt;количество&gt;</code></td>
@@ -667,7 +664,7 @@ plugins/pnCases/
 </p>
 
 <p align="center">
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.6/pnCases-1.4.6.jar">
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.7/pnCases-1.4.7.jar">
     Скачать последнюю версию
   </a>
   ·
