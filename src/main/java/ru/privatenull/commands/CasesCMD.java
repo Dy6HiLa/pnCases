@@ -86,10 +86,18 @@ public class CasesCMD implements CommandExecutor {
             // Удобно при выдаче за покупку на сайте.
             boolean silent = false;
             for (int i = 4; i < args.length; i++) {
-                if (args[i].equalsIgnoreCase("-s") || args[i].equalsIgnoreCase("-silent")) {
+                // trim() на случай невидимых символов при вводе с игрового чата
+                String flag = args[i].trim();
+                if (flag.equalsIgnoreCase("-s") || flag.equalsIgnoreCase("-silent")) {
                     silent = true;
                 }
             }
+
+            // DEBUG: вывод в консоль для диагностики
+            plugin.getLogger().info("[givekey debug] sender=" + sender.getName()
+                    + " args.length=" + args.length
+                    + " silent=" + silent
+                    + " rawArgs=" + java.util.Arrays.toString(args));
 
             if (!caseManager.keyExists(keyId)) {
                 sender.sendMessage(plugin.getMessages().get("givekey-key-not-found", "key", keyId));
@@ -106,7 +114,9 @@ public class CasesCMD implements CommandExecutor {
                         "amount", String.valueOf(amount),
                         "key_name", keyName,
                         "player", p.getName()));
-                if (!silent) {
+                if (silent) {
+                    sender.sendMessage("[pnCases] Silent flag used: player will not receive chat message.");
+                } else {
                     p.sendMessage(plugin.getMessages().get("givekey-success-target",
                             "amount", String.valueOf(amount),
                             "key_name", keyName,
