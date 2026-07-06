@@ -69,35 +69,25 @@ public class CasesCMD implements CommandExecutor {
             }
 
             String keyId = args[2].toLowerCase();
-            int amount;
-            try {
-                amount = Integer.parseInt(args[3]);
-            } catch (NumberFormatException e) {
-                sender.sendMessage(plugin.getMessages().get("givekey-amount-nan"));
-                return true;
-            }
-
-            if (amount <= 0) {
-                sender.sendMessage(plugin.getMessages().get("givekey-amount-negative"));
-                return true;
-            }
-
-            // Флаг -s (silent): выдать ключ скрытно, без уведомления игрока.
-            // Удобно при выдаче за покупку на сайте.
+            int amount = 0;
             boolean silent = false;
-            for (int i = 4; i < args.length; i++) {
-                // trim() на случай невидимых символов при вводе с игрового чата
-                String flag = args[i].trim();
-                if (flag.equalsIgnoreCase("-s") || flag.equalsIgnoreCase("-silent")) {
+
+            for (int i = 3; i < args.length; i++) {
+                String arg = args[i].trim();
+                if (arg.equalsIgnoreCase("-s") || arg.equalsIgnoreCase("-silent")) {
                     silent = true;
+                } else if (amount == 0) {
+                    try {
+                        amount = Integer.parseInt(arg);
+                    } catch (NumberFormatException ignored) {
+                    }
                 }
             }
 
-            // DEBUG: вывод в консоль для диагностики
-            plugin.getLogger().info("[givekey debug] sender=" + sender.getName()
-                    + " args.length=" + args.length
-                    + " silent=" + silent
-                    + " rawArgs=" + java.util.Arrays.toString(args));
+            if (amount <= 0) {
+                sender.sendMessage(plugin.getMessages().get("givekey-amount-nan"));
+                return true;
+            }
 
             if (!caseManager.keyExists(keyId)) {
                 sender.sendMessage(plugin.getMessages().get("givekey-key-not-found", "key", keyId));
@@ -114,9 +104,7 @@ public class CasesCMD implements CommandExecutor {
                         "amount", String.valueOf(amount),
                         "key_name", keyName,
                         "player", p.getName()));
-                if (silent) {
-                    sender.sendMessage("[pnCases] Silent flag used: player will not receive chat message.");
-                } else {
+                if (!silent) {
                     p.sendMessage(plugin.getMessages().get("givekey-success-target",
                             "amount", String.valueOf(amount),
                             "key_name", keyName,
