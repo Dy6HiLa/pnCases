@@ -68,7 +68,7 @@ broadcast:
 
 config-reloaded: "{prefix} &8| &fКонфиг и сообщения перезагружены."
 
-givekey-usage: "{prefix} &8| &fИспользование: §x§4§2§9§F§9§1/pncases givekey <игрок> <ключ> <кол-во>"
+givekey-usage: "{prefix} &8| &fИспользование: §x§4§2§9§F§9§1/pncases givekey <игрок> <ключ> <кол-во> [-s]"
 givekey-player-not-found: "{prefix} &8| &fИгрок не найден. Попросите игрока зайти на сервер хотя бы один раз."
 givekey-amount-nan: "{prefix} &8| &fКоличество должно быть числом."
 givekey-amount-negative: "{prefix} &8| &fКоличество должно быть больше 0."

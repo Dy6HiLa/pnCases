@@ -82,6 +82,15 @@ public class CasesCMD implements CommandExecutor {
                 return true;
             }
 
+            // Флаг -s (silent): выдать ключ скрытно, без уведомления игрока.
+            // Удобно при выдаче за покупку на сайте.
+            boolean silent = false;
+            for (int i = 4; i < args.length; i++) {
+                if (args[i].equalsIgnoreCase("-s") || args[i].equalsIgnoreCase("-silent")) {
+                    silent = true;
+                }
+            }
+
             if (!caseManager.keyExists(keyId)) {
                 sender.sendMessage(plugin.getMessages().get("givekey-key-not-found", "key", keyId));
                 return true;
@@ -97,10 +106,12 @@ public class CasesCMD implements CommandExecutor {
                         "amount", String.valueOf(amount),
                         "key_name", keyName,
                         "player", p.getName()));
-                p.sendMessage(plugin.getMessages().get("givekey-success-target",
-                        "amount", String.valueOf(amount),
-                        "key_name", keyName,
-                        "balance", String.valueOf(bal)));
+                if (!silent) {
+                    p.sendMessage(plugin.getMessages().get("givekey-success-target",
+                            "amount", String.valueOf(amount),
+                            "key_name", keyName,
+                            "balance", String.valueOf(bal)));
+                }
             } else {
                 String name = target.getName() != null ? target.getName() : target.getUniqueId().toString();
                 sender.sendMessage(plugin.getMessages().get("givekey-offline",

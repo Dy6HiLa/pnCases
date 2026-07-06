@@ -42,6 +42,10 @@ public class CasesCMDTabCompliter implements TabCompleter {
             if (args.length == 4) {
                 return filter(List.of("1", "2", "3", "5", "10", "16", "32", "64"), args[3]);
             }
+            // Флаг скрытной выдачи предлагаем только для givekey
+            if (args.length == 5 && sub.equals("givekey")) {
+                return filter(List.of("-s"), args[4]);
+            }
         }
         return out;
     }
