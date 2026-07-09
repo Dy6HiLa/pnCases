@@ -539,7 +539,7 @@ public class PoisonAnimation extends CaseAnimation {
                         ? "&f" + reward.lpGroup()
                         : "&fНаграда";
             }
-            meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', name));
+            meta.setDisplayName(ru.privatenull.util.ColorUtil.colorize(name));
             item.setItemMeta(meta);
         }
         return item;
@@ -564,7 +564,7 @@ public class PoisonAnimation extends CaseAnimation {
         if (value == null || value.isBlank()) {
             return "";
         }
-        String colored = ChatColor.translateAlternateColorCodes('&', value);
+        String colored = ru.privatenull.util.ColorUtil.colorize(value);
         String stripped = ChatColor.stripColor(colored);
         if (stripped == null) {
             stripped = colored;

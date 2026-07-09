@@ -1,8 +1,8 @@
 package ru.privatenull.config;
 
-import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
+import ru.privatenull.util.ColorUtil;
 
 import java.io.File;
 import java.io.IOException;
@@ -93,7 +93,7 @@ public final class MessagesConfig {
     }
 
     private static String color(String s) {
-        return ChatColor.translateAlternateColorCodes('&', s == null ? "" : s);
+        return ColorUtil.colorize(s);
     }
 
     private void copyMissingDefaults(YamlConfiguration defaults) {

@@ -12,7 +12,7 @@ keys:
   money_key:
     name: "§x§F§F§5§3§0§0Ключ с монетами"
   points_key:
-    name: "§x§0§0§D§5§F§FКлюч PlayerPoints"
+    name: "§x§0§0§D§5§F§FКлюч с поинтами"
   items_key:
     name: "§x§0§0§9§8§F§FКлюч с ресурсами"
   donate_key:

@@ -1,4 +1,5 @@
 name: luckperms
+display-name: "&6Донат кейс"
 
 hologram:
   enabled: true
@@ -38,8 +39,8 @@ gui:
       material: BARRIER
       name: "&8История пуста"
   animation-item:
-    material: CLOCK
-    name: "§x§4§2§9§F§9§1Выбор анимации"
+    material: NETHER_STAR
+    name: "§x§A§0§E§F§A§1Круг фортуны"
     lore:
       - "&7Нажмите, чтобы выбрать анимацию открытия."
   open-item:

@@ -1,6 +1,7 @@
 package ru.privatenull.cases.animation;
 
 import org.bukkit.Material;
+import ru.privatenull.util.MaterialCompat;
 
 public enum AnimationType {
 
@@ -27,12 +28,17 @@ public enum AnimationType {
     CAULDRON(
             "§x§4§2§9§F§9§1§lАстральный разлом",
             "§7Вокруг кейса собираются обсидиановые осколки,\n§7открывается разлом, предметы уходят в орбиту,\n§7а настоящая награда вырывается из портала.",
-            Material.ECHO_SHARD
+            MaterialCompat.first("ECHO_SHARD", "NETHER_STAR")
     ),
     FORTUNE_RING(
             "§x§F§F§D§D§5§5§lКруг фортуны",
             "§7Над кейсом появляется светящийся круг,\n§7предметы крутятся по орбите и замедляются,\n§7пока настоящая награда не выходит в центр.",
-            Material.AMETHYST_SHARD
+            MaterialCompat.first("AMETHYST_SHARD", "NETHER_STAR")
+    ),
+    PILLAGER_RAID(
+            "§x§F§F§8§4§4§4§lОсада разбойников",
+            "§7Четыре разбойника окружают бочку,\n§7по очереди ломают её топорами,\n§7а из осколков появляется награда.",
+            Material.IRON_AXE
     );
 
     private final String displayName;

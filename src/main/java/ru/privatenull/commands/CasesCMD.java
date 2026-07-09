@@ -45,6 +45,7 @@ public class CasesCMD implements CommandExecutor {
             plugin.reloadConfig();
             var validation = plugin.validateCurrentConfig();
             plugin.getMessages().load();
+            plugin.getGuiConfig().load();
             caseManager.reloadFromConfig();
             plugin.reloadRuntimeConfig();
             sender.sendMessage(plugin.getMessages().get("config-reloaded"));
@@ -197,6 +198,23 @@ public class CasesCMD implements CommandExecutor {
             return true;
         }
 
+        if (args[0].equalsIgnoreCase("createcase")) {
+            if (args.length < 2) {
+                sender.sendMessage(plugin.getMessages().get("createcase-usage"));
+                return true;
+            }
+
+            String caseName = args[1].toLowerCase(Locale.ROOT);
+            CaseManager.CreateCaseResult result = caseManager.createCustomCase(caseName);
+            switch (result) {
+                case CREATED -> sender.sendMessage(plugin.getMessages().get("createcase-success", "case", caseName));
+                case ALREADY_EXISTS -> sender.sendMessage(plugin.getMessages().get("createcase-exists", "case", caseName));
+                case INVALID_ID -> sender.sendMessage(plugin.getMessages().get("createcase-invalid", "case", caseName));
+                case SAVE_FAILED -> sender.sendMessage(plugin.getMessages().get("createcase-failed", "case", caseName));
+            }
+            return true;
+        }
+
         if (args[0].equalsIgnoreCase("machine")) {
             if (!(sender instanceof Player p)) {
                 sender.sendMessage(plugin.getMessages().get("only-player"));
@@ -240,6 +258,20 @@ public class CasesCMD implements CommandExecutor {
                 return true;
             }
 
+            if (!caseManager.caseExists(caseName)) {
+                CaseManager.CreateCaseResult result = caseManager.createCustomCase(caseName);
+                if (result == CaseManager.CreateCaseResult.INVALID_ID) {
+                    p.sendMessage(plugin.getMessages().get("createcase-invalid", "case", caseName));
+                    return true;
+                }
+                if (result == CaseManager.CreateCaseResult.SAVE_FAILED) {
+                    p.sendMessage(plugin.getMessages().get("createcase-failed", "case", caseName));
+                    return true;
+                }
+                if (result == CaseManager.CreateCaseResult.CREATED) {
+                    p.sendMessage(plugin.getMessages().get("createcase-success", "case", caseName));
+                }
+            }
             caseManager.bindCaseToBlock(caseName, target);
             p.sendMessage(plugin.getMessages().get("setcase-success",
                     "case", caseName,

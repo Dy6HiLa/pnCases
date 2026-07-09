@@ -1,6 +1,5 @@
 package ru.privatenull.util;
 
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.ConfigurationSection;
@@ -18,7 +17,7 @@ import java.util.Map;
 public class ItemFactory {
 
     private static String c(String s) {
-        return ChatColor.translateAlternateColorCodes('&', s == null ? "" : s);
+        return ColorUtil.colorize(s);
     }
 
     public static ItemStack fromSection(ConfigurationSection sec) {

@@ -3,6 +3,7 @@ package ru.privatenull.cases.model;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.inventory.ItemStack;
+import ru.privatenull.util.MaterialCompat;
 import ru.privatenull.util.ParticleCompat;
 
 public record IdleParticleSettings(
@@ -32,10 +33,10 @@ public record IdleParticleSettings(
     }
 
     public enum Style {
-        AURORA("Сияние", Material.AMETHYST_SHARD),
+        AURORA("Сияние", MaterialCompat.first("AMETHYST_SHARD", "NETHER_STAR")),
         HORIZONTAL_RING("Горизонтальное кольцо", Material.ENDER_EYE),
         VERTICAL_SPIRAL("Вертикальная спираль", Material.BLAZE_ROD),
-        DOUBLE_ORBIT("Двойная орбита", Material.RECOVERY_COMPASS),
+        DOUBLE_ORBIT("Двойная орбита", MaterialCompat.first("RECOVERY_COMPASS", "COMPASS")),
         CROWN("Корона", Material.NETHER_STAR);
 
         private final String displayName;
@@ -56,9 +57,9 @@ public record IdleParticleSettings(
     }
 
     public enum Theme {
-        MAGIC("Магия", Material.AMETHYST_SHARD, new String[]{"END_ROD"}, new String[]{"ENCHANT", "ENCHANTMENT_TABLE"}),
+        MAGIC("Магия", MaterialCompat.first("AMETHYST_SHARD", "NETHER_STAR"), new String[]{"END_ROD"}, new String[]{"ENCHANT", "ENCHANTMENT_TABLE"}),
         PORTAL("Портал", Material.ENDER_EYE, new String[]{"PORTAL"}, new String[]{"REVERSE_PORTAL", "PORTAL"}),
-        ELECTRIC("Искры", Material.LIGHTNING_ROD, new String[]{"ELECTRIC_SPARK", "END_ROD"}, new String[]{"END_ROD"}),
+        ELECTRIC("Искры", MaterialCompat.first("LIGHTNING_ROD", "BLAZE_ROD"), new String[]{"ELECTRIC_SPARK", "END_ROD"}, new String[]{"END_ROD"}),
         FIRE("Пламя", Material.BLAZE_POWDER, new String[]{"FLAME"}, new String[]{"LAVA"}),
         TOXIC("Яд", Material.SLIME_BALL, new String[]{"WITCH", "SPELL_WITCH"}, new String[]{"ENCHANT", "ENCHANTMENT_TABLE"});
 

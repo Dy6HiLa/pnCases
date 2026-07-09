@@ -10,6 +10,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Entity;
 import org.bukkit.inventory.ItemStack;
 import ru.privatenull.cases.model.CaseDefinition;
+import ru.privatenull.util.ColorUtil;
 import ru.privatenull.pnCases;
 import ru.privatenull.util.ItemFactory;
 
@@ -31,6 +32,7 @@ public final class HologramService {
     private final Set<String> externalNames = new HashSet<>();
 
     private HologramProvider provider;
+    private boolean missingProviderWarningLogged;
 
     public HologramService(pnCases plugin) {
         this.plugin = plugin;
@@ -139,7 +141,7 @@ public final class HologramService {
 
         HologramProvider currentProvider = provider;
         if (currentProvider == null) {
-            plugin.getLogger().warning("Holograms: для кейса '" + def.name() + "' не найден FancyHolograms или DecentHolograms. TextDisplay fallback отключен.");
+            logMissingProviderOnce();
             return;
         }
 
@@ -151,7 +153,7 @@ public final class HologramService {
             externalNames.add(spec.name());
         } catch (Throwable t) {
             provider = null;
-            plugin.getLogger().warning("Holograms: внешний провайдер недоступен для '" + def.name() + "'. TextDisplay fallback отключен: " + t.getMessage());
+            logMissingProviderOnce();
         }
     }
 
@@ -259,6 +261,17 @@ public final class HologramService {
         }
 
         provider = selectProvider();
+        if (provider != null) {
+            missingProviderWarningLogged = false;
+        }
+    }
+
+    private void logMissingProviderOnce() {
+        if (missingProviderWarningLogged) {
+            return;
+        }
+        missingProviderWarningLogged = true;
+        plugin.getLogger().warning("Голограммы: FancyHolograms или DecentHolograms не найдены. Голограммы кейсов отключены.");
     }
 
     private HologramProvider selectProvider() {
@@ -422,7 +435,7 @@ public final class HologramService {
         if (value == null) return "";
 
         String guiRaw = def.guiTitle() == null ? "" : def.guiTitle();
-        String guiPlain = ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&', guiRaw));
+        String guiPlain = ChatColor.stripColor(ColorUtil.colorize(guiRaw));
         World world = blockLocation.getWorld();
 
         return value

@@ -5,7 +5,7 @@ import org.bukkit.inventory.InventoryHolder;
 
 public final class MachineGuiHolder implements InventoryHolder {
 
-    public enum Type { MAIN, ANIMATION, LAYOUT, HOLOGRAM, PARTICLES, MENU, PURCHASE }
+    public enum Type { MAIN, ANIMATION, LAYOUT, HOLOGRAM, PARTICLES, MENU, PURCHASE, TOGGLES }
 
     private final Type type;
     private final String caseName;
@@ -41,6 +41,10 @@ public final class MachineGuiHolder implements InventoryHolder {
 
     public static MachineGuiHolder purchase(String caseName) {
         return new MachineGuiHolder(Type.PURCHASE, caseName);
+    }
+
+    public static MachineGuiHolder toggles(String caseName) {
+        return new MachineGuiHolder(Type.TOGGLES, caseName);
     }
 
     public Type type() {

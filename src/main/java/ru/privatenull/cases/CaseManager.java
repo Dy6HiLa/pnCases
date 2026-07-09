@@ -19,6 +19,9 @@ import ru.privatenull.pnCases;
 import ru.privatenull.storage.OpenHistoryStorage;
 import ru.privatenull.storage.PlayerPrefsStorage;
 import ru.privatenull.util.ItemFactory;
+import ru.privatenull.util.ColorUtil;
+import ru.privatenull.util.MaterialCompat;
+import ru.privatenull.util.ServerCompatibility;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,6 +39,13 @@ public class CaseManager {
         REMOVED,
         NOT_FOUND,
         NOT_BOUND
+    }
+
+    public enum CreateCaseResult {
+        CREATED,
+        ALREADY_EXISTS,
+        INVALID_ID,
+        SAVE_FAILED
     }
 
     public static final int PREVIEW_SLOT = 50;
@@ -144,6 +154,43 @@ public class CaseManager {
         saveWritableCaseConfig(writable);
         reloadFromConfig();
         return getCaseByName(caseName) != null;
+    }
+
+    public boolean caseExists(String caseName) {
+        if (!isValidCaseId(caseName)) {
+            return false;
+        }
+        return getExistingWritableCaseConfig(caseName) != null;
+    }
+
+    public CreateCaseResult createCustomCase(String caseName) {
+        if (!isValidCaseId(caseName)) {
+            return CreateCaseResult.INVALID_ID;
+        }
+
+        String normalized = normalizeCaseName(caseName);
+        if (getExistingWritableCaseConfig(normalized) != null) {
+            return CreateCaseResult.ALREADY_EXISTS;
+        }
+
+        File directory = getCaseFilesDirectory();
+        if (!directory.exists() && !directory.mkdirs()) {
+            plugin.getLogger().severe("Не удалось создать папку кейсов: " + directory.getPath());
+            return CreateCaseResult.SAVE_FAILED;
+        }
+
+        File target = getCaseFile(normalized);
+        YamlConfiguration yaml = new YamlConfiguration();
+        writeNewCaseDefaults(yaml, normalized);
+        try {
+            yaml.save(target);
+        } catch (IOException ex) {
+            plugin.getLogger().severe("Не удалось создать файл кейса " + target.getName() + ": " + ex.getMessage());
+            return CreateCaseResult.SAVE_FAILED;
+        }
+
+        reloadFromConfig();
+        return CreateCaseResult.CREATED;
     }
 
     public CaseDefinition getCaseByBlock(Block block) {
@@ -275,10 +322,16 @@ public class CaseManager {
     }
 
     public AnimationType getPlayerAnimation(UUID uuid) {
+        if (ServerCompatibility.useMinecraft1165AnimationMode()) {
+            return AnimationType.FORTUNE_RING;
+        }
         return playerAnimations.computeIfAbsent(uuid, playerPrefs::getAnimation);
     }
 
     public void setPlayerAnimation(UUID uuid, AnimationType type) {
+        if (ServerCompatibility.useMinecraft1165AnimationMode()) {
+            type = AnimationType.FORTUNE_RING;
+        }
         playerAnimations.put(uuid, type);
         playerPrefs.setAnimation(uuid, type);
     }
@@ -394,6 +447,7 @@ public class CaseManager {
             String caseName = source.name();
             ConfigurationSection cs = source.section();
             if (cs == null) continue;
+            String caseDisplayName = cs.getString("display-name", cs.getString("display_name", humanizeCaseName(caseName)));
 
             List<Location> blockLocs = readBlockLocations(cs);
 
@@ -507,7 +561,7 @@ public class CaseManager {
             }
 
             CaseDefinition def = new CaseDefinition(
-                    caseName.toLowerCase(Locale.ROOT), blockLocs, title, openBtn, guiLayout, idleParticleSettings,
+                    caseName.toLowerCase(Locale.ROOT), caseDisplayName, blockLocs, title, openBtn, guiLayout, idleParticleSettings,
                     costType, costAmount, costKeyId, buyXp,
                     duration, cycleEvery, rise, spin, fixedAnimation, animItems, rewards
             );
@@ -554,28 +608,61 @@ public class CaseManager {
 
     private List<String> buildCaseButtonExtraLore(CaseDefinition def, int have, int need, int buyExp) {
         String keyId = def.costKeyId() == null ? "" : def.costKeyId();
-        String keyName = keyId.isBlank() ? "" : keyNames.getOrDefault(keyId.toLowerCase(Locale.ROOT), keyId);
+        String keyName = keyId.isBlank() ? "" : getKeyDisplayName(keyId);
         String keysBalance = def.costType() == CaseDefinition.CostType.KEY
-                ? plugin.getMessages().getOr("gui.case-button.keys-balance", "gui-keys-balance",
+                ? plugin.getGuiConfig().text("case.button.keys-balance",
+                plugin.getMessages().getOr("gui.case-button.keys-balance", "gui-keys-balance",
+                "have", String.valueOf(have),
+                "need", String.valueOf(need),
+                "key", keyId,
+                "key_name", keyName,
+                "key-name", keyName),
                 "have", String.valueOf(have),
                 "need", String.valueOf(need),
                 "key", keyId,
                 "key_name", keyName,
                 "key-name", keyName)
                 : "";
-        String buyHint = plugin.getMessages().getOr("gui.case-button.buy-xp-hint", "gui-buy-xp-hint",
+        String buyHint = plugin.getGuiConfig().text("case.button.buy-xp-hint",
+                plugin.getMessages().getOr("gui.case-button.buy-xp-hint", "gui-buy-xp-hint",
+                        "levels", String.valueOf(buyExp)),
                 "levels", String.valueOf(buyExp));
-        String previewLeftHint = plugin.getMessages().getOr("gui.case-button.preview-left-hint", "gui.case-button.buy-xp-disabled");
-        String openHint = plugin.getMessages().getOr("gui.case-button.open-hint", "gui-open-hint");
+        String previewLeftHint = plugin.getGuiConfig().text("case.button.preview-left-hint",
+                plugin.getMessages().getOr("gui.case-button.preview-left-hint", "gui.case-button.buy-xp-disabled"));
+        String openHint = plugin.getGuiConfig().text("case.button.open-hint",
+                plugin.getMessages().getOr("gui.case-button.open-hint", "gui-open-hint"));
         String previewHint = buyExp > 0
-                ? plugin.getMessages().getOr("gui.case-button.preview-hint", "gui.case-button.preview-hint")
+                ? plugin.getGuiConfig().text("case.button.preview-hint",
+                plugin.getMessages().getOr("gui.case-button.preview-hint", "gui.case-button.preview-hint"))
                 : "";
         if (previewHint.startsWith("§c[missing:")) {
             previewHint = color("&7СКМ &8— &bпосмотреть содержимое");
         }
 
-        List<String> lines = plugin.getMessages().getList("gui.case-button.extra-lore",
-                "case", def.name(),
+        List<String> fallback = plugin.getMessages().getList("gui.case-button.extra-lore",
+                "case", color(def.displayName()),
+                "case_id", def.name(),
+                "case-id", def.name(),
+                "title", def.guiTitle(),
+                "material", def.openButton().getType().getKey().toString(),
+                "key", keyId,
+                "key_name", keyName,
+                "key-name", keyName,
+                "have", String.valueOf(have),
+                "need", String.valueOf(need),
+                "levels", String.valueOf(buyExp),
+                "keys-balance", keysBalance,
+                "buy-xp-hint", buyHint,
+                "preview-left-hint", previewLeftHint,
+                "left-click", buyExp > 0 ? buyHint : previewLeftHint,
+                "open-hint", openHint,
+                "right-click", openHint,
+                "preview-hint", previewHint,
+                "middle-click", previewHint);
+        List<String> lines = plugin.getGuiConfig().list("case.button.extra-lore", fallback,
+                "case", color(def.displayName()),
+                "case_id", def.name(),
+                "case-id", def.name(),
                 "title", def.guiTitle(),
                 "material", def.openButton().getType().getKey().toString(),
                 "key", keyId,
@@ -611,24 +698,28 @@ public class CaseManager {
     }
 
     public ItemStack buildAnimationSelectorItem(Player p, CaseDefinition def) {
-        if (def != null && def.guiLayout().animationItem() != null) {
-            return def.guiLayout().animationItem().clone();
-        }
-
         AnimationType current = getPlayerAnimation(p.getUniqueId());
-        ItemStack it = new ItemStack(current.icon());
+        ItemStack it = def != null && def.guiLayout().animationItem() != null
+                ? def.guiLayout().animationItem().clone()
+                : new ItemStack(AnimationType.FORTUNE_RING.icon());
+        it.setAmount(1);
         ItemMeta meta = it.getItemMeta();
         if (meta == null) return it;
 
-        meta.setDisplayName(color("&fАнимация: " + current.displayName()));
-
-        List<String> lore = new ArrayList<>();
-        lore.add("");
-        lore.add(color("&7Текущая: " + current.displayName()));
-        lore.add(color("&7Нажмите, чтобы выбрать другую"));
-        lore.add("");
-
-        meta.setLore(lore);
+        String[] replacements = {
+                "animation", current.displayName(),
+                "case", def == null ? "" : color(def.displayName()),
+                "case_id", def == null ? "" : def.name(),
+                "case-id", def == null ? "" : def.name()
+        };
+        meta.setDisplayName(plugin.getGuiConfig().text("case.animation-button.name",
+                "&fАнимация: {animation}", replacements));
+        meta.setLore(plugin.getGuiConfig().list("case.animation-button.lore", List.of(
+                "",
+                "&7Текущая: {animation}",
+                "&7Нажмите, чтобы выбрать другую",
+                ""
+        ), replacements));
         it.setItemMeta(meta);
         return it;
     }
@@ -643,15 +734,23 @@ public class CaseManager {
         if (meta == null) return item;
 
         int rewards = def.rewards().size();
-        meta.setDisplayName(color("&x&4&2&9&F&9&1▸ &fСодержимое кейса"));
-        meta.setLore(List.of(
+        String[] replacements = {
+                "case", color(def.displayName()),
+                "case_id", def.name(),
+                "case-id", def.name(),
+                "rewards", String.valueOf(rewards)
+        };
+        meta.setDisplayName(plugin.getGuiConfig().text("case.preview-button.name",
+                "&x&4&2&9&F&9&1▸ &fСодержимое кейса", replacements));
+        meta.setLore(plugin.getGuiConfig().list("case.preview-button.lore", List.of(
                 "",
-                color("&x&A&0&E&F&A&1 «Предпросмотр»"),
-                color(" &7- &fНаград: &x&4&2&9&F&9&1" + rewards),
-                color(" &7- &fПоказаны шансы и редкость"),
+                "&x&A&0&E&F&A&1 «Предпросмотр»",
+                " &7- &fКейс: &x&4&2&9&F&9&1{case}",
+                " &7- &fНаград: &x&4&2&9&F&9&1{rewards}",
+                " &7- &fПоказаны шансы и редкость",
                 "",
-                color("&x&4&2&9&F&9&1▸ &fНажмите, чтобы открыть")
-        ));
+                "&x&4&2&9&F&9&1▸ &fНажмите, чтобы открыть"
+        ), replacements));
         item.setItemMeta(meta);
         return item;
     }
@@ -666,7 +765,23 @@ public class CaseManager {
         if (meta == null) return item;
 
         String rewardName = color(resolveRewardViewName(reward, item));
-        meta.setDisplayName(reward.rarity().color() + "◆ " + rewardName);
+        String amount = reward.type() == Reward.Type.VAULT
+                ? formatVaultAmount(reward.vaultAmount())
+                : reward.type() == Reward.Type.PLAYERPOINTS ? formatPlayerPointsAmount(reward.playerPointsAmount()) : "";
+        String duration = reward.lpDuration() == null ? "" : reward.lpDuration();
+        String[] replacements = {
+                "reward", rewardName,
+                "rarity", reward.rarity().coloredName(),
+                "rarity_color", reward.rarity().color(),
+                "rarity-color", reward.rarity().color(),
+                "type", formatRewardType(reward.type()),
+                "chance", formatChancePercent(reward.chance(), totalChance),
+                "weight", String.valueOf(reward.chance()),
+                "amount", amount,
+                "duration", duration
+        };
+        meta.setDisplayName(plugin.getGuiConfig().text("preview.reward.name",
+                "{rarity_color}◆ {reward}", replacements));
 
         List<String> lore = new ArrayList<>();
         if (meta.hasLore() && meta.getLore() != null) {
@@ -691,7 +806,7 @@ public class CaseManager {
         }
         lore.add("");
 
-        meta.setLore(lore);
+        meta.setLore(plugin.getGuiConfig().list("preview.reward.lore", lore, replacements));
         item.setItemMeta(meta);
         return item;
     }
@@ -708,7 +823,7 @@ public class CaseManager {
 
         Material material = switch (reward.type()) {
             case VAULT -> Material.EMERALD;
-            case PLAYERPOINTS -> Material.AMETHYST_SHARD;
+            case PLAYERPOINTS -> MaterialCompat.first("AMETHYST_SHARD", "EMERALD");
             case LUCKPERMS -> Material.NETHER_STAR;
             case ITEM -> Material.CHEST;
         };
@@ -781,7 +896,7 @@ public class CaseManager {
         fillDecor(inv, layout);
         inv.setItem(layout.openSlot(), buildGuiOpenItem(p, def));
         fillHistory(inv, def);
-        if (def.fixedAnimation() == null) {
+        if (def.fixedAnimation() == null && !ServerCompatibility.useMinecraft1165AnimationMode()) {
             inv.setItem(layout.animationSlot(), buildAnimationSelectorItem(p, def));
         }
     }
@@ -814,19 +929,26 @@ public class CaseManager {
         ItemMeta meta = it.getItemMeta();
         if (meta == null) return it;
 
-        meta.setDisplayName("§x§A§0§E§F§A§1◆ " + color(entry.rewardName()));
-
-        List<String> lore = new ArrayList<>();
-        lore.add("");
-        lore.add("§x§A§0§E§F§A§1 «Детали открытия»");
-        lore.add(" §7- §fИгрок: §x§F§B§C§A§0§8" + entry.playerName());
-        lore.add(" §7- §fНаграда: " + color(entry.rewardName()));
-        lore.add("");
-        lore.add("§x§C§0§9§6§A§B «Время»");
-        lore.add(" §7- §f" + formatHistoryTime(entry.openedAt()));
-        lore.add("");
-
-        meta.setLore(lore);
+        String[] replacements = {
+                "case", def == null ? "" : color(def.displayName()),
+                "case_id", def == null ? "" : def.name(),
+                "case-id", def == null ? "" : def.name(),
+                "player", entry.playerName(),
+                "reward", color(entry.rewardName()),
+                "time", formatHistoryTime(entry.openedAt())
+        };
+        meta.setDisplayName(plugin.getGuiConfig().text("case.history.item.name",
+                "§x§A§0§E§F§A§1◆ {reward}", replacements));
+        meta.setLore(plugin.getGuiConfig().list("case.history.item.lore", List.of(
+                "",
+                "§x§A§0§E§F§A§1 «Детали открытия»",
+                " §7- §fИгрок: §x§F§B§C§A§0§8{player}",
+                " §7- §fНаграда: {reward}",
+                "",
+                "§x§C§0§9§6§A§B «Время»",
+                " §7- §f{time}",
+                ""
+        ), replacements));
         it.setItemMeta(meta);
         return it;
     }
@@ -861,16 +983,20 @@ public class CaseManager {
             return it;
         }
 
-        meta.setDisplayName("§8История пуста");
-
-        List<String> lore = new ArrayList<>();
-        lore.add("");
-        lore.add("§x§A§0§E§F§A§1 «История кейса»");
-        lore.add(" §7- §fПоследние открытия");
-        lore.add(" §7- §fбудут отображаться здесь");
-        lore.add("");
-
-        meta.setLore(lore);
+        String[] replacements = {
+                "case", def == null ? "" : color(def.displayName()),
+                "case_id", def == null ? "" : def.name(),
+                "case-id", def == null ? "" : def.name()
+        };
+        meta.setDisplayName(plugin.getGuiConfig().text("case.history.empty.name",
+                "§8История пуста", replacements));
+        meta.setLore(plugin.getGuiConfig().list("case.history.empty.lore", List.of(
+                "",
+                "§x§A§0§E§F§A§1 «История кейса»",
+                " §7- §fПоследние открытия",
+                " §7- §fбудут отображаться здесь",
+                ""
+        ), replacements));
         it.setItemMeta(meta);
         return it;
     }
@@ -1028,6 +1154,9 @@ public class CaseManager {
         AnimationType animationType = def.fixedAnimation() == null
                 ? getPlayerAnimation(p.getUniqueId())
                 : def.fixedAnimation();
+        if (ServerCompatibility.useMinecraft1165AnimationMode()) {
+            animationType = AnimationType.FORTUNE_RING;
+        }
         animationRegistry.get(animationType).play(p, def, finalReward, base, () -> {
             giveReward(p, def, finalReward);
             openingPlayers.remove(p.getUniqueId());
@@ -1043,7 +1172,10 @@ public class CaseManager {
     }
 
     public String getKeyDisplayName(String keyId) {
-        return keyNames.getOrDefault(keyId.toLowerCase(Locale.ROOT), keyId);
+        if (keyId == null || keyId.isBlank()) {
+            return "";
+        }
+        return keyNames.getOrDefault(keyId.toLowerCase(Locale.ROOT), humanizeKeyName(keyId));
     }
 
     public void giveReward(Player p, Reward reward) {
@@ -1362,6 +1494,81 @@ public class CaseManager {
         return new File(getCaseFilesDirectory(), normalizeCaseName(caseName) + ".yml");
     }
 
+    private void writeNewCaseDefaults(ConfigurationSection caseSection, String caseName) {
+        String visibleName = "&x&4&2&9&F&9&1Новый кейс &8| &f" + caseName;
+        caseSection.set("id", caseName);
+        caseSection.set("display-name", visibleName);
+
+        ConfigurationSection hologram = caseSection.createSection("hologram");
+        hologram.set("enabled", true);
+        hologram.set("type", "TEXT");
+        hologram.set("y", 1.5D);
+        hologram.set("lines", List.of(visibleName, "&7Нажмите ПКМ, чтобы открыть"));
+
+        ConfigurationSection showcase = caseSection.createSection("idle-particles");
+        showcase.set("enabled", true);
+        showcase.set("effects", true);
+        showcase.set("style", "VERTICAL_SPIRAL");
+        showcase.set("theme", "ELECTRIC");
+        showcase.set("interval_ticks", 3);
+        showcase.set("radius", 0.8D);
+        showcase.set("height", 1.55D);
+        showcase.set("speed", 0.12D);
+        showcase.set("view_distance", 28);
+        ConfigurationSection showcaseItem = showcase.createSection("item");
+        showcaseItem.set("material", "NETHER_STAR");
+        showcaseItem.set("name", visibleName);
+
+        ConfigurationSection gui = caseSection.createSection("gui");
+        gui.set("title", "&8" + caseName);
+        gui.set("size", 54);
+        gui.set("open_slot", 22);
+        gui.set("animation_slot", 49);
+        ConfigurationSection decor = gui.createSection("decor");
+        decor.set("slots", List.of(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 17, 18, 26, 27, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44));
+        ConfigurationSection decorItem = decor.createSection("item");
+        decorItem.set("material", "GRAY_STAINED_GLASS_PANE");
+        decorItem.set("name", " ");
+        ConfigurationSection history = gui.createSection("history");
+        history.set("slots", List.of(45, 46, 47, 48, 51, 52, 53));
+        ConfigurationSection historyItem = history.createSection("empty-item");
+        historyItem.set("material", "BARRIER");
+        historyItem.set("name", "&8История пуста");
+        ConfigurationSection animationItem = gui.createSection("animation-item");
+        animationItem.set("material", "NETHER_STAR");
+        animationItem.set("name", "&eКруг фортуны");
+        animationItem.set("lore", List.of("&7Настройка открытия в Machine GUI."));
+        ConfigurationSection openItem = gui.createSection("open-item");
+        openItem.set("material", "CHEST");
+        openItem.set("name", visibleName);
+        openItem.set("lore", List.of("", "&7Новый кейс готов к настройке.", ""));
+
+        ConfigurationSection cost = caseSection.createSection("cost");
+        cost.set("type", "NONE");
+        cost.set("amount", 0);
+        cost.set("buy_xp_enabled", false);
+        cost.set("buy_xp_levels", 0);
+
+        ConfigurationSection animation = caseSection.createSection("animation");
+        animation.set("fixed", AnimationType.FORTUNE_RING.name());
+        animation.set("duration_ticks", 80);
+        animation.set("cycle_every_ticks", 3);
+        animation.set("rise_blocks", 1.2D);
+        animation.set("spin_degrees_per_tick", 18);
+        animation.set("items", List.of(
+                Map.of("material", "GOLD_INGOT", "name", "&6Золото"),
+                Map.of("material", "DIAMOND", "name", "&bАлмаз"),
+                Map.of("material", "EMERALD", "name", "&aИзумруд")
+        ));
+        caseSection.set("rewards", List.of(Map.of(
+                "chance", 100,
+                "rarity", "COMMON",
+                "type", "ITEM",
+                "item", Map.of("material", "DIAMOND", "amount", 1, "name", "&bАлмаз"),
+                "message", "&aВы получили &f{reward}&a!"
+        )));
+    }
+
     private String normalizeCaseName(String caseName) {
         return (caseName == null ? "" : caseName.trim()).toLowerCase(Locale.ROOT);
     }
@@ -1622,7 +1829,7 @@ public class CaseManager {
     }
 
     private String color(String s) {
-        return ChatColor.translateAlternateColorCodes('&', s == null ? "" : s);
+        return ColorUtil.colorize(s);
     }
 
     private String formatRewardMessage(String raw, String rewardLabel, String moneyAmount, String pointsAmount) {
@@ -1647,12 +1854,9 @@ public class CaseManager {
     private String getCaseDisplayName(CaseDefinition def) {
         if (def == null) return "кейс";
 
-        String keyId = def.costKeyId();
-        if (keyId != null && !keyId.isBlank()) {
-            String keyName = keyNames.get(keyId.toLowerCase(Locale.ROOT));
-            if (keyName != null && !keyName.isBlank()) {
-                return color(keyName);
-            }
+        String displayName = def.displayName();
+        if (displayName != null && !displayName.isBlank()) {
+            return color(displayName);
         }
 
         String title = def.guiTitle();
@@ -1661,6 +1865,28 @@ public class CaseManager {
         }
 
         return def.name();
+    }
+
+    private String humanizeCaseName(String caseName) {
+        String normalized = caseName == null ? "" : caseName.toLowerCase(Locale.ROOT);
+        return switch (normalized) {
+            case "items" -> "&bКейс с ресурсами";
+            case "money" -> "&6Кейс с монетами";
+            case "playerpoints", "points" -> "&bКейс с поинтами";
+            case "luckperms", "donate" -> "&6Донат кейс";
+            default -> caseName == null || caseName.isBlank() ? "&fКейс" : "&f" + caseName.replace('_', ' ');
+        };
+    }
+
+    private String humanizeKeyName(String keyId) {
+        String normalized = keyId == null ? "" : keyId.toLowerCase(Locale.ROOT);
+        return switch (normalized) {
+            case "items_key", "resources_key", "tools_key" -> "&bКлюч с ресурсами";
+            case "money_key" -> "&6Ключ с монетами";
+            case "points_key", "playerpoints_key" -> "&bКлюч с поинтами";
+            case "donate_key", "luckperms_key" -> "&6Донат ключ";
+            default -> keyId == null || keyId.isBlank() ? "" : "&f" + keyId.replace('_', ' ');
+        };
     }
 
     private static int asInt(Object o, int def) {

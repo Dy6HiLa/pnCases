@@ -19,12 +19,20 @@ public final class ServerCompatibility {
         if (version.major() != 1) {
             return version.major() > 1;
         }
-        return version.minor() >= 19;
+        if (version.minor() > 16) {
+            return true;
+        }
+        return version.minor() == 16 && version.patch() >= 5;
     }
 
     public static boolean useModernAnimations() {
         Version version = currentVersion();
         return version.isAtLeast(1, 21, 0) && hasDisplayEntities();
+    }
+
+    public static boolean useMinecraft1165AnimationMode() {
+        Version version = currentVersion();
+        return version.major() == 1 && version.minor() == 16 && version.patch() >= 5;
     }
 
     public static boolean hasDisplayEntities() {
@@ -58,8 +66,10 @@ public final class ServerCompatibility {
         plugin.getLogger().info("Режим совместимости сервера: Minecraft " + version);
         if (useModernAnimations()) {
             plugin.getLogger().info("Анимации: полный режим pnCases для 1.21+.");
+        } else if (useMinecraft1165AnimationMode()) {
+            plugin.getLogger().info("Анимации: режим 1.16.5, доступен только Круг фортуны.");
         } else {
-            plugin.getLogger().info("Анимации: совместимый режим для 1.19-1.20.");
+            plugin.getLogger().info("Анимации: совместимый режим для 1.17-1.20.");
         }
     }
 

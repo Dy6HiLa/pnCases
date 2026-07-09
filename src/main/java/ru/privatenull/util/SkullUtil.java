@@ -1,12 +1,15 @@
 package ru.privatenull.util;
 
-import org.bukkit.ChatColor;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.profile.PlayerProfile;
 import org.bukkit.profile.PlayerTextures;
+import com.mojang.authlib.GameProfile;
+import com.mojang.authlib.properties.Property;
 
+import java.lang.reflect.Field;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -22,28 +25,69 @@ public class SkullUtil {
 
     public static ItemStack fromBase64(String base64OrUrlOrHash, String displayName) {
         ItemStack head = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) head.getItemMeta();
+        if (meta == null) {
+            return head;
+        }
 
-        head.editMeta(SkullMeta.class, meta -> {
-            meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', displayName));
+        meta.setDisplayName(ColorUtil.colorize(displayName));
 
-            try {
-                URL skinUrl = extractSkinUrl(base64OrUrlOrHash);
-                if (skinUrl == null) return;
-
-                UUID uuid = UUID.randomUUID();
-                String name = "pn" + uuid.toString().replace("-", "").substring(0, 14);
-                PlayerProfile profile = org.bukkit.Bukkit.getServer().createPlayerProfile(uuid, name);
-
-                PlayerTextures textures = profile.getTextures();
-                textures.setSkin(skinUrl);
-                profile.setTextures(textures);
-
-                meta.setOwnerProfile(profile);
-            } catch (Exception ignored) {
+        try {
+            URL skinUrl = extractSkinUrl(base64OrUrlOrHash);
+            if (skinUrl != null && !applyPaperProfile(meta, skinUrl)) {
+                applyGameProfile(meta, skinUrl);
             }
-        });
+        } catch (Exception ignored) {
+        }
 
+        head.setItemMeta(meta);
         return head;
+    }
+
+    private static boolean applyPaperProfile(SkullMeta meta, URL skinUrl) {
+        if (!ServerCompatibility.currentVersion().isAtLeast(1, 19, 0)) {
+            return false;
+        }
+
+        try {
+            UUID uuid = UUID.randomUUID();
+            PlayerProfile profile = Bukkit.createPlayerProfile(uuid, shortProfileName(uuid));
+            PlayerTextures textures = profile.getTextures();
+            textures.setSkin(skinUrl);
+            profile.setTextures(textures);
+            meta.setOwnerProfile(profile);
+            return true;
+        } catch (RuntimeException ignored) {
+        }
+        return false;
+    }
+
+    private static void applyGameProfile(SkullMeta meta, URL skinUrl) throws ReflectiveOperationException {
+        UUID uuid = UUID.randomUUID();
+        GameProfile profile = new GameProfile(uuid, shortProfileName(uuid));
+        String textureJson = "{\"textures\":{\"SKIN\":{\"url\":\"" + skinUrl + "\"}}}";
+        String encoded = Base64.getEncoder().encodeToString(textureJson.getBytes(StandardCharsets.UTF_8));
+        profile.getProperties().put("textures", new Property("textures", encoded));
+
+        Field profileField = findField(meta.getClass(), "profile");
+        profileField.setAccessible(true);
+        profileField.set(meta, profile);
+    }
+
+    private static Field findField(Class<?> type, String name) throws NoSuchFieldException {
+        Class<?> current = type;
+        while (current != null) {
+            try {
+                return current.getDeclaredField(name);
+            } catch (NoSuchFieldException ignored) {
+                current = current.getSuperclass();
+            }
+        }
+        throw new NoSuchFieldException(name);
+    }
+
+    private static String shortProfileName(UUID uuid) {
+        return "pn" + uuid.toString().replace("-", "").substring(0, 14);
     }
 
     private static URL extractSkinUrl(String input) {

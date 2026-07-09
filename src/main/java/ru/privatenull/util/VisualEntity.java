@@ -5,6 +5,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
 
@@ -24,19 +25,19 @@ public final class VisualEntity {
     }
 
     public static VisualEntity item(Location location, ItemStack itemStack) {
-        ArmorStand armorStand = spawnBaseArmorStand(location.clone().subtract(0.0, ARMOR_STAND_HEAD_OFFSET, 0.0));
+        ArmorStand armorStand = spawnBaseArmorStand(location.clone().subtract(0.0, ARMOR_STAND_HEAD_OFFSET, 0.0), true);
         setHelmet(armorStand, sanitizeItem(itemStack, Material.NETHER_STAR));
         return new VisualEntity(armorStand, Kind.BLOCK, location);
     }
 
     public static VisualEntity block(Location location, Material material) {
-        ArmorStand armorStand = spawnBaseArmorStand(location.clone().subtract(0.0, ARMOR_STAND_HEAD_OFFSET, 0.0));
+        ArmorStand armorStand = spawnBaseArmorStand(location.clone().subtract(0.0, ARMOR_STAND_HEAD_OFFSET, 0.0), true);
         setHelmet(armorStand, new ItemStack(material == null || material.isAir() ? Material.CHEST : material));
         return new VisualEntity(armorStand, Kind.BLOCK, location);
     }
 
     public static VisualEntity text(Location location, String text) {
-        ArmorStand armorStand = spawnBaseArmorStand(location.clone().subtract(0.0, ARMOR_STAND_TEXT_OFFSET, 0.0));
+        ArmorStand armorStand = spawnBaseArmorStand(location.clone().subtract(0.0, ARMOR_STAND_TEXT_OFFSET, 0.0), true);
         armorStand.setCustomName(text == null ? "" : text);
         armorStand.setCustomNameVisible(true);
         return new VisualEntity(armorStand, Kind.TEXT, location);
@@ -117,18 +118,21 @@ public final class VisualEntity {
         }
     }
 
-    private static ArmorStand spawnBaseArmorStand(Location entityLocation) {
+    private static ArmorStand spawnBaseArmorStand(Location entityLocation, boolean marker) {
         World world = requireWorld(entityLocation);
-        return world.spawn(entityLocation, ArmorStand.class, armorStand -> {
-            armorStand.setVisible(false);
-            armorStand.setGravity(false);
-            armorStand.setMarker(true);
-            armorStand.setSilent(true);
-            armorStand.setInvulnerable(true);
-            armorStand.setPersistent(false);
-            armorStand.setBasePlate(false);
-            armorStand.setArms(false);
-        });
+        ArmorStand armorStand = (ArmorStand) world.spawnEntity(entityLocation, EntityType.ARMOR_STAND);
+        armorStand.setVisible(false);
+        armorStand.setGravity(false);
+        armorStand.setMarker(marker);
+        armorStand.setCustomName("");
+        armorStand.setCustomNameVisible(false);
+        armorStand.setCollidable(false);
+        armorStand.setSilent(true);
+        armorStand.setInvulnerable(true);
+        armorStand.setPersistent(false);
+        armorStand.setBasePlate(false);
+        armorStand.setArms(false);
+        return armorStand;
     }
 
     private static void setHelmet(ArmorStand armorStand, ItemStack itemStack) {

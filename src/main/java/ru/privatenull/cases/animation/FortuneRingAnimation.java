@@ -133,7 +133,9 @@ public final class FortuneRingAnimation extends CaseAnimation {
                 rotation += 0.08 + progress * 0.10;
 
                 updateOrbit(eased, 0.35 + eased * 1.10, 1.55, rotation, 0.30f + (float) eased * 0.45f);
-                drawRing(world, base, rightAxis, 0.55 + eased * 1.05, 1.55, rotation, Particle.END_ROD);
+                if (tick % 2 == 0) {
+                    drawRing(world, base, rightAxis, 0.55 + eased * 1.05, 1.55, rotation, Particle.END_ROD);
+                }
 
                 if (tick == 1) {
                     world.playSound(base, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.20f, 1.35f);
@@ -149,13 +151,15 @@ public final class FortuneRingAnimation extends CaseAnimation {
                 rotation += 0.28 + progress * 0.10;
 
                 updateOrbit(1.0, 1.45, 1.55 + Math.sin(tick * 0.10) * 0.03, rotation, 0.76f);
-                drawRing(world, base, rightAxis, 1.45, 1.55, rotation, Particle.ELECTRIC_SPARK);
+                if (tick % 2 == 0) {
+                    drawRing(world, base, rightAxis, 1.45, 1.55, rotation, Particle.ELECTRIC_SPARK);
+                }
 
                 if (tick % 5 == 0) {
                     world.playSound(base, Sound.BLOCK_NOTE_BLOCK_PLING, 0.08f, 1.45f + (float) Math.sin(tick * 0.07) * 0.18f);
                 }
-                if (tick % 3 == 0) {
-                    world.spawnParticle(Particle.ENCHANT, center, 5, 0.55, 0.15, 0.55, 0.22);
+                if (tick % 6 == 0) {
+                    world.spawnParticle(Particle.ENCHANT, center, 3, 0.42, 0.12, 0.42, 0.14);
                 }
             }
 
@@ -166,8 +170,12 @@ public final class FortuneRingAnimation extends CaseAnimation {
                 rotation += speed;
 
                 updateOrbit(1.0, radius, 1.55 + progress * 0.10, rotation, 0.76f);
-                drawRing(world, base, rightAxis, radius, 1.60, rotation, Particle.END_ROD);
-                world.spawnParticle(Particle.PORTAL, center, 8, 0.50, 0.20, 0.50, 0.16);
+                if (tick % 2 == 0) {
+                    drawRing(world, base, rightAxis, radius, 1.60, rotation, Particle.END_ROD);
+                }
+                if (tick % 4 == 0) {
+                    world.spawnParticle(Particle.PORTAL, center, 4, 0.38, 0.14, 0.38, 0.10);
+                }
 
                 if (tick % 10 == 0) {
                     world.playSound(base, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.11f, 1.65f - (float) progress * 0.35f);
@@ -198,8 +206,10 @@ public final class FortuneRingAnimation extends CaseAnimation {
                     world.playSound(base, Sound.BLOCK_END_PORTAL_FRAME_FILL, 0.18f, 1.55f);
                 }
 
-                drawRing(world, base, rightAxis, 0.42 + progress * 0.22, 1.65, -rotation, Particle.FIREWORK);
-                world.spawnParticle(Particle.END_ROD, rewardLoc, 8, 0.22, 0.16, 0.22, 0.025);
+                if (tick % 2 == 0) {
+                    drawRing(world, base, rightAxis, 0.42 + progress * 0.22, 1.65, -rotation, Particle.FIREWORK);
+                }
+                world.spawnParticle(Particle.END_ROD, rewardLoc, 4, 0.18, 0.12, 0.18, 0.018);
             }
 
             private void updateOrbit(double alpha, double radius, double centerY, double rotation, float scale) {
@@ -286,19 +296,19 @@ public final class FortuneRingAnimation extends CaseAnimation {
     }
 
     private static void drawRing(World world, Location base, Vector rightAxis, double radius, double centerY, double rotation, Particle particle) {
-        for (int i = 0; i < 24; i++) {
-            double angle = angle(i, 24, rotation);
+        for (int i = 0; i < 12; i++) {
+            double angle = angle(i, 12, rotation);
             Location loc = verticalPoint(base, rightAxis, radius, centerY, angle);
             world.spawnParticle(particle, loc, 1, 0.0, 0.0, 0.0, 0.0);
         }
     }
 
     private static void spawnFinalBurst(World world, Location loc) {
-        world.spawnParticle(Particle.FIREWORK, loc, 28, 0.45, 0.28, 0.45, 0.04);
-        world.spawnParticle(Particle.END_ROD, loc, 45, 0.40, 0.35, 0.40, 0.035);
-        world.spawnParticle(Particle.ENCHANT, loc, 55, 0.55, 0.40, 0.55, 0.35);
-        for (int i = 0; i < 32; i++) {
-            double angle = angle(i, 32, 0.0);
+        world.spawnParticle(Particle.FIREWORK, loc, 14, 0.34, 0.20, 0.34, 0.03);
+        world.spawnParticle(Particle.END_ROD, loc, 22, 0.30, 0.26, 0.30, 0.026);
+        world.spawnParticle(Particle.ENCHANT, loc, 24, 0.42, 0.30, 0.42, 0.20);
+        for (int i = 0; i < 14; i++) {
+            double angle = angle(i, 14, 0.0);
             world.spawnParticle(Particle.ELECTRIC_SPARK,
                     loc.clone().add(Math.cos(angle) * 0.9, 0.05, Math.sin(angle) * 0.9),
                     1, 0.0, 0.0, 0.0, 0.02);

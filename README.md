@@ -1,5 +1,5 @@
 <img src="assets/pncases-cover-1.4.7.png"
-     alt="Paper и Purpur 1.19–1.21.11"
+     alt="Paper и Purpur 1.16.5–1.21.11"
      style="width: 100%;">
 <p align="center">
   <a href="https://github.com/Dy6HiLa/pnCases/releases -cover-v2.png" alt="pnCases — плагин кейсов для Minecraft" width="100%">
@@ -15,11 +15,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.7/pnCases-1.4.7.jar">
-    <img src="https://img.shields.io/badge/Скачать-1.4.7-429F91?style=for-the-badge&labelColor=17241F" alt="Скачать pnCases 1.4.7">
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.8/pnCases-1.4.8.jar">
+    <img src="https://img.shields.io/badge/Скачать-1.4.8-429F91?style=for-the-badge&labelColor=17241F" alt="Скачать pnCases 1.4.8">
   </a>
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4.7">
-    <img src="https://img.shields.io/badge/Changelog-1.4.7-D8DF9D?style=for-the-badge&labelColor=17241F" alt="Changelog pnCases 1.4.7">
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4.8">
+    <img src="https://img.shields.io/badge/Changelog-1.4.8-D8DF9D?style=for-the-badge&labelColor=17241F" alt="Changelog pnCases 1.4.8">
   </a>
   <a href="LICENSE">
     <img src="https://img.shields.io/badge/License-MIT-429F91?style=for-the-badge&labelColor=17241F" alt="Лицензия MIT">
@@ -27,7 +27,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Paper%20%2F%20Purpur-1.19--1.21.11-429F91?style=flat-square" alt="Paper и Purpur 1.19–1.21.11">
+  <img src="https://img.shields.io/badge/Paper%20%2F%20Purpur-1.16.5--1.21.11-429F91?style=flat-square" alt="Paper и Purpur 1.16.5–1.21.11">
   <img src="https://img.shields.io/badge/Java-17%2B-D8DF9D?style=flat-square" alt="Java 17+">
   <img src="https://img.shields.io/badge/Хранилище-SQLite-429F91?style=flat-square" alt="SQLite">
 </p>
@@ -119,12 +119,11 @@
 
 <hr>
 
-<h2>🚀 pnCases 1.4.7</h2>
+<h2>🚀 pnCases 1.4.8</h2>
 
 <p>
-  <strong>pnCases 1.4.7</strong> — небольшое обновление команд выдачи ключей.
-  Основная цель — дать скрытно выдавать ключи, например при автоматической
-  выдаче после покупки на сайте.
+  <strong>pnCases 1.4.8</strong> — крупное обновление совместимости, настройки интерфейсов
+  и анимаций кейсов. Поддерживаются Paper и Purpur от 1.16.5 до 1.21.11.
 </p>
 
 <table>
@@ -133,7 +132,7 @@
       <strong>Версия плагина</strong>
     </td>
     <td>
-      <code>1.4.7</code>
+      <code>1.4.8</code>
     </td>
   </tr>
   <tr>
@@ -141,7 +140,7 @@
       <strong>Поддерживаемые серверы</strong>
     </td>
     <td>
-      Paper / Purpur <code>1.19–1.21.11</code>
+      Paper / Purpur <code>1.16.5–1.21.11</code>
     </td>
   </tr>
   <tr>
@@ -157,12 +156,22 @@
       <strong>API Version</strong>
     </td>
     <td>
-      <code>1.19</code>
+      <code>1.16</code>
     </td>
   </tr>
 </table>
 
-<h3>Что нового</h3>
+<h3>Что нового в 1.4.8</h3>
+
+<ul>
+  <li>Поддержка Paper и Purpur 1.16.5 с отдельным совместимым режимом.</li>
+  <li>Поддержка MiniMessage в YAML: <code>&lt;red&gt;</code>, <code>&lt;bold&gt;</code>, <code>&lt;gradient:#42A5F5:#AB47BC&gt;</code>.</li>
+  <li>Анимация «Осада разбойников» для Minecraft 1.21+.</li>
+  <li>Настраиваемый <code>gui.yml</code> и расширенная Machine GUI.</li>
+  <li>Команда <code>/pncases createcase &lt;id&gt;</code>, алиас <code>/cases</code> и несколько точек установки для одного кейса.</li>
+</ul>
+
+<h3>Что было добавлено в 1.4.7</h3>
 
 <ul>
   <li>
@@ -210,8 +219,8 @@
 <ol>
   <li>
     Скачайте
-    <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.7/pnCases-1.4.7.jar">
-      <code>pnCases-1.4.7.jar</code>
+    <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.8/pnCases-1.4.8.jar">
+      <code>pnCases-1.4.8.jar</code>
     </a>.
   </li>
   <li>Переместите JAR-файл в папку <code>plugins/</code>.</li>
@@ -241,7 +250,7 @@
   </thead>
   <tbody>
     <tr>
-      <td>Paper / Purpur 1.19–1.21.11</td>
+      <td>Paper / Purpur 1.16.5–1.21.11</td>
       <td align="center"><strong>Обязательно</strong></td>
       <td>Серверное ядро</td>
     </tr>
@@ -419,7 +428,8 @@ rewards:
 
 <p>
   На Minecraft 1.21+ используется полный визуальный режим.
-  На Minecraft 1.19–1.20 автоматически включается совместимый режим.
+  На Minecraft 1.17–1.20 автоматически включается совместимый режим.
+  На Minecraft 1.16.5 доступен только «Круг фортуны».
 </p>
 
 <table>
@@ -664,7 +674,7 @@ plugins/pnCases/
 </p>
 
 <p align="center">
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.7/pnCases-1.4.7.jar">
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.8/pnCases-1.4.8.jar">
     Скачать последнюю версию
   </a>
   ·

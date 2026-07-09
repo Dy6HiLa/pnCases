@@ -10,6 +10,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitTask;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.cases.model.Reward;
+import ru.privatenull.util.ColorUtil;
 import ru.privatenull.pnCases;
 
 import java.util.Locale;
@@ -70,7 +71,7 @@ public abstract class CaseAnimation {
         if (name == null || name.isBlank()) {
             name = visual != null ? "&f" + visual.getType().name() : "&fНаграда";
         }
-        return ChatColor.translateAlternateColorCodes('&', name);
+        return ColorUtil.colorize(name);
     }
 
     private ItemStack findMatchingAnimationItem(Reward reward, CaseDefinition def) {
@@ -127,7 +128,7 @@ public abstract class CaseAnimation {
         if (reward == null || reward.type() != Reward.Type.LUCKPERMS || value == null || value.isBlank()) {
             return false;
         }
-        String stripped = ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&', value));
+        String stripped = ChatColor.stripColor(ColorUtil.colorize(value));
         if (stripped == null) {
             return false;
         }
@@ -146,7 +147,7 @@ public abstract class CaseAnimation {
         if (value == null || value.isBlank()) {
             return "";
         }
-        String colored = ChatColor.translateAlternateColorCodes('&', value);
+        String colored = ColorUtil.colorize(value);
         String stripped = ChatColor.stripColor(colored);
         if (stripped == null) {
             stripped = colored;

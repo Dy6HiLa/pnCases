@@ -1,11 +1,12 @@
 name: playerpoints
+display-name: "&bКейс с поинтами"
 
 hologram:
   enabled: true
   type: TEXT
   y: 1.5
   lines:
-    - "§x§0§0§D§5§F§F§lКейс PlayerPoints"
+    - "§x§0§0§D§5§F§F§lКейс с поинтами"
     - "&7Нажмите ПКМ, чтобы открыть"
 
 idle-particles:
@@ -20,10 +21,10 @@ idle-particles:
   view_distance: 28
   item:
     material: SUNFLOWER
-    name: "§x§0§0§D§5§F§FКейс PlayerPoints"
+    name: "§x§0§0§D§5§F§FКейс с поинтами"
 
 gui:
-  title: "&8Кейс PlayerPoints"
+  title: "&8Кейс с поинтами"
   size: 54
   open_slot: 22
   animation_slot: 49
@@ -38,16 +39,16 @@ gui:
       material: BARRIER
       name: "&8История пуста"
   animation-item:
-    material: CLOCK
-    name: "§x§4§2§9§F§9§1Выбор анимации"
+    material: NETHER_STAR
+    name: "§x§A§0§E§F§A§1Круг фортуны"
     lore:
       - "&7Нажмите, чтобы выбрать анимацию открытия."
   open-item:
     material: AMETHYST_SHARD
-    name: "§x§0§0§D§5§F§FКейс PlayerPoints"
+    name: "§x§0§0§D§5§F§FКейс с поинтами"
     lore:
       - ""
-      - "&7Можно получить поинты через PlayerPoints."
+      - "&7Можно получить серверные поинты."
       - ""
 
 cost:

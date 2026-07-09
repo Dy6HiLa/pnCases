@@ -1,7 +1,6 @@
 package ru.privatenull.listeners;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.configuration.ConfigurationSection;
@@ -21,6 +20,10 @@ import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.cases.model.CaseGuiLayout;
 import ru.privatenull.cases.model.IdleParticleSettings;
 import ru.privatenull.util.EnchantmentCompat;
+import ru.privatenull.util.ColorUtil;
+import ru.privatenull.util.InventoryViewCompat;
+import ru.privatenull.util.MaterialCompat;
+import ru.privatenull.util.ServerCompatibility;
 
 import java.util.ArrayList;
 import java.util.Base64;
@@ -34,13 +37,14 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class MachineGuiListener implements Listener {
 
-    private static final int SLOT_MAIN_ANIMATION = 11;
-    private static final int SLOT_MAIN_MENU = 13;
-    private static final int SLOT_MAIN_HOLOGRAM = 15;
-    private static final int SLOT_MAIN_PARTICLES = 22;
-    private static final int SLOT_MAIN_PURCHASE = 29;
-    private static final int SLOT_MAIN_PREVIEW = 31;
-    private static final int SLOT_MAIN_CLOSE = 33;
+    private static final int SLOT_MAIN_ANIMATION = 10;
+    private static final int SLOT_MAIN_MENU = 12;
+    private static final int SLOT_MAIN_TOGGLES = 14;
+    private static final int SLOT_MAIN_HOLOGRAM = 16;
+    private static final int SLOT_MAIN_PARTICLES = 28;
+    private static final int SLOT_MAIN_PURCHASE = 30;
+    private static final int SLOT_MAIN_PREVIEW = 32;
+    private static final int SLOT_MAIN_CLOSE = 49;
 
     private static final int SLOT_ANIMATION_DURATION = 28;
     private static final int SLOT_ANIMATION_CYCLE = 30;
@@ -61,12 +65,21 @@ public final class MachineGuiListener implements Listener {
     private static final int SLOT_PARTICLES_SPEED = 33;
     private static final int SLOT_PARTICLES_INTERVAL = 35;
 
+    private static final int SLOT_TOGGLES_HOLOGRAM = 19;
+    private static final int SLOT_TOGGLES_SHOWCASE = 21;
+    private static final int SLOT_TOGGLES_EFFECTS = 23;
+    private static final int SLOT_TOGGLES_XP_BUY = 25;
+    private static final int SLOT_TOGGLES_PARTICLES_MENU = 30;
+    private static final int SLOT_TOGGLES_HOLOGRAM_MENU = 32;
+    private static final int SLOT_TOGGLES_PURCHASE_MENU = 34;
+
     private static final int SLOT_XP_BUY = 21;
     private static final int SLOT_XP_LEVELS = 23;
 
     private static final int SLOT_GUI_SIZE = 10;
     private static final int SLOT_GUI_TITLE = 12;
     private static final int SLOT_LAYOUT = 14;
+    private static final int SLOT_CASE_DISPLAY_NAME = 16;
     private static final int SLOT_OPEN_ITEM = 28;
     private static final int SLOT_DECOR_ITEM = 30;
     private static final int SLOT_HISTORY_EMPTY_ITEM = 32;
@@ -74,7 +87,7 @@ public final class MachineGuiListener implements Listener {
     private static final int SLOT_BACK = 49;
 
     private static final int PLAYER_ANIMATION_SLOT = 10;
-    private static final int[] FIXED_ANIMATION_SLOTS = {11, 12, 13, 14, 15, 16};
+    private static final int[] FIXED_ANIMATION_SLOTS = {11, 12, 13, 14, 15, 16, 17};
 
     private final CaseManager caseManager;
     private final Map<UUID, PendingTextEdit> pendingTextEdits = new ConcurrentHashMap<>();
@@ -93,7 +106,8 @@ public final class MachineGuiListener implements Listener {
         Inventory inv = Bukkit.createInventory(
                 MachineGuiHolder.main(def.name()),
                 54,
-                color("&8Настройка кейса: " + def.name())
+                caseManager.getPlugin().getGuiConfig().text("machine.titles.main", "&8Настройка кейса: {case}",
+                        caseReplacements(def))
         );
 
         fillMainInventory(inv, def);
@@ -103,16 +117,16 @@ public final class MachineGuiListener implements Listener {
 
     private void fillMainInventory(Inventory inv, CaseDefinition def) {
         fill(inv, pane(Material.BLACK_STAINED_GLASS_PANE, " ", List.of()));
-        inv.setItem(4, button(Material.CHEST,
+        inv.setItem(4, guiButton("machine.main.header", Material.CHEST,
                 "&x&4&2&9&F&9&1Настройка кейса",
                 List.of(
                         "",
-                        "&7Кейс: &f" + def.name(),
+                        "&7Кейс: &f{case}",
                         "&7Выбери раздел ниже.",
                         ""
-                )));
+                ), def));
 
-        inv.setItem(SLOT_MAIN_ANIMATION, sectionButton(Material.NETHER_STAR,
+        inv.setItem(SLOT_MAIN_ANIMATION, guiSectionButton("machine.main.animation", machineIcon(Material.NETHER_STAR, Material.CLOCK),
                 "&x&4&2&9&F&9&1Анимация",
                 List.of(
                         "&7Фиксированная анимация или выбор игрока.",
@@ -121,8 +135,8 @@ public final class MachineGuiListener implements Listener {
                         "&7Сейчас: " + currentAnimationLabel(def),
                         "",
                         "&7ЛКМ &8— &fоткрыть раздел"
-                )));
-        inv.setItem(SLOT_MAIN_MENU, sectionButton(Material.CRAFTING_TABLE,
+                ), def));
+        inv.setItem(SLOT_MAIN_MENU, guiSectionButton("machine.main.menu", Material.CRAFTING_TABLE,
                 "&x&4&2&9&F&9&1Меню кейса",
                 List.of(
                         "&7Размер меню, название, кнопки и декор.",
@@ -131,8 +145,21 @@ public final class MachineGuiListener implements Listener {
                         "&7Размер: &f" + def.guiLayout().size() + " слотов",
                         "",
                         "&7ЛКМ &8— &fоткрыть раздел"
-                )));
-        inv.setItem(SLOT_MAIN_HOLOGRAM, sectionButton(Material.ARMOR_STAND,
+                ), def));
+        inv.setItem(SLOT_MAIN_TOGGLES, guiSectionButton("machine.main.toggles", Material.LEVER,
+                "&x&4&2&9&F&9&1Быстрые настройки",
+                List.of(
+                        "&7Один раздел для включения и выключения.",
+                        "&7Голограмма, витрина, эффекты и покупка.",
+                        "",
+                        "&7Голограмма: " + (isHologramEnabled(def) ? "&aвключена" : "&cвыключена"),
+                        "&7Витрина: " + (def.idleParticles().enabled() ? "&aвключена" : "&cвыключена"),
+                        "&7Эффекты: " + (def.idleParticles().effectsEnabled() ? "&aвключены" : "&cвыключены"),
+                        "&7Покупка за опыт: " + (isXpBuyEnabled(def) ? "&aвключена" : "&cвыключена"),
+                        "",
+                        "&7ЛКМ &8— &fоткрыть переключатели"
+                ), def));
+        inv.setItem(SLOT_MAIN_HOLOGRAM, guiSectionButton("machine.main.hologram", machineIcon(Material.ARMOR_STAND, Material.OAK_SIGN),
                 "&x&4&2&9&F&9&1Голограмма",
                 List.of(
                         "&7Текст над кейсом и высота.",
@@ -141,8 +168,8 @@ public final class MachineGuiListener implements Listener {
                         "&7Высота: &f" + readHologramHeight(def),
                         "",
                         "&7ЛКМ &8— &fоткрыть раздел"
-                )));
-        inv.setItem(SLOT_MAIN_PARTICLES, sectionButton(def.idleParticles().theme().icon(),
+                ), def));
+        inv.setItem(SLOT_MAIN_PARTICLES, guiSectionButton("machine.main.showcase", Material.ITEM_FRAME,
                 "&x&4&2&9&F&9&1Витрина кейса",
                 List.of(
                         "&7Предмет над кейсом и аккуратные эффекты вокруг.",
@@ -154,8 +181,8 @@ public final class MachineGuiListener implements Listener {
                         "&7Тема: &f" + def.idleParticles().theme().displayName(),
                         "",
                         "&7ЛКМ &8— &fоткрыть раздел"
-                )));
-        inv.setItem(SLOT_MAIN_PURCHASE, sectionButton(Material.EXPERIENCE_BOTTLE,
+                ), def));
+        inv.setItem(SLOT_MAIN_PURCHASE, guiSectionButton("machine.main.purchase", Material.EXPERIENCE_BOTTLE,
                 "&x&4&2&9&F&9&1Покупка за опыт",
                 List.of(
                         "&7Можно включить покупку ключа за уровни.",
@@ -164,18 +191,18 @@ public final class MachineGuiListener implements Listener {
                         "&7Цена: &f" + Math.max(0, def.buyKeyWithXpLevels()) + " уровней",
                         "",
                         "&7ЛКМ &8— &fоткрыть раздел"
-                )));
-        inv.setItem(SLOT_MAIN_PREVIEW, sectionButton(Material.ENDER_EYE,
+                ), def));
+        inv.setItem(SLOT_MAIN_PREVIEW, guiSectionButton("machine.main.preview", machineIcon(Material.ENDER_EYE, Material.BOOK),
                 "&x&4&2&9&F&9&1Предпросмотр",
                 List.of(
                         "&7Открывает обычное меню кейса",
                         "&7с текущими настройками.",
                         "",
                         "&7ЛКМ &8— &fпосмотреть"
-                )));
-        inv.setItem(SLOT_MAIN_CLOSE, button(Material.BARRIER,
+                ), def));
+        inv.setItem(SLOT_MAIN_CLOSE, guiButton("machine.main.close", Material.BARRIER,
                 "&cЗакрыть",
-                List.of("", "&7ЛКМ &8— &fзакрыть настройку")));
+                List.of("", "&7ЛКМ &8— &fзакрыть настройку"), def));
     }
 
     @EventHandler
@@ -188,7 +215,7 @@ public final class MachineGuiListener implements Listener {
         }
 
         int slot = event.getRawSlot();
-        int topSize = event.getView().getTopInventory().getSize();
+        int topSize = event.getInventory().getSize();
         if (slot >= topSize) {
             event.setCancelled(false);
             return;
@@ -214,6 +241,7 @@ public final class MachineGuiListener implements Listener {
             case PARTICLES -> handleParticlesClick(player, event, def, slot);
             case MENU -> handleMenuClick(player, event, def, slot);
             case PURCHASE -> handlePurchaseClick(player, event, def, slot);
+            case TOGGLES -> handleTogglesClick(player, event, def, slot);
         }
     }
 
@@ -251,6 +279,11 @@ public final class MachineGuiListener implements Listener {
             return;
         }
 
+        if (slot == SLOT_MAIN_TOGGLES) {
+            openToggles(player, def.name());
+            return;
+        }
+
         if (slot == SLOT_MAIN_HOLOGRAM) {
             openHologram(player, def.name());
             return;
@@ -279,6 +312,10 @@ public final class MachineGuiListener implements Listener {
         if (type == TextEditType.GUI_TITLE) {
             player.sendMessage(color("&x&4&2&9&F&9&1[pnCases] &fНапиши новое название меню кейса в чат."));
             player.sendMessage(color("&7Текущее: &f" + def.guiTitle()));
+        } else if (type == TextEditType.CASE_DISPLAY_NAME) {
+            player.sendMessage(color("&x&4&2&9&F&9&1[pnCases] &fНапиши отображаемое название кейса в чат."));
+            player.sendMessage(color("&7Оно будет видно в панели администратора и сообщениях."));
+            player.sendMessage(color("&7Текущее: &f" + def.displayName()));
         } else {
             player.sendMessage(color("&x&4&2&9&F&9&1[pnCases] &fНапиши строки голограммы через &b|&f."));
             player.sendMessage(color("&7Пример: &aДонат кейс &8| &7ПКМ, чтобы открыть"));
@@ -306,6 +343,12 @@ public final class MachineGuiListener implements Listener {
             return;
         }
 
+        if (pending.type() == TextEditType.CASE_DISPLAY_NAME) {
+            update(player, pending.caseName(), section -> section.set("display-name", message));
+            openMain(player, pending.caseName());
+            return;
+        }
+
         List<String> lines = parseHologramLines(message);
         if (lines.isEmpty()) {
             player.sendMessage(color("&c[pnCases] Строки голограммы пустые."));
@@ -321,6 +364,134 @@ public final class MachineGuiListener implements Listener {
         openMain(player, pending.caseName());
     }
 
+    private void openToggles(Player player, String caseName) {
+        CaseDefinition def = caseManager.getCaseByName(caseName);
+        if (def == null) return;
+
+        Inventory inv = Bukkit.createInventory(
+                MachineGuiHolder.toggles(caseName),
+                54,
+                caseManager.getPlugin().getGuiConfig().text("machine.titles.toggles", "&8Быстрые настройки",
+                        caseReplacements(def))
+        );
+
+        IdleParticleSettings settings = def.idleParticles();
+        fill(inv, pane(Material.BLACK_STAINED_GLASS_PANE, " ", List.of()));
+        inv.setItem(4, guiButton("machine.toggles.header", Material.LEVER,
+                "&x&4&2&9&F&9&1Раздел: Быстрые настройки",
+                List.of(
+                        "",
+                        "&7Здесь можно быстро включить или выключить",
+                        "&7то, что игрок видит около кейса и в меню.",
+                        ""
+                ), def));
+        inv.setItem(SLOT_TOGGLES_HOLOGRAM, quickToggleItem("machine.toggles.hologram",
+                isHologramEnabled(def) ? Material.LIME_DYE : Material.GRAY_DYE,
+                "&x&4&2&9&F&9&1Голограмма над кейсом",
+                isHologramEnabled(def),
+                List.of(
+                        "&7Показывает текст над блоком кейса.",
+                        "&7Если выключить, текста над кейсом не будет."
+                ), def));
+        inv.setItem(SLOT_TOGGLES_SHOWCASE, quickToggleItem("machine.toggles.showcase",
+                settings.enabled() ? Material.ITEM_FRAME : Material.GRAY_DYE,
+                "&x&4&2&9&F&9&1Витрина над кейсом",
+                settings.enabled(),
+                List.of(
+                        "&7Показывает предмет над свободным кейсом.",
+                        "&7Во время открытия витрина скрывается."
+                ), def));
+        inv.setItem(SLOT_TOGGLES_EFFECTS, quickToggleItem("machine.toggles.effects",
+                settings.effectsEnabled() ? Material.GLOWSTONE_DUST : Material.GRAY_DYE,
+                "&x&4&2&9&F&9&1Эффекты витрины",
+                settings.effectsEnabled(),
+                List.of(
+                        "&7Добавляет аккуратные частицы вокруг витрины.",
+                        "&7Если выключить, останется только предмет."
+                ), def));
+        inv.setItem(SLOT_TOGGLES_XP_BUY, quickToggleItem("machine.toggles.xp-buy",
+                isXpBuyEnabled(def) ? Material.EXPERIENCE_BOTTLE : Material.GLASS_BOTTLE,
+                "&x&4&2&9&F&9&1Покупка ключа за опыт",
+                isXpBuyEnabled(def),
+                List.of(
+                        "&7Игрок сможет купить ключ за уровни опыта.",
+                        "&7Если выключить, кейс можно открыть только ключом."
+                ), def));
+
+        inv.setItem(SLOT_TOGGLES_PARTICLES_MENU, guiSectionButton("machine.toggles.details-showcase", Material.ENDER_EYE,
+                "&x&4&2&9&F&9&1Подробнее: Витрина",
+                List.of(
+                        "&7Предмет витрины, стиль, тема, радиус,",
+                        "&7высота, скорость и частота.",
+                        "",
+                        "&7ЛКМ &8— &fоткрыть подробные настройки"
+                ), def));
+        inv.setItem(SLOT_TOGGLES_HOLOGRAM_MENU, guiSectionButton("machine.toggles.details-hologram", machineIcon(Material.ARMOR_STAND, Material.OAK_SIGN),
+                "&x&4&2&9&F&9&1Подробнее: Голограмма",
+                List.of(
+                        "&7Текст над кейсом и высота.",
+                        "",
+                        "&7ЛКМ &8— &fоткрыть подробные настройки"
+                ), def));
+        inv.setItem(SLOT_TOGGLES_PURCHASE_MENU, guiSectionButton("machine.toggles.details-purchase", Material.EXPERIENCE_BOTTLE,
+                "&x&4&2&9&F&9&1Подробнее: Покупка",
+                List.of(
+                        "&7Цена покупки ключа за уровни опыта.",
+                        "",
+                        "&7ЛКМ &8— &fоткрыть подробные настройки"
+                ), def));
+        inv.setItem(SLOT_BACK, backButton(def));
+        player.openInventory(inv);
+        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.18f, 1.25f);
+    }
+
+    private void handleTogglesClick(Player player, InventoryClickEvent event, CaseDefinition def, int slot) {
+        if (slot == SLOT_BACK) {
+            openMain(player, def.name());
+            return;
+        }
+
+        if (slot == SLOT_TOGGLES_HOLOGRAM) {
+            boolean enabled = isHologramEnabled(def);
+            update(player, def.name(), section -> section(section, "hologram").set("enabled", !enabled));
+            openToggles(player, def.name());
+            return;
+        }
+
+        if (slot == SLOT_TOGGLES_SHOWCASE) {
+            update(player, def.name(), section -> section(section, "idle-particles").set("enabled", !def.idleParticles().enabled()));
+            openToggles(player, def.name());
+            return;
+        }
+
+        if (slot == SLOT_TOGGLES_EFFECTS) {
+            update(player, def.name(), section -> section(section, "idle-particles").set("effects", !def.idleParticles().effectsEnabled()));
+            openToggles(player, def.name());
+            return;
+        }
+
+        if (slot == SLOT_TOGGLES_XP_BUY) {
+            boolean enabled = isXpBuyEnabled(def);
+            update(player, def.name(), section -> section(section, "cost").set("buy_xp_enabled", !enabled));
+            openToggles(player, def.name());
+            return;
+        }
+
+        if (slot == SLOT_TOGGLES_PARTICLES_MENU) {
+            openParticles(player, def.name());
+            return;
+        }
+
+        if (slot == SLOT_TOGGLES_HOLOGRAM_MENU) {
+            openHologram(player, def.name());
+            return;
+        }
+
+        if (slot == SLOT_TOGGLES_PURCHASE_MENU) {
+            openPurchase(player, def.name());
+        }
+    }
+
     private void openAnimation(Player player, String caseName) {
         CaseDefinition def = caseManager.getCaseByName(caseName);
         if (def == null) return;
@@ -328,47 +499,60 @@ public final class MachineGuiListener implements Listener {
         Inventory inv = Bukkit.createInventory(
                 MachineGuiHolder.animation(caseName),
                 54,
-                color("&8Настройка анимации")
+                caseManager.getPlugin().getGuiConfig().text("machine.titles.animation", "&8Настройка анимации",
+                        caseReplacements(def))
         );
 
         fill(inv, pane(Material.BLACK_STAINED_GLASS_PANE, " ", List.of()));
-        inv.setItem(4, button(Material.NETHER_STAR,
+        inv.setItem(4, guiButton("machine.animation.header", machineIcon(Material.NETHER_STAR, Material.CLOCK),
                 "&x&4&2&9&F&9&1Раздел: Анимация",
-                List.of(
+                ServerCompatibility.useMinecraft1165AnimationMode()
+                        ? List.of(
+                        "",
+                        "&7На Minecraft 1.16.5 доступна одна анимация:",
+                        AnimationType.FORTUNE_RING.displayName(),
+                        "&7Она работает через совместимый режим.",
+                        "")
+                        : List.of(
                         "",
                         "&7Выбери, кто задаёт анимацию открытия.",
                         "&7Ниже можно настроить плавность и скорость.",
                         ""
-                )));
-        inv.setItem(PLAYER_ANIMATION_SLOT, playerChoiceAnimationItem(def.fixedAnimation() == null));
+                ), def));
+        inv.setItem(PLAYER_ANIMATION_SLOT, ServerCompatibility.useMinecraft1165AnimationMode()
+                ? legacyAnimationModeItem()
+                : playerChoiceAnimationItem(def.fixedAnimation() == null));
 
-        AnimationType[] types = AnimationType.values();
+        AnimationType[] types = availableAnimationTypes();
         for (int i = 0; i < types.length && i < FIXED_ANIMATION_SLOTS.length; i++) {
             AnimationType type = types[i];
-            inv.setItem(FIXED_ANIMATION_SLOTS[i], fixedAnimationItem(type, type == def.fixedAnimation()));
+            boolean selected = ServerCompatibility.useMinecraft1165AnimationMode()
+                    ? type == AnimationType.FORTUNE_RING
+                    : type == def.fixedAnimation();
+            inv.setItem(FIXED_ANIMATION_SLOTS[i], fixedAnimationItem(type, selected));
         }
 
-        inv.setItem(SLOT_ANIMATION_DURATION, animationNumberItem(Material.REPEATER,
+        inv.setItem(SLOT_ANIMATION_DURATION, animationNumberItem(def, "machine.animation.duration", Material.REPEATER,
                 "&x&4&2&9&F&9&1Длительность",
                 def.durationTicks(),
                 "тиков",
                 List.of("&7Сколько длится открытие кейса.", "", "&7ЛКМ &8— &f+5", "&7ПКМ &8— &f-5", "&7Shift &8— &fшаг 20")));
-        inv.setItem(SLOT_ANIMATION_CYCLE, animationNumberItem(Material.COMPARATOR,
+        inv.setItem(SLOT_ANIMATION_CYCLE, animationNumberItem(def, "machine.animation.cycle", Material.COMPARATOR,
                 "&x&4&2&9&F&9&1Смена предметов",
                 def.cycleEveryTicks(),
                 "тиков",
                 List.of("&7Меньше значение &8— &fбыстрее рулетка.", "", "&7ЛКМ &8— &f+1", "&7ПКМ &8— &f-1")));
-        inv.setItem(SLOT_ANIMATION_RISE, animationNumberItem(Material.FEATHER,
+        inv.setItem(SLOT_ANIMATION_RISE, animationNumberItem(def, "machine.animation.rise", Material.FEATHER,
                 "&x&4&2&9&F&9&1Высота подъёма",
                 round1(def.riseBlocks()),
                 "блоков",
                 List.of("&7Насколько высоко поднимается награда.", "", "&7ЛКМ &8— &f+0.1", "&7ПКМ &8— &f-0.1", "&7Shift &8— &fшаг 0.5")));
-        inv.setItem(SLOT_ANIMATION_SPIN, animationNumberItem(Material.ENDER_EYE,
+        inv.setItem(SLOT_ANIMATION_SPIN, animationNumberItem(def, "machine.animation.spin", Material.ENDER_EYE,
                 "&x&4&2&9&F&9&1Вращение",
                 round1(def.spinDegreesPerTick()),
                 "град./тик",
                 List.of("&7Как быстро крутится награда.", "", "&7ЛКМ &8— &f+1", "&7ПКМ &8— &f-1", "&7Shift &8— &fшаг 10")));
-        inv.setItem(SLOT_BACK, backButton());
+        inv.setItem(SLOT_BACK, backButton(def));
         player.openInventory(inv);
         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.18f, 1.25f);
     }
@@ -380,6 +564,10 @@ public final class MachineGuiListener implements Listener {
         }
 
         if (slot == PLAYER_ANIMATION_SLOT) {
+            if (ServerCompatibility.useMinecraft1165AnimationMode()) {
+                player.sendMessage(color("&x&4&2&9&F&9&1[pnCases] &fНа Minecraft 1.16.5 доступен только &eКруг фортуны&f."));
+                return;
+            }
             update(player, def.name(), section -> section(section, "animation").set("fixed", null));
             openAnimation(player, def.name());
             return;
@@ -421,7 +609,7 @@ public final class MachineGuiListener implements Listener {
             return;
         }
 
-        AnimationType[] types = AnimationType.values();
+        AnimationType[] types = availableAnimationTypes();
         for (int i = 0; i < types.length && i < FIXED_ANIMATION_SLOTS.length; i++) {
             if (slot != FIXED_ANIMATION_SLOTS[i]) continue;
 
@@ -439,17 +627,18 @@ public final class MachineGuiListener implements Listener {
         Inventory inv = Bukkit.createInventory(
                 MachineGuiHolder.hologram(caseName),
                 54,
-                color("&8Настройка голограммы")
+                caseManager.getPlugin().getGuiConfig().text("machine.titles.hologram", "&8Настройка голограммы",
+                        caseReplacements(def))
         );
 
         fill(inv, pane(Material.BLACK_STAINED_GLASS_PANE, " ", List.of()));
-        inv.setItem(4, button(Material.ARMOR_STAND,
+        inv.setItem(4, guiButton("machine.hologram.header", machineIcon(Material.ARMOR_STAND, Material.OAK_SIGN),
                 "&x&4&2&9&F&9&1Раздел: Голограмма",
-                List.of("", "&7Настрой текст над кейсом и его высоту.", "")));
+                List.of("", "&7Настрой текст над кейсом и его высоту.", ""), def));
         inv.setItem(SLOT_HOLOGRAM_TOGGLE, hologramToggleItem(def));
         inv.setItem(SLOT_HOLOGRAM_HEIGHT, hologramHeightItem(def));
         inv.setItem(SLOT_HOLOGRAM_LINES, hologramLinesItem(def));
-        inv.setItem(SLOT_BACK, backButton());
+        inv.setItem(SLOT_BACK, backButton(def));
         player.openInventory(inv);
         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.18f, 1.25f);
     }
@@ -492,12 +681,13 @@ public final class MachineGuiListener implements Listener {
         Inventory inv = Bukkit.createInventory(
                 MachineGuiHolder.particles(caseName),
                 54,
-                color("&8Витрина кейса")
+                caseManager.getPlugin().getGuiConfig().text("machine.titles.showcase", "&8Витрина кейса",
+                        caseReplacements(def))
         );
 
         IdleParticleSettings settings = def.idleParticles();
         fill(inv, pane(Material.BLACK_STAINED_GLASS_PANE, " ", List.of()));
-        inv.setItem(4, button(settings.theme().icon(),
+        inv.setItem(4, guiButton("machine.showcase.header", Material.ITEM_FRAME,
                 "&x&4&2&9&F&9&1Раздел: Витрина кейса",
                 List.of(
                         "",
@@ -505,25 +695,25 @@ public final class MachineGuiListener implements Listener {
                         "&7Эффекты можно оставить или выключить отдельно.",
                         "&7Когда игрок открывает этот блок, витрина скрывается.",
                         ""
-                )));
-        inv.setItem(SLOT_PARTICLES_TOGGLE, particlesToggleItem(settings));
-        inv.setItem(SLOT_PARTICLES_EFFECTS, particlesEffectsItem(settings));
+                ), def));
+        inv.setItem(SLOT_PARTICLES_TOGGLE, particlesToggleItem(def, settings));
+        inv.setItem(SLOT_PARTICLES_EFFECTS, particlesEffectsItem(def, settings));
         inv.setItem(SLOT_PARTICLES_ITEM, particlesDisplayItem(def, settings));
-        inv.setItem(SLOT_PARTICLES_STYLE, particlesStyleItem(settings));
-        inv.setItem(SLOT_PARTICLES_THEME, particlesThemeItem(settings));
-        inv.setItem(SLOT_PARTICLES_RADIUS, particlesNumberItem(Material.ENDER_PEARL,
+        inv.setItem(SLOT_PARTICLES_STYLE, particlesStyleItem(def, settings));
+        inv.setItem(SLOT_PARTICLES_THEME, particlesThemeItem(def, settings));
+        inv.setItem(SLOT_PARTICLES_RADIUS, particlesNumberItem(def, "machine.showcase.radius", Material.ENDER_PEARL,
                 "&x&4&2&9&F&9&1Радиус", settings.radius(), "блока",
                 List.of("&7ЛКМ &8— &f+0.1", "&7ПКМ &8— &f-0.1", "&7Shift &8— &fшаг 0.5")));
-        inv.setItem(SLOT_PARTICLES_HEIGHT, particlesNumberItem(Material.FEATHER,
+        inv.setItem(SLOT_PARTICLES_HEIGHT, particlesNumberItem(def, "machine.showcase.height", Material.FEATHER,
                 "&x&4&2&9&F&9&1Высота", settings.height(), "блока",
                 List.of("&7ЛКМ &8— &f+0.1", "&7ПКМ &8— &f-0.1", "&7Shift &8— &fшаг 0.5")));
-        inv.setItem(SLOT_PARTICLES_SPEED, particlesNumberItem(Material.REPEATER,
+        inv.setItem(SLOT_PARTICLES_SPEED, particlesNumberItem(def, "machine.showcase.speed", Material.REPEATER,
                 "&x&4&2&9&F&9&1Скорость", settings.speed(), "",
                 List.of("&7ЛКМ &8— &fбыстрее", "&7ПКМ &8— &fмедленнее", "&7Shift &8— &fкрупный шаг")));
-        inv.setItem(SLOT_PARTICLES_INTERVAL, particlesNumberItem(Material.COMPARATOR,
+        inv.setItem(SLOT_PARTICLES_INTERVAL, particlesNumberItem(def, "machine.showcase.interval", Material.COMPARATOR,
                 "&x&4&2&9&F&9&1Частота", settings.intervalTicks(), "тиков",
                 List.of("&7ЛКМ &8— &fреже", "&7ПКМ &8— &fчаще", "&7Shift &8— &fшаг 4 тика")));
-        inv.setItem(SLOT_BACK, backButton());
+        inv.setItem(SLOT_BACK, backButton(def));
         player.openInventory(inv);
         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.18f, 1.25f);
     }
@@ -619,11 +809,12 @@ public final class MachineGuiListener implements Listener {
         Inventory inv = Bukkit.createInventory(
                 MachineGuiHolder.menu(caseName),
                 54,
-                color("&8Настройка меню кейса")
+                caseManager.getPlugin().getGuiConfig().text("machine.titles.menu", "&8Настройка меню кейса",
+                        caseReplacements(def))
         );
 
         fill(inv, pane(Material.BLACK_STAINED_GLASS_PANE, " ", List.of()));
-        inv.setItem(4, button(Material.CRAFTING_TABLE,
+        inv.setItem(4, guiButton("machine.menu.header", Material.CRAFTING_TABLE,
                 "&x&4&2&9&F&9&1Раздел: Меню кейса",
                 List.of(
                         "",
@@ -631,10 +822,11 @@ public final class MachineGuiListener implements Listener {
                         "&7Предмет из нижнего инвентаря можно взять на курсор",
                         "&7и нажать им по нужной кнопке.",
                         ""
-                )));
+                ), def));
         inv.setItem(SLOT_GUI_SIZE, guiSizeItem(def));
         inv.setItem(SLOT_GUI_TITLE, guiTitleItem(def));
-        inv.setItem(SLOT_LAYOUT, button(Material.CRAFTING_TABLE,
+        inv.setItem(SLOT_CASE_DISPLAY_NAME, caseDisplayNameItem(def));
+        inv.setItem(SLOT_LAYOUT, guiButton("machine.menu.layout", Material.CRAFTING_TABLE,
                 "&x&4&2&9&F&9&1Расставить слоты",
                 List.of(
                         "",
@@ -643,20 +835,20 @@ public final class MachineGuiListener implements Listener {
                         "&7Предмет на курсоре заменяет предмет роли.",
                         "",
                         "&7ЛКМ &8— &fоткрыть"
-                )));
-        inv.setItem(SLOT_OPEN_ITEM, copyItemButton(def.openButton(), Material.CHEST,
+                ), def));
+        inv.setItem(SLOT_OPEN_ITEM, copyItemButton("machine.menu.open-item", def.openButton(), Material.CHEST, def,
                 "&x&4&2&9&F&9&1Кнопка кейса",
                 "Предмет, по которому игрок открывает кейс."));
-        inv.setItem(SLOT_DECOR_ITEM, copyItemButton(def.guiLayout().decorItem(), Material.GRAY_STAINED_GLASS_PANE,
+        inv.setItem(SLOT_DECOR_ITEM, copyItemButton("machine.menu.decor-item", def.guiLayout().decorItem(), Material.GRAY_STAINED_GLASS_PANE, def,
                 "&x&4&2&9&F&9&1Декор меню",
                 "Предмет, которым заполняются декоративные слоты."));
-        inv.setItem(SLOT_HISTORY_EMPTY_ITEM, copyItemButton(def.guiLayout().emptyHistoryItem(), Material.BARRIER,
+        inv.setItem(SLOT_HISTORY_EMPTY_ITEM, copyItemButton("machine.menu.history-empty-item", def.guiLayout().emptyHistoryItem(), Material.BARRIER, def,
                 "&x&4&2&9&F&9&1Пустая история",
                 "Предмет, который показывается, когда открытий ещё нет."));
-        inv.setItem(SLOT_PREVIEW_CASE, button(Material.ENDER_EYE,
+        inv.setItem(SLOT_PREVIEW_CASE, guiButton("machine.menu.preview-case", Material.ENDER_EYE,
                 "&x&4&2&9&F&9&1Предпросмотр меню",
-                List.of("", "&7Открывает обычное меню кейса.", "", "&7ЛКМ &8— &fпосмотреть")));
-        inv.setItem(SLOT_BACK, backButton());
+                List.of("", "&7Открывает обычное меню кейса.", "", "&7ЛКМ &8— &fпосмотреть"), def));
+        inv.setItem(SLOT_BACK, backButton(def));
         player.openInventory(inv);
         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.18f, 1.25f);
     }
@@ -680,6 +872,11 @@ public final class MachineGuiListener implements Listener {
 
         if (slot == SLOT_GUI_TITLE) {
             startTextEdit(player, def, TextEditType.GUI_TITLE);
+            return;
+        }
+
+        if (slot == SLOT_CASE_DISPLAY_NAME) {
+            startTextEdit(player, def, TextEditType.CASE_DISPLAY_NAME);
             return;
         }
 
@@ -722,21 +919,22 @@ public final class MachineGuiListener implements Listener {
         Inventory inv = Bukkit.createInventory(
                 MachineGuiHolder.purchase(caseName),
                 54,
-                color("&8Покупка за опыт")
+                caseManager.getPlugin().getGuiConfig().text("machine.titles.purchase", "&8Покупка за опыт",
+                        caseReplacements(def))
         );
 
         fill(inv, pane(Material.BLACK_STAINED_GLASS_PANE, " ", List.of()));
-        inv.setItem(4, button(Material.EXPERIENCE_BOTTLE,
+        inv.setItem(4, guiButton("machine.purchase.header", Material.EXPERIENCE_BOTTLE,
                 "&x&4&2&9&F&9&1Раздел: Покупка за опыт",
                 List.of(
                         "",
                         "&7Если включено, игрок может купить ключ",
                         "&7за уровни опыта прямо в меню кейса.",
                         ""
-                )));
+                ), def));
         inv.setItem(SLOT_XP_BUY, xpBuyItem(def));
         inv.setItem(SLOT_XP_LEVELS, xpLevelsItem(def));
-        inv.setItem(SLOT_BACK, backButton());
+        inv.setItem(SLOT_BACK, backButton(def));
         player.openInventory(inv);
         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.18f, 1.25f);
     }
@@ -770,7 +968,8 @@ public final class MachineGuiListener implements Listener {
         Inventory inv = Bukkit.createInventory(
                 MachineGuiHolder.layout(caseName),
                 54,
-                color("&8Разметка меню кейса")
+                caseManager.getPlugin().getGuiConfig().text("machine.titles.layout", "&8Разметка меню кейса",
+                        caseReplacements(def))
         );
 
         fillLayoutInventory(inv, def);
@@ -792,7 +991,11 @@ public final class MachineGuiListener implements Listener {
             return;
         }
 
-        Inventory top = player.getOpenInventory().getTopInventory();
+        Inventory top = InventoryViewCompat.topInventory(player);
+        if (top == null) {
+            openLayout(player, caseName);
+            return;
+        }
         if (top.getHolder() instanceof MachineGuiHolder holder
                 && holder.type() == MachineGuiHolder.Type.LAYOUT
                 && holder.caseName().equalsIgnoreCase(caseName)) {
@@ -810,7 +1013,7 @@ public final class MachineGuiListener implements Listener {
             return;
         }
 
-        SlotRole next = event.isRightClick() ? previousRole(current) : nextRole(current);
+        SlotRole next = stepRole(current, event.isRightClick());
         if ((current == SlotRole.OPEN || current == SlotRole.ANIMATION) && next != current) {
             player.sendMessage(color("&c[pnCases] Слот " + current.displayName + " нельзя удалить. Перенеси его на другой слот."));
             player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.18f, 1.0f);
@@ -906,8 +1109,18 @@ public final class MachineGuiListener implements Listener {
         if (slot == layout.openSlot()) return SlotRole.OPEN;
         if (layout.historySlots().contains(slot)) return SlotRole.HISTORY;
         if (layout.decorSlots().contains(slot)) return SlotRole.DECOR;
-        if (def.fixedAnimation() == null && slot == layout.animationSlot()) return SlotRole.ANIMATION;
+        if (def.fixedAnimation() == null
+                && !ServerCompatibility.useMinecraft1165AnimationMode()
+                && slot == layout.animationSlot()) return SlotRole.ANIMATION;
         return SlotRole.EMPTY;
+    }
+
+    private SlotRole stepRole(SlotRole role, boolean backwards) {
+        SlotRole next = backwards ? previousRole(role) : nextRole(role);
+        if (ServerCompatibility.useMinecraft1165AnimationMode() && next == SlotRole.ANIMATION) {
+            return backwards ? previousRole(next) : nextRole(next);
+        }
+        return next;
     }
 
     private SlotRole nextRole(SlotRole role) {
@@ -945,7 +1158,11 @@ public final class MachineGuiListener implements Listener {
             return;
         }
 
-        Inventory top = player.getOpenInventory().getTopInventory();
+        Inventory top = InventoryViewCompat.topInventory(player);
+        if (top == null) {
+            openMain(player, caseName);
+            return;
+        }
         if (top.getHolder() instanceof MachineGuiHolder holder
                 && holder.type() == MachineGuiHolder.Type.MAIN
                 && holder.caseName().equalsIgnoreCase(caseName)) {
@@ -956,6 +1173,9 @@ public final class MachineGuiListener implements Listener {
     }
 
     private String currentAnimationLabel(CaseDefinition def) {
+        if (ServerCompatibility.useMinecraft1165AnimationMode()) {
+            return AnimationType.FORTUNE_RING.displayName() + " &8(режим 1.16.5)";
+        }
         AnimationType fixed = def.fixedAnimation();
         return fixed == null ? "&aвыбор игрока" : fixed.displayName();
     }
@@ -964,7 +1184,7 @@ public final class MachineGuiListener implements Listener {
         AnimationType fixed = def.fixedAnimation();
         Material material = fixed == null ? Material.CLOCK : fixed.icon();
         String mode = currentAnimationLabel(def);
-        return button(material, "&x&4&2&9&F&9&1Анимация кейса", List.of(
+        return guiButton("machine.animation.mode", material, "&x&4&2&9&F&9&1Анимация кейса", List.of(
                 "",
                 "&7Текущий режим: " + mode,
                 "",
@@ -976,12 +1196,14 @@ public final class MachineGuiListener implements Listener {
                         : "&7Кнопка выбора анимации в меню кейса скрыта.",
                 "",
                 "&7ЛКМ &8— &fнастроить"
-        ));
+        ), def,
+                "mode", mode,
+                "state", fixed == null ? "&aвыбор игрока" : "&eзафиксирована");
     }
 
     private ItemStack hologramToggleItem(CaseDefinition def) {
         boolean enabled = isHologramEnabled(def);
-        return button(enabled ? Material.LIME_DYE : Material.GRAY_DYE,
+        return guiButton("machine.hologram.toggle", enabled ? Material.LIME_DYE : Material.GRAY_DYE,
                 "&x&4&2&9&F&9&1Голограмма",
                 List.of(
                         "",
@@ -989,11 +1211,13 @@ public final class MachineGuiListener implements Listener {
                         "&7Высота: &f" + readHologramHeight(def),
                         "",
                         "&7ЛКМ &8— &fпереключить"
-                ));
+                ), def,
+                "status", enabled ? "&aвключена" : "&cвыключена",
+                "action", enabled ? "выключить" : "включить");
     }
 
     private ItemStack hologramHeightItem(CaseDefinition def) {
-        return button(Material.ARMOR_STAND, "&x&4&2&9&F&9&1Высота голограммы", List.of(
+        return guiButton("machine.hologram.height", Material.ARMOR_STAND, "&x&4&2&9&F&9&1Высота голограммы", List.of(
                 "",
                 "&7Текущая высота: &f" + readHologramHeight(def),
                 "",
@@ -1001,11 +1225,25 @@ public final class MachineGuiListener implements Listener {
                 "&7ПКМ &8— &f-0.1",
                 "&7Shift + ЛКМ &8— &f+1.0",
                 "&7Shift + ПКМ &8— &f-1.0"
-        ));
+        ), def, "value", String.valueOf(readHologramHeight(def)));
     }
 
-    private ItemStack particlesToggleItem(IdleParticleSettings settings) {
-        return button(settings.enabled() ? Material.LIME_DYE : Material.GRAY_DYE,
+    private ItemStack quickToggleItem(String path, Material material, String name, boolean enabled,
+                                      List<String> description, CaseDefinition def) {
+        List<String> lore = new ArrayList<>();
+        lore.add("");
+        lore.add("&7Статус: " + (enabled ? "&aвключена" : "&cвыключена"));
+        lore.add("");
+        lore.addAll(description);
+        lore.add("");
+        lore.add(enabled ? "&7ЛКМ &8— &fвыключить" : "&7ЛКМ &8— &fвключить");
+        return guiButton(path, material, name, lore, def,
+                "status", enabled ? "&aвключена" : "&cвыключена",
+                "action", enabled ? "выключить" : "включить");
+    }
+
+    private ItemStack particlesToggleItem(CaseDefinition def, IdleParticleSettings settings) {
+        return guiButton("machine.showcase.toggle", settings.enabled() ? Material.LIME_DYE : Material.GRAY_DYE,
                 "&x&4&2&9&F&9&1Витрина",
                 List.of(
                         "",
@@ -1013,11 +1251,13 @@ public final class MachineGuiListener implements Listener {
                         "&7Если выключить, над кейсом ничего не будет.",
                         "",
                         "&7ЛКМ &8— &fпереключить"
-                ));
+                ), def,
+                "status", settings.enabled() ? "&aвключена" : "&cвыключена",
+                "action", settings.enabled() ? "выключить" : "включить");
     }
 
-    private ItemStack particlesEffectsItem(IdleParticleSettings settings) {
-        return button(settings.effectsEnabled() ? Material.AMETHYST_SHARD : Material.GRAY_DYE,
+    private ItemStack particlesEffectsItem(CaseDefinition def, IdleParticleSettings settings) {
+        return guiButton("machine.showcase.effects", settings.effectsEnabled() ? Material.GLOWSTONE_DUST : Material.GRAY_DYE,
                 "&x&4&2&9&F&9&1Эффекты витрины",
                 List.of(
                         "",
@@ -1025,7 +1265,9 @@ public final class MachineGuiListener implements Listener {
                         "&7Если выключить, останется только предмет.",
                         "",
                         "&7ЛКМ &8— &fпереключить"
-                ));
+                ), def,
+                "status", settings.effectsEnabled() ? "&aвключены" : "&cвыключены",
+                "action", settings.effectsEnabled() ? "выключить" : "включить");
     }
 
     private ItemStack particlesDisplayItem(CaseDefinition def, IdleParticleSettings settings) {
@@ -1044,11 +1286,13 @@ public final class MachineGuiListener implements Listener {
         lore.add("");
         lore.add("&7Предмет на курсоре &8— &fпоставить новый");
         lore.add("&7ПКМ без предмета &8— &fвернуть предмет кнопки кейса");
-        return button(item, "&x&4&2&9&F&9&1Предмет витрины", lore);
+        return guiButton("machine.showcase.display-item", item, "&x&4&2&9&F&9&1Предмет витрины", lore, def,
+                "item", readableItemName(item),
+                "mode", custom ? "&aсвой предмет" : "&fпредмет кнопки кейса");
     }
 
-    private ItemStack particlesStyleItem(IdleParticleSettings settings) {
-        return button(settings.style().icon(),
+    private ItemStack particlesStyleItem(CaseDefinition def, IdleParticleSettings settings) {
+        return guiButton("machine.showcase.style", settings.style().icon(),
                 "&x&4&2&9&F&9&1Стиль витрины",
                 List.of(
                         "",
@@ -1056,11 +1300,11 @@ public final class MachineGuiListener implements Listener {
                         "",
                         "&7ЛКМ &8— &fследующий стиль",
                         "&7ПКМ &8— &fпредыдущий стиль"
-                ));
+                ), def, "value", settings.style().displayName());
     }
 
-    private ItemStack particlesThemeItem(IdleParticleSettings settings) {
-        return button(settings.theme().icon(),
+    private ItemStack particlesThemeItem(CaseDefinition def, IdleParticleSettings settings) {
+        return guiButton("machine.showcase.theme", settings.theme().icon(),
                 "&x&4&2&9&F&9&1Тема витрины",
                 List.of(
                         "",
@@ -1068,21 +1312,23 @@ public final class MachineGuiListener implements Listener {
                         "",
                         "&7ЛКМ &8— &fследующая тема",
                         "&7ПКМ &8— &fпредыдущая тема"
-                ));
+                ), def, "value", settings.theme().displayName());
     }
 
-    private ItemStack particlesNumberItem(Material material, String name, Number value, String unit, List<String> controls) {
+    private ItemStack particlesNumberItem(CaseDefinition def, String path, Material material, String name, Number value, String unit, List<String> controls) {
         List<String> lore = new ArrayList<>();
         lore.add("");
         lore.add("&7Сейчас: &f" + value + (unit == null || unit.isBlank() ? "" : " " + unit));
         lore.add("");
         lore.addAll(controls);
-        return button(material, name, lore);
+        return guiButton(path, material, name, lore, def,
+                "value", String.valueOf(value),
+                "unit", unit == null ? "" : unit);
     }
 
     private ItemStack xpBuyItem(CaseDefinition def) {
         boolean enabled = isXpBuyEnabled(def);
-        return button(enabled ? Material.EXPERIENCE_BOTTLE : Material.GLASS_BOTTLE,
+        return guiButton("machine.purchase.toggle", enabled ? Material.EXPERIENCE_BOTTLE : Material.GLASS_BOTTLE,
                 "&x&4&2&9&F&9&1Покупка за опыт",
                 List.of(
                         "",
@@ -1090,11 +1336,14 @@ public final class MachineGuiListener implements Listener {
                         "&7Цена: &f" + Math.max(0, def.buyKeyWithXpLevels()) + " уровней",
                         "",
                         "&7ЛКМ &8— &fпереключить"
-                ));
+                ), def,
+                "status", enabled ? "&aвключена" : "&cвыключена",
+                "action", enabled ? "выключить" : "включить",
+                "levels", String.valueOf(Math.max(0, def.buyKeyWithXpLevels())));
     }
 
     private ItemStack xpLevelsItem(CaseDefinition def) {
-        return button(Material.EXPERIENCE_BOTTLE,
+        return guiButton("machine.purchase.levels", Material.EXPERIENCE_BOTTLE,
                 "&x&4&2&9&F&9&1Цена покупки за опыт",
                 List.of(
                         "",
@@ -1104,12 +1353,14 @@ public final class MachineGuiListener implements Listener {
                         "&7ЛКМ &8— &f+1 уровень",
                         "&7ПКМ &8— &f-1 уровень",
                         "&7Shift &8— &fшаг 5 уровней"
-                ));
+                ), def,
+                "levels", String.valueOf(Math.max(0, def.buyKeyWithXpLevels())),
+                "status", isXpBuyEnabled(def) ? "&aвключена" : "&cвыключена");
     }
 
     private ItemStack guiSizeItem(CaseDefinition def) {
         int rows = def.guiLayout().size() / 9;
-        return button(Material.CHEST, "&x&4&2&9&F&9&1Размер меню", List.of(
+        return guiButton("machine.menu.size", Material.CHEST, "&x&4&2&9&F&9&1Размер меню", List.of(
                 "",
                 "&7Текущий размер: &f" + def.guiLayout().size() + " слотов",
                 "&7Рядов: &f" + rows,
@@ -1117,20 +1368,24 @@ public final class MachineGuiListener implements Listener {
                 "&7ЛКМ &8— &f+1 ряд",
                 "&7ПКМ &8— &f-1 ряд",
                 "&7Shift &8— &fшаг 2 ряда"
-        ));
+        ), def,
+                "value", String.valueOf(def.guiLayout().size()),
+                "rows", String.valueOf(rows));
     }
 
-    private ItemStack animationNumberItem(Material material, String name, Number value, String unit, List<String> controls) {
+    private ItemStack animationNumberItem(CaseDefinition def, String path, Material material, String name, Number value, String unit, List<String> controls) {
         List<String> lore = new ArrayList<>();
         lore.add("");
         lore.add("&7Значение: &f" + value + " " + unit);
         lore.add("");
         lore.addAll(controls);
-        return button(material, name, lore);
+        return guiButton(path, material, name, lore, def,
+                "value", String.valueOf(value),
+                "unit", unit == null ? "" : unit);
     }
 
     private ItemStack guiTitleItem(CaseDefinition def) {
-        return button(Material.NAME_TAG,
+        return guiButton("machine.menu.title", Material.NAME_TAG,
                 "&x&4&2&9&F&9&1Название меню",
                 List.of(
                         "",
@@ -1138,7 +1393,20 @@ public final class MachineGuiListener implements Listener {
                         "&f" + def.guiTitle(),
                         "",
                         "&7ЛКМ &8— &fнаписать новое название в чат"
-                ));
+                ), def, "value", def.guiTitle());
+    }
+
+    private ItemStack caseDisplayNameItem(CaseDefinition def) {
+        return guiButton("machine.menu.case-name", Material.NAME_TAG,
+                "&x&4&2&9&F&9&1Название кейса",
+                List.of(
+                        "",
+                        "&7Сейчас:",
+                        "&f" + def.displayName(),
+                        "",
+                        "&7Это имя видно в панели и сообщениях.",
+                        "&7ЛКМ &8— &fнаписать новое название в чат"
+                ), def, "value", def.displayName());
     }
 
     private ItemStack hologramLinesItem(CaseDefinition def) {
@@ -1156,19 +1424,24 @@ public final class MachineGuiListener implements Listener {
         lore.add("");
         lore.add("&7ЛКМ &8— &fнаписать строки в чат");
         lore.add("&7Разделяй строки знаком &b|");
-        return button(Material.OAK_SIGN, "&x&4&2&9&F&9&1Текст голограммы", lore);
+        String visibleLines = lines.isEmpty() ? "&8строк нет" : String.join("|", lines);
+        return guiButton("machine.hologram.lines", Material.OAK_SIGN, "&x&4&2&9&F&9&1Текст голограммы", lore, def,
+                "lines", visibleLines);
     }
 
     private ItemStack layoutSlotItem(CaseDefinition def, int slot) {
         SlotRole role = roleAt(def, slot);
         ItemStack item = layoutRoleItem(def, role);
 
+        String roleName = layoutRoleName(role);
+        String itemName = role == SlotRole.EMPTY ? "" : readableItemName(item);
+
         List<String> lore = new ArrayList<>();
         lore.add("");
         lore.add("&7Слот: &f" + slot);
-        lore.add("&7Роль: &f" + role.displayName);
+        lore.add("&7Роль: &f" + roleName);
         if (role != SlotRole.EMPTY) {
-            lore.add("&7Предмет: &f" + readableItemName(item));
+            lore.add("&7Предмет: &f" + itemName);
         }
         if (slot >= def.guiLayout().size()) {
             lore.add("&eЭтот слот сохранится, но появится только");
@@ -1182,7 +1455,18 @@ public final class MachineGuiListener implements Listener {
         lore.add("&7ПКМ &8— &fпредыдущая роль");
         lore.add("&7Предмет на курсоре &8— &fзаменить предмет роли");
 
-        return button(item, role.color + role.displayName, lore);
+        return guiButton("machine.layout.slot", item, role.color + roleName, lore, def,
+                "slot", String.valueOf(slot),
+                "role", roleName,
+                "role_color", role.color,
+                "role-color", role.color,
+                "item", itemName,
+                "available", slot >= def.guiLayout().size() ? "&cнет" : "&aда");
+    }
+
+    private String layoutRoleName(SlotRole role) {
+        String key = role.name().toLowerCase(java.util.Locale.ROOT).replace('_', '-');
+        return caseManager.getPlugin().getGuiConfig().text("machine.layout.roles." + key + ".name", role.displayName);
     }
 
     private ItemStack layoutRoleItem(CaseDefinition def, SlotRole role) {
@@ -1211,23 +1495,89 @@ public final class MachineGuiListener implements Listener {
     }
 
     private ItemStack playerChoiceAnimationItem(boolean selected) {
-        return selectable(Material.COMPASS, selected, "&aВыбор игрока", List.of(
+        return selectable("machine.animation.player-choice", Material.COMPASS, selected, "&aВыбор игрока", List.of(
                 "",
                 "&7Игрок сам выбирает анимацию в меню кейса.",
                 "&7Если выбрать этот режим, кнопка анимации вернётся."
-        ));
+        ), null,
+                "status", selected ? "&aвыбрано" : "&7не выбрано");
+    }
+
+    private ItemStack legacyAnimationModeItem() {
+        return selectable("machine.animation.legacy-mode", Material.COMPASS, false, "&eРежим Minecraft 1.16.5", List.of(
+                "",
+                "&7На этой версии доступна одна анимация.",
+                "&7Кейс всегда открывается через Круг фортуны.",
+                "&7Кнопка выбора у игроков не показывается."
+        ), null,
+                "animation", AnimationType.FORTUNE_RING.displayName());
     }
 
     private ItemStack fixedAnimationItem(AnimationType type, boolean selected) {
-        return selectable(type.icon(), selected, type.displayName(), List.of(
+        String path = "machine.animation.fixed-animations."
+                + type.name().toLowerCase(java.util.Locale.ROOT).replace('_', '-');
+        if (!caseManager.getPlugin().getGuiConfig().contains(path)) {
+            path = "machine.animation.fixed";
+        }
+        return selectable(path, animationIcon(type), selected, type.displayName(), List.of(
                 "",
-                "&7Кейс всегда открывается этой анимацией.",
-                "&7Кнопка выбора анимации у игрока будет скрыта."
-        ));
+                ServerCompatibility.useMinecraft1165AnimationMode()
+                        ? "&7Единственная совместимая анимация для 1.16.5."
+                        : "&7Кейс всегда открывается этой анимацией.",
+                ServerCompatibility.useMinecraft1165AnimationMode()
+                        ? "&7Предметы крутятся вокруг кейса через ArmorStand."
+                        : "&7Кнопка выбора анимации у игрока будет скрыта."
+        ), null,
+                "animation", type.displayName(),
+                "description", type.description().replace('\n', ' '),
+                "status", selected ? "&aвыбрано" : "&7не выбрано");
     }
 
-    private ItemStack selectable(Material material, boolean selected, String name, List<String> lore) {
-        ItemStack item = button(material, (selected ? "&a◆ " : "&7◇ ") + name, lore);
+    private static Material animationIcon(AnimationType type) {
+        if (ServerCompatibility.useMinecraft1165AnimationMode() && type == AnimationType.FORTUNE_RING) {
+            return Material.CLOCK;
+        }
+        return type.icon();
+    }
+
+    private static Material machineIcon(Material modern, Material legacy) {
+        return ServerCompatibility.useMinecraft1165AnimationMode() ? legacy : modern;
+    }
+
+    private static AnimationType[] availableAnimationTypes() {
+        if (ServerCompatibility.useMinecraft1165AnimationMode()) {
+            return new AnimationType[]{AnimationType.FORTUNE_RING};
+        }
+        if (!ServerCompatibility.useModernAnimations()) {
+            return java.util.Arrays.stream(AnimationType.values())
+                    .filter(type -> type != AnimationType.PILLAGER_RAID)
+                    .toArray(AnimationType[]::new);
+        }
+        return AnimationType.values();
+    }
+
+    private ItemStack selectable(String path, Material material, boolean selected, String name, List<String> lore,
+                                 CaseDefinition def, String... extra) {
+        String prefix = selected ? "&a◆ " : "&7◇ ";
+        List<String> replacementList = new ArrayList<>(List.of(
+                "prefix", prefix,
+                "selected_prefix", prefix,
+                "selected-prefix", prefix,
+                "selected", selected ? "&aда" : "&7нет",
+                "name", name,
+                "display", name,
+                "display_name", name,
+                "display-name", name));
+        for (int i = 0; i + 1 < extra.length; i += 2) {
+            replacementList.add(extra[i]);
+            replacementList.add(extra[i + 1]);
+        }
+        String[] replacements = def == null
+                ? replacementList.toArray(String[]::new)
+                : caseReplacements(def, replacementList.toArray(String[]::new));
+        ItemStack item = button(material,
+                caseManager.getPlugin().getGuiConfig().text(path + ".name", prefix + name, replacements),
+                caseManager.getPlugin().getGuiConfig().list(path + ".lore", lore, replacements));
         if (selected) {
             ItemMeta meta = item.getItemMeta();
             if (meta != null) {
@@ -1242,7 +1592,7 @@ public final class MachineGuiListener implements Listener {
         return item;
     }
 
-    private ItemStack copyItemButton(ItemStack source, Material fallback, String title, String hint) {
+    private ItemStack copyItemButton(String path, ItemStack source, Material fallback, CaseDefinition def, String title, String hint) {
         ItemStack item = source == null || source.getType().isAir() ? new ItemStack(fallback) : source.clone();
         item.setAmount(1);
         ItemMeta meta = item.getItemMeta();
@@ -1255,10 +1605,82 @@ public final class MachineGuiListener implements Listener {
         lore.add("&7и нажми им по этой кнопке.");
         lore.add("");
         lore.add("&7Сейчас: &f" + readableItemName(item));
-        meta.setDisplayName(color(title));
-        meta.setLore(lore.stream().map(MachineGuiListener::color).toList());
+        String[] replacements = caseReplacements(def,
+                "hint", hint,
+                "item", readableItemName(item));
+        meta.setDisplayName(caseManager.getPlugin().getGuiConfig().text(path + ".name", title, replacements));
+        meta.setLore(caseManager.getPlugin().getGuiConfig().list(path + ".lore", lore, replacements));
         item.setItemMeta(meta);
         return item;
+    }
+
+    private ItemStack guiSectionButton(String path, Material material, String name, List<String> lore, CaseDefinition def, String... extra) {
+        return sectionButton(material,
+                caseManager.getPlugin().getGuiConfig().text(path + ".name", name, caseReplacements(def, extra)),
+                caseManager.getPlugin().getGuiConfig().list(path + ".lore", lore, caseReplacements(def, extra)));
+    }
+
+    private ItemStack guiButton(String path, Material material, String name, List<String> lore, CaseDefinition def, String... extra) {
+        return button(material,
+                caseManager.getPlugin().getGuiConfig().text(path + ".name", name, caseReplacements(def, extra)),
+                caseManager.getPlugin().getGuiConfig().list(path + ".lore", lore, caseReplacements(def, extra)));
+    }
+
+    private ItemStack guiButton(String path, ItemStack source, String name, List<String> lore, CaseDefinition def, String... extra) {
+        return button(source,
+                caseManager.getPlugin().getGuiConfig().text(path + ".name", name, caseReplacements(def, extra)),
+                caseManager.getPlugin().getGuiConfig().list(path + ".lore", lore, caseReplacements(def, extra)));
+    }
+
+    private String[] caseReplacements(CaseDefinition def, String... extra) {
+        List<String> replacements = new ArrayList<>();
+        replacements.add("case");
+        replacements.add(color(def.displayName()));
+        replacements.add("case_id");
+        replacements.add(def.name());
+        replacements.add("case-id");
+        replacements.add(def.name());
+        replacements.add("title");
+        replacements.add(def.guiTitle());
+        replacements.add("size");
+        replacements.add(String.valueOf(def.guiLayout().size()));
+        replacements.add("rows");
+        replacements.add(String.valueOf(def.guiLayout().size() / 9));
+        replacements.add("hologram_status");
+        replacements.add(isHologramEnabled(def) ? "&aвключена" : "&cвыключена");
+        replacements.add("hologram-status");
+        replacements.add(isHologramEnabled(def) ? "&aвключена" : "&cвыключена");
+        replacements.add("hologram_height");
+        replacements.add(String.valueOf(readHologramHeight(def)));
+        replacements.add("hologram-height");
+        replacements.add(String.valueOf(readHologramHeight(def)));
+        replacements.add("showcase_status");
+        replacements.add(def.idleParticles().enabled() ? "&aвключена" : "&cвыключена");
+        replacements.add("showcase-status");
+        replacements.add(def.idleParticles().enabled() ? "&aвключена" : "&cвыключена");
+        replacements.add("effects_status");
+        replacements.add(def.idleParticles().effectsEnabled() ? "&aвключены" : "&cвыключены");
+        replacements.add("effects-status");
+        replacements.add(def.idleParticles().effectsEnabled() ? "&aвключены" : "&cвыключены");
+        replacements.add("style");
+        replacements.add(def.idleParticles().style().displayName());
+        replacements.add("theme");
+        replacements.add(def.idleParticles().theme().displayName());
+        replacements.add("xp_status");
+        replacements.add(isXpBuyEnabled(def) ? "&aвключена" : "&cвыключена");
+        replacements.add("xp-status");
+        replacements.add(isXpBuyEnabled(def) ? "&aвключена" : "&cвыключена");
+        replacements.add("xp_levels");
+        replacements.add(String.valueOf(Math.max(0, def.buyKeyWithXpLevels())));
+        replacements.add("xp-levels");
+        replacements.add(String.valueOf(Math.max(0, def.buyKeyWithXpLevels())));
+        replacements.add("animation");
+        replacements.add(currentAnimationLabel(def));
+        for (int i = 0; i + 1 < extra.length; i += 2) {
+            replacements.add(extra[i]);
+            replacements.add(extra[i + 1]);
+        }
+        return replacements.toArray(String[]::new);
     }
 
     private ItemStack sectionButton(Material material, String name, List<String> lore) {
@@ -1269,8 +1691,9 @@ public final class MachineGuiListener implements Listener {
         return button(material, name, formatted);
     }
 
-    private ItemStack backButton() {
-        return button(Material.ARROW, "&fНазад", List.of("", "&7ЛКМ &8— &fв главное меню"));
+    private ItemStack backButton(CaseDefinition def) {
+        return guiButton("machine.buttons.back", Material.ARROW, "&fНазад",
+                List.of("", "&7ЛКМ &8— &fв главное меню"), def);
     }
 
     private static ItemStack button(Material material, String name, List<String> lore) {
@@ -1436,7 +1859,7 @@ public final class MachineGuiListener implements Listener {
     }
 
     private static String color(String value) {
-        return ChatColor.translateAlternateColorCodes('&', value == null ? "" : value);
+        return ColorUtil.colorize(value);
     }
 
     private static String readableItemName(ItemStack item) {
@@ -1451,6 +1874,9 @@ public final class MachineGuiListener implements Listener {
     }
 
     private static String readableMaterialName(Material material) {
+        if (material != null && "ECHO_SHARD".equals(material.name())) {
+            return "Эхо-осколок";
+        }
         return switch (material) {
             case BARRIER -> "Барьер";
             case CHEST -> "Сундук";
@@ -1478,10 +1904,20 @@ public final class MachineGuiListener implements Listener {
             case EMERALD -> "Изумруд";
             case GOLD_INGOT -> "Золотой слиток";
             case DIAMOND -> "Алмаз";
+            case NETHERITE_SWORD -> "Незеритовый меч";
+            case DIAMOND_SWORD -> "Алмазный меч";
+            case IRON_SWORD -> "Железный меч";
+            case GOLDEN_SWORD -> "Золотой меч";
+            case STONE_SWORD -> "Каменный меч";
+            case WOODEN_SWORD -> "Деревянный меч";
+            case NETHERITE_INGOT -> "Незеритовый слиток";
+            case NETHERITE_HELMET -> "Незеритовый шлем";
+            case NETHERITE_CHESTPLATE -> "Незеритовый нагрудник";
+            case NETHERITE_LEGGINGS -> "Незеритовые поножи";
+            case NETHERITE_BOOTS -> "Незеритовые ботинки";
             case ANVIL -> "Наковальня";
             case TNT -> "Динамит";
             case SLIME_BALL -> "Сгусток слизи";
-            case ECHO_SHARD -> "Эхо-осколок";
             case ARROW -> "Стрела";
             default -> material.name().toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
         };
@@ -1505,6 +1941,7 @@ public final class MachineGuiListener implements Listener {
 
     private enum TextEditType {
         GUI_TITLE,
+        CASE_DISPLAY_NAME,
         HOLOGRAM_LINES
     }
 

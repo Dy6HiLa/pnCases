@@ -10,6 +10,7 @@ import ru.privatenull.cases.model.Reward;
 import ru.privatenull.commands.CasesCMD;
 import ru.privatenull.commands.CasesCMDTabCompliter;
 import ru.privatenull.config.ConfigValidator;
+import ru.privatenull.config.GuiConfig;
 import ru.privatenull.config.MessagesConfig;
 import ru.privatenull.hologram.HologramService;
 import ru.privatenull.integrations.PlayerPointsProvider;
@@ -33,6 +34,7 @@ public final class pnCases extends JavaPlugin {
     private VaultEconomyProvider vaultEconomy;
     private PlayerPointsProvider playerPoints;
     private MessagesConfig messages;
+    private GuiConfig guiConfig;
     private SqliteDatabase database;
     private PendingRewardStorage pendingRewards;
     private UpdateChecker updateChecker;
@@ -40,7 +42,7 @@ public final class pnCases extends JavaPlugin {
     @Override
     public void onEnable() {
         if (!ServerCompatibility.isSupportedServer()) {
-            getLogger().severe("pnCases 1.4.6 GlobalVersion поддерживает Minecraft 1.19 - 1.21.11. Плагин отключён.");
+            getLogger().severe("pnCases 1.4.8 поддерживает Minecraft 1.16.5 - 1.21.11. Плагин отключён.");
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
@@ -54,6 +56,7 @@ public final class pnCases extends JavaPlugin {
         pendingRewards = new PendingRewardStorage(database);
 
         messages = new MessagesConfig(this);
+        guiConfig = new GuiConfig(this);
         holograms = new HologramService(this);
 
         caseManager = new CaseManager(this);
@@ -206,6 +209,10 @@ public final class pnCases extends JavaPlugin {
 
     public MessagesConfig getMessages() {
         return messages;
+    }
+
+    public GuiConfig getGuiConfig() {
+        return guiConfig;
     }
 
     public PendingRewardStorage getPendingRewards() {

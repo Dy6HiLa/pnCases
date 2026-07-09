@@ -1,6 +1,5 @@
 package ru.privatenull.listeners;
 
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -17,6 +16,10 @@ import ru.privatenull.cases.animation.AnimationType;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.cases.model.Reward;
 import ru.privatenull.util.EnchantmentCompat;
+import ru.privatenull.util.InventoryViewCompat;
+import ru.privatenull.util.ColorUtil;
+import ru.privatenull.util.ServerCompatibility;
+import ru.privatenull.util.SoundCompat;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -28,7 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class CaseGuiListener implements Listener {
 
-    private static final int[] ANIMATION_SLOTS = {10, 11, 12, 14, 15, 16};
+    private static final int[] ANIMATION_SLOTS = {10, 11, 12, 13, 14, 15, 16};
     private static final int[] PREVIEW_REWARD_SLOTS = {
             10, 11, 12, 13, 14, 15, 16,
             19, 20, 21, 22, 23, 24, 25,
@@ -171,7 +174,12 @@ public class CaseGuiListener implements Listener {
         Inventory inv = org.bukkit.Bukkit.createInventory(
                 CaseGuiHolder.previewGui(caseName, safePage),
                 54,
-                color("&8Содержимое кейса")
+                caseManager.getPlugin().getGuiConfig().text("preview.title", "&8Содержимое кейса",
+                        "case", color(def.displayName()),
+                        "case_id", def.name(),
+                        "case-id", def.name(),
+                        "page", String.valueOf(safePage + 1),
+                        "pages", String.valueOf(pages))
         );
 
         ItemStack filler = pane(Material.GRAY_STAINED_GLASS_PANE, " ", Collections.emptyList());
@@ -188,20 +196,23 @@ public class CaseGuiListener implements Listener {
         }
 
         inv.setItem(4, buildPreviewInfoItem(def, safePage, pages, rewards.size()));
-        inv.setItem(PREVIEW_BACK_SLOT, buildPreviewButton(Material.ARROW,
+        inv.setItem(PREVIEW_BACK_SLOT, buildPreviewButton("preview.buttons.back", Material.ARROW,
                 "§x§A§0§E§F§A§1← §fНазад",
-                List.of("", " §7- §fВернуться к кейсу", "")));
+                List.of("", " §7- §fВернуться к кейсу", ""),
+                def, safePage, pages));
 
         if (safePage > 0) {
-            inv.setItem(PREVIEW_PREV_SLOT, buildPreviewButton(Material.SPECTRAL_ARROW,
+            inv.setItem(PREVIEW_PREV_SLOT, buildPreviewButton("preview.buttons.previous", Material.SPECTRAL_ARROW,
                     "§x§A§0§E§F§A§1← §fПредыдущая",
-                    List.of("", " §7- §fСтраница " + safePage + " из " + pages, "")));
+                    List.of("", " §7- §fСтраница {prev_page} из {pages}", ""),
+                    def, safePage, pages));
         }
 
         if (safePage + 1 < pages) {
-            inv.setItem(PREVIEW_NEXT_SLOT, buildPreviewButton(Material.SPECTRAL_ARROW,
+            inv.setItem(PREVIEW_NEXT_SLOT, buildPreviewButton("preview.buttons.next", Material.SPECTRAL_ARROW,
                     "§x§A§0§E§F§A§1→ §fСледующая",
-                    List.of("", " §7- §fСтраница " + (safePage + 2) + " из " + pages, "")));
+                    List.of("", " §7- §fСтраница {next_page} из {pages}", ""),
+                    def, safePage, pages));
         }
 
         p.openInventory(inv);
@@ -233,35 +244,69 @@ public class CaseGuiListener implements Listener {
         ItemMeta meta = item.getItemMeta();
         if (meta == null) return item;
 
-        meta.setDisplayName(color("&x&4&2&9&F&9&1▸ &fСодержимое кейса"));
-        meta.setLore(List.of(
+        String[] replacements = previewReplacements(def, page, pages,
+                "rewards", String.valueOf(rewardCount));
+        meta.setDisplayName(caseManager.getPlugin().getGuiConfig().text("preview.info.name",
+                "&x&4&2&9&F&9&1▸ &fСодержимое кейса", replacements));
+        meta.setLore(caseManager.getPlugin().getGuiConfig().list("preview.info.lore", List.of(
                 "",
-                color("&x&A&0&E&F&A&1 «Информация»"),
-                color(" &7- &fКейс: &x&4&2&9&F&9&1" + def.name()),
-                color(" &7- &fНаград: &x&4&2&9&F&9&1" + rewardCount),
-                color(" &7- &fСтраница: &x&4&2&9&F&9&1" + (page + 1) + "&7/&x&4&2&9&F&9&1" + pages),
+                "&x&A&0&E&F&A&1 «Информация»",
+                " &7- &fКейс: &x&4&2&9&F&9&1{case}",
+                " &7- &fНаград: &x&4&2&9&F&9&1{rewards}",
+                " &7- &fСтраница: &x&4&2&9&F&9&1{page}&7/&x&4&2&9&F&9&1{pages}",
                 ""
-        ));
+        ), replacements));
         item.setItemMeta(meta);
         return item;
     }
 
-    private ItemStack buildPreviewButton(Material material, String name, List<String> lore) {
+    private ItemStack buildPreviewButton(String path, Material material, String name, List<String> lore,
+                                         CaseDefinition def, int page, int pages) {
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         if (meta == null) return item;
 
-        meta.setDisplayName(color(name));
-        meta.setLore(lore.stream().map(CaseGuiListener::color).toList());
+        String[] replacements = previewReplacements(def, page, pages);
+        meta.setDisplayName(caseManager.getPlugin().getGuiConfig().text(path + ".name", name, replacements));
+        meta.setLore(caseManager.getPlugin().getGuiConfig().list(path + ".lore", lore, replacements));
         item.setItemMeta(meta);
         return item;
     }
 
+    private String[] previewReplacements(CaseDefinition def, int page, int pages, String... extra) {
+        List<String> replacements = new ArrayList<>();
+        replacements.add("case");
+        replacements.add(color(def.displayName()));
+        replacements.add("case_id");
+        replacements.add(def.name());
+        replacements.add("case-id");
+        replacements.add(def.name());
+        replacements.add("page");
+        replacements.add(String.valueOf(page + 1));
+        replacements.add("pages");
+        replacements.add(String.valueOf(pages));
+        replacements.add("prev_page");
+        replacements.add(String.valueOf(Math.max(1, page)));
+        replacements.add("prev-page");
+        replacements.add(String.valueOf(Math.max(1, page)));
+        replacements.add("next_page");
+        replacements.add(String.valueOf(Math.min(pages, page + 2)));
+        replacements.add("next-page");
+        replacements.add(String.valueOf(Math.min(pages, page + 2)));
+        for (int i = 0; i + 1 < extra.length; i += 2) {
+            replacements.add(extra[i]);
+            replacements.add(extra[i + 1]);
+        }
+        return replacements.toArray(String[]::new);
+    }
+
     private void openAnimationSelectGui(Player p, String caseName) {
+        CaseDefinition def = caseManager.getCaseByName(caseName);
         Inventory inv = org.bukkit.Bukkit.createInventory(
                 new AnimationSelectHolder(caseName),
                 27,
-                color("&8Выбор анимации")
+                caseManager.getPlugin().getGuiConfig().text("animation-select.title", "&8Выбор анимации",
+                        animationSelectReplacements(def))
         );
 
         ItemStack filler = pane(Material.GRAY_STAINED_GLASS_PANE, " ", Collections.emptyList());
@@ -269,26 +314,14 @@ public class CaseGuiListener implements Listener {
             inv.setItem(i, filler);
         }
 
-        AnimationType[] types = AnimationType.values();
+        AnimationType[] types = availableAnimationTypes();
         AnimationType selected = caseManager.getPlayerAnimation(p.getUniqueId());
 
         for (int i = 0; i < types.length && i < ANIMATION_SLOTS.length; i++) {
-            inv.setItem(ANIMATION_SLOTS[i], buildAnimationItem(types[i], types[i] == selected));
+            inv.setItem(ANIMATION_SLOTS[i], buildAnimationItem(def, types[i], types[i] == selected));
         }
 
-        ItemStack back = new ItemStack(Material.ARROW);
-        ItemMeta meta = back.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName("§x§A§0§E§F§A§1← §fНазад");
-            meta.setLore(List.of(
-                    "",
-                    "§x§A§0§E§F§A§1 «Навигация»",
-                    " §7- §fВернуться к кейсу",
-                    ""
-            ));
-            back.setItemMeta(meta);
-        }
-        inv.setItem(22, back);
+        inv.setItem(22, buildAnimationBackItem(def));
 
         p.openInventory(inv);
         p.playSound(p.getLocation(), Sound.BLOCK_BARREL_OPEN, 0.28f, 1.15f);
@@ -304,7 +337,7 @@ public class CaseGuiListener implements Listener {
             return;
         }
 
-        AnimationType[] types = AnimationType.values();
+        AnimationType[] types = availableAnimationTypes();
 
         for (int i = 0; i < types.length && i < ANIMATION_SLOTS.length; i++) {
             if (slot != ANIMATION_SLOTS[i]) continue;
@@ -314,9 +347,11 @@ public class CaseGuiListener implements Listener {
 
             caseManager.setPlayerAnimation(p.getUniqueId(), chosen);
 
-            Inventory inv = p.getOpenInventory().getTopInventory();
-            for (int j = 0; j < types.length && j < ANIMATION_SLOTS.length; j++) {
-                inv.setItem(ANIMATION_SLOTS[j], buildAnimationItem(types[j], types[j] == chosen));
+            Inventory inv = InventoryViewCompat.topInventory(p);
+            if (inv != null) {
+                for (int j = 0; j < types.length && j < ANIMATION_SLOTS.length; j++) {
+                    inv.setItem(ANIMATION_SLOTS[j], buildAnimationItem(caseManager.getCaseByName(holder.caseName()), types[j], types[j] == chosen));
+                }
             }
 
             playAnimationSelectSound(p, chosen);
@@ -335,21 +370,48 @@ public class CaseGuiListener implements Listener {
             case POISON -> p.playSound(p.getLocation(), Sound.ENTITY_SPIDER_AMBIENT, 0.15f, 1.6f);
             case CAULDRON -> {
                 p.playSound(p.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 0.13f, 1.65f);
-                p.playSound(p.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.15f, 1.85f);
+                SoundCompat.play(p, new String[]{"BLOCK_AMETHYST_BLOCK_CHIME", "BLOCK_NOTE_BLOCK_PLING"}, 0.15f, 1.85f);
             }
             case FORTUNE_RING -> {
-                p.playSound(p.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.14f, 1.55f);
+                SoundCompat.play(p, new String[]{"BLOCK_AMETHYST_BLOCK_CHIME", "BLOCK_NOTE_BLOCK_PLING"}, 0.14f, 1.55f);
                 p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 0.10f, 1.85f);
+            }
+            case PILLAGER_RAID -> {
+                SoundCompat.play(p, new String[]{"ENTITY_PILLAGER_AMBIENT", "ENTITY_VINDICATOR_AMBIENT"}, 0.13f, 0.85f);
+                p.playSound(p.getLocation(), Sound.BLOCK_WOOD_PLACE, 0.12f, 0.75f);
             }
         }
     }
 
-    private ItemStack buildAnimationItem(AnimationType type, boolean selected) {
+    private ItemStack buildAnimationBackItem(CaseDefinition def) {
+        ItemStack back = new ItemStack(Material.ARROW);
+        ItemMeta meta = back.getItemMeta();
+        if (meta != null) {
+            String[] replacements = animationSelectReplacements(def);
+            meta.setDisplayName(caseManager.getPlugin().getGuiConfig().text("animation-select.back.name",
+                    "§x§A§0§E§F§A§1← §fНазад", replacements));
+            meta.setLore(caseManager.getPlugin().getGuiConfig().list("animation-select.back.lore", List.of(
+                    "",
+                    "§x§A§0§E§F§A§1 «Навигация»",
+                    " §7- §fВернуться к кейсу",
+                    ""
+            ), replacements));
+            back.setItemMeta(meta);
+        }
+        return back;
+    }
+
+    private ItemStack buildAnimationItem(CaseDefinition def, AnimationType type, boolean selected) {
         ItemStack item = new ItemStack(type.icon());
         ItemMeta meta = item.getItemMeta();
         if (meta == null) return item;
 
-        meta.setDisplayName((selected ? "§x§A§0§E§F§A§1◆ " : "§x§8§A§8§A§8§A◇ ") + type.displayName());
+        String prefix = selected ? "§x§A§0§E§F§A§1◆ " : "§x§8§A§8§A§8§A◇ ";
+        String[] replacements = animationSelectReplacements(def,
+                "prefix", prefix,
+                "animation", type.displayName(),
+                "description", type.description().replace('\n', ' '),
+                "status", selected ? "§x§5§5§C§8§7§4Выбрана сейчас" : "§fНажмите, чтобы выбрать");
 
         List<String> lore = new ArrayList<>();
         lore.add("");
@@ -366,7 +428,17 @@ public class CaseGuiListener implements Listener {
                 ? " §7- §x§5§5§C§8§7§4Выбрана сейчас"
                 : " §7- §fНажмите, чтобы выбрать");
         lore.add("");
-        meta.setLore(lore);
+
+        String path = animationConfigPath(type);
+        if (caseManager.getPlugin().getGuiConfig().contains(path)) {
+            meta.setDisplayName(caseManager.getPlugin().getGuiConfig().text(path + ".name",
+                    "{prefix}{animation}", replacements));
+            meta.setLore(caseManager.getPlugin().getGuiConfig().list(path + ".lore", lore, replacements));
+        } else {
+            meta.setDisplayName(caseManager.getPlugin().getGuiConfig().text("animation-select.item.name",
+                    "{prefix}{animation}", replacements));
+            meta.setLore(caseManager.getPlugin().getGuiConfig().list("animation-select.item.lore", lore, replacements));
+        }
 
         if (selected) {
             var unbreaking = EnchantmentCompat.unbreaking();
@@ -380,13 +452,45 @@ public class CaseGuiListener implements Listener {
         return item;
     }
 
+    private static String animationConfigPath(AnimationType type) {
+        return "animation-select.animations." + type.name().toLowerCase(java.util.Locale.ROOT).replace('_', '-');
+    }
+
+    private String[] animationSelectReplacements(CaseDefinition def, String... extra) {
+        List<String> replacements = new ArrayList<>();
+        replacements.add("case");
+        replacements.add(def == null ? "" : color(def.displayName()));
+        replacements.add("case_id");
+        replacements.add(def == null ? "" : def.name());
+        replacements.add("case-id");
+        replacements.add(def == null ? "" : def.name());
+        for (int i = 0; i + 1 < extra.length; i += 2) {
+            replacements.add(extra[i]);
+            replacements.add(extra[i + 1]);
+        }
+        return replacements.toArray(String[]::new);
+    }
+
+    private static AnimationType[] availableAnimationTypes() {
+        if (ServerCompatibility.useMinecraft1165AnimationMode()) {
+            return new AnimationType[]{AnimationType.FORTUNE_RING};
+        }
+        if (!ServerCompatibility.useModernAnimations()) {
+            return java.util.Arrays.stream(AnimationType.values())
+                    .filter(type -> type != AnimationType.PILLAGER_RAID)
+                    .toArray(AnimationType[]::new);
+        }
+        return AnimationType.values();
+    }
+
     private void scheduleRefresh(Player p, String caseName, CaseDefinition def, UUID uuid, long delay) {
         new BukkitRunnable() {
             @Override
             public void run() {
                 clickLock.remove(uuid);
                 if (!p.isOnline()) return;
-                Inventory top = p.getOpenInventory().getTopInventory();
+                Inventory top = InventoryViewCompat.topInventory(p);
+                if (top == null) return;
                 if (!(top.getHolder() instanceof CaseGuiHolder h2)) return;
                 if (h2.type() != CaseGuiHolder.Type.CASE) return;
                 if (!Objects.equals(h2.caseName(), caseName)) return;
@@ -407,6 +511,6 @@ public class CaseGuiListener implements Listener {
     }
 
     private static String color(String s) {
-        return ChatColor.translateAlternateColorCodes('&', s == null ? "" : s);
+        return ColorUtil.colorize(s);
     }
 }

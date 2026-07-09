@@ -11,6 +11,7 @@ public class CaseDefinition {
     public enum CostType { NONE, XP_LEVELS, KEY }
 
     private final String name;
+    private final String displayName;
     private final Location blockLocation;
     private final List<Location> blockLocations;
 
@@ -35,6 +36,7 @@ public class CaseDefinition {
 
     public CaseDefinition(
             String name,
+            String displayName,
             List<Location> blockLocations,
             String guiTitle,
             ItemStack openButton,
@@ -53,6 +55,7 @@ public class CaseDefinition {
             List<Reward> rewards
     ) {
         this.name = name;
+        this.displayName = displayName == null || displayName.isBlank() ? name : displayName;
         this.blockLocations = blockLocations == null
                 ? List.of()
                 : List.copyOf(blockLocations.stream().filter(location -> location != null).toList());
@@ -75,6 +78,7 @@ public class CaseDefinition {
     }
 
     public String name() { return name; }
+    public String displayName() { return displayName; }
     public Location blockLocation() { return blockLocation; }
     public List<Location> blockLocations() { return blockLocations; }
     public String guiTitle() { return guiTitle; }

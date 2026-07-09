@@ -442,7 +442,7 @@ public class CauldronRouletteAnimation extends CaseAnimation {
         if (value == null || value.isBlank()) {
             return "";
         }
-        String colored = ChatColor.translateAlternateColorCodes('&', value);
+        String colored = ru.privatenull.util.ColorUtil.colorize(value);
         String stripped = ChatColor.stripColor(colored);
         if (stripped == null) {
             stripped = colored;
