@@ -9,12 +9,16 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public class ItemFactory {
+public final class ItemFactory {
+
+    private ItemFactory() {
+    }
 
     private static String c(String s) {
         return ColorUtil.colorize(s);
@@ -101,6 +105,51 @@ public class ItemFactory {
         }
 
         return it;
+    }
+
+    public static void writeItem(ConfigurationSection parent, String key, ItemStack source) {
+        parent.set(key, null);
+        ConfigurationSection section = parent.createSection(key);
+        ItemStack item = source.clone();
+        item.setAmount(Math.max(1, item.getAmount()));
+
+        section.set("material", item.getType().name());
+        if (item.getAmount() > 1) {
+            section.set("amount", item.getAmount());
+        }
+
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return;
+        if (meta.hasDisplayName()) {
+            section.set("name", meta.getDisplayName());
+        }
+        if (meta.hasLore() && meta.getLore() != null && !meta.getLore().isEmpty()) {
+            section.set("lore", meta.getLore());
+        }
+        if (!meta.getEnchants().isEmpty()) {
+            ConfigurationSection enchantments = section.createSection("enchantments");
+            meta.getEnchants().entrySet().stream()
+                    .sorted(Comparator.comparing(entry -> entry.getKey().getKey().getKey()))
+                    .forEach(entry -> enchantments.set(entry.getKey().getKey().getKey(), entry.getValue()));
+        }
+    }
+
+    public static void writeExactItem(ConfigurationSection parent, String key, ItemStack source) {
+        ItemStack item = source.clone();
+        item.setAmount(1);
+        writeItem(parent, key, item);
+
+        ConfigurationSection section = parent.getConfigurationSection(key);
+        if (section == null) return;
+        try {
+            section.set("item_data", Base64.getEncoder().encodeToString(item.serializeAsBytes()));
+        } catch (IllegalArgumentException ex) {
+            section.set("item_data", null);
+        }
+    }
+
+    public static boolean isRealItem(ItemStack item) {
+        return item != null && !item.getType().isAir() && item.getAmount() > 0;
     }
 
     private static void applyMeta(ItemStack it, String name, List<String> lore, ConfigurationSection enchSec) {

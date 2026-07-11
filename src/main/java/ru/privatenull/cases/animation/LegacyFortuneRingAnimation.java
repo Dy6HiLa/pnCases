@@ -12,7 +12,7 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.cases.model.Reward;
-import ru.privatenull.pnCases;
+import ru.privatenull.PnCasesPlugin;
 import ru.privatenull.util.MaterialCompat;
 import ru.privatenull.util.ParticleCompat;
 import ru.privatenull.util.SoundCompat;
@@ -33,7 +33,7 @@ public final class LegacyFortuneRingAnimation extends CaseAnimation {
 
     private final Set<HiddenCaseBlock> hiddenBlocks = ConcurrentHashMap.newKeySet();
 
-    public LegacyFortuneRingAnimation(pnCases plugin) {
+    public LegacyFortuneRingAnimation(PnCasesPlugin plugin) {
         super(plugin);
     }
 
@@ -371,12 +371,7 @@ public final class LegacyFortuneRingAnimation extends CaseAnimation {
     }
 
     private static void safeRemove(VisualEntity visual) {
-        try {
-            if (visual != null) {
-                visual.remove();
-            }
-        } catch (Exception ignored) {
-        }
+        if (visual != null) visual.remove();
     }
 
     private record HiddenCaseBlock(Block block, BlockState state) {

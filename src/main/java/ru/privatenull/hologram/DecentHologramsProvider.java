@@ -40,10 +40,7 @@ public final class DecentHologramsProvider implements HologramProvider {
             return;
         }
 
-        try {
-            DHAPI.removeHologram(name);
-        } catch (Throwable ignored) {
-        }
+        DHAPI.removeHologram(name);
     }
 
     private static Hologram createTextHologram(HologramSpec spec) {

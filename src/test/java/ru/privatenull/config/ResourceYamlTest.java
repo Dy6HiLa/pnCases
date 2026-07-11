@@ -1,0 +1,32 @@
+package ru.privatenull.config;
+
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+class ResourceYamlTest {
+
+    @ParameterizedTest(name = "{0} is valid YAML")
+    @ValueSource(strings = {
+            "config.yml",
+            "gui.yml",
+            "messages.yml",
+            "plugin.yml",
+            "cases/items.yml",
+            "cases/luckperms.yml",
+            "cases/money.yml",
+            "cases/playerpoints.yml"
+    })
+    void bundledYamlIsValid(String resource) throws Exception {
+        try (InputStream input = getClass().getClassLoader().getResourceAsStream(resource)) {
+            assertNotNull(input, "Missing resource: " + resource);
+            String yaml = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+            new YamlConfiguration().loadFromString(yaml);
+        }
+    }
+}

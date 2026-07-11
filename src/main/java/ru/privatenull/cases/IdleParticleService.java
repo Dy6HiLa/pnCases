@@ -8,7 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.cases.model.IdleParticleSettings;
-import ru.privatenull.pnCases;
+import ru.privatenull.PnCasesPlugin;
 import ru.privatenull.util.VisualEntity;
 
 import java.util.ArrayList;
@@ -22,7 +22,7 @@ public final class IdleParticleService {
 
     private static final String DISPLAY_TAG = "pncases_idle_showcase";
 
-    private final pnCases plugin;
+    private final PnCasesPlugin plugin;
     private final CaseManager caseManager;
     private final List<Entry> entries = new ArrayList<>();
     private final Map<String, VisualEntity> displays = new HashMap<>();
@@ -30,7 +30,7 @@ public final class IdleParticleService {
     private org.bukkit.scheduler.BukkitTask task;
     private long tick;
 
-    public IdleParticleService(pnCases plugin, CaseManager caseManager) {
+    public IdleParticleService(PnCasesPlugin plugin, CaseManager caseManager) {
         this.plugin = plugin;
         this.caseManager = caseManager;
     }

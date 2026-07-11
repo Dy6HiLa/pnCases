@@ -9,7 +9,8 @@ import org.joml.AxisAngle4f;
 import org.joml.Vector3f;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.cases.model.Reward;
-import ru.privatenull.pnCases;
+import ru.privatenull.util.EntityCleanup;
+import ru.privatenull.PnCasesPlugin;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +26,7 @@ public class PortalAnimation extends CaseAnimation {
 
     private static final int ITEM_COUNT = 10;
 
-    public PortalAnimation(pnCases plugin) {
+    public PortalAnimation(PnCasesPlugin plugin) {
         super(plugin);
     }
 
@@ -447,7 +448,7 @@ public class PortalAnimation extends CaseAnimation {
         td.setText(resolveRewardName(reward, visual));
     }
 
-    private static void safeRemove(Entity e) {
-        try { if (e != null && !e.isDead()) e.remove(); } catch (Exception ignored) {}
+    private static void safeRemove(Entity entity) {
+        EntityCleanup.remove(entity);
     }
 }

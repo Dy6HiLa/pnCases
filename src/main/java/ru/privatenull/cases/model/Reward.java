@@ -29,10 +29,14 @@ public class Reward {
         public String coloredName() { return color + displayName; }
 
         public static Rarity parse(String value, int chance) {
-            if (value == null || value.isBlank()) {
-                return fromChance(chance);
-            }
+            Rarity known = parseKnown(value);
+            return known == null ? fromChance(chance) : known;
+        }
 
+        public static Rarity parseKnown(String value) {
+            if (value == null || value.isBlank()) {
+                return null;
+            }
             return switch (value.trim().toUpperCase(Locale.ROOT)) {
                 case "COMMON", "ОБЫЧНАЯ", "DEFAULT" -> COMMON;
                 case "UNCOMMON", "НЕОБЫЧНАЯ" -> UNCOMMON;
@@ -40,7 +44,7 @@ public class Reward {
                 case "EPIC", "ЭПИЧЕСКАЯ" -> EPIC;
                 case "LEGENDARY", "ЛЕГЕНДАРНАЯ" -> LEGENDARY;
                 case "MYTHIC", "MYTHICAL", "МИФИЧЕСКАЯ" -> MYTHIC;
-                default -> fromChance(chance);
+                default -> null;
             };
         }
 
@@ -65,6 +69,7 @@ public class Reward {
     private final String message;
     private final String displayName;
     private final Rarity rarity;
+    private final String rarityId;
 
     public Reward(int chance, Type type, ItemStack item, String lpGroup, String lpNode, String lpDuration, String message, String displayName) {
         this(chance, type, item, lpGroup, lpNode, lpDuration, 0.0, 0, message, displayName);
@@ -103,6 +108,41 @@ public class Reward {
             String displayName,
             Rarity rarity
     ) {
+        this(chance, type, item, lpGroup, lpNode, lpDuration, vaultAmount, playerPointsAmount,
+                message, displayName, rarity, rarity == null ? null : rarity.name());
+    }
+
+    public Reward(
+            int chance,
+            Type type,
+            ItemStack item,
+            String lpGroup,
+            String lpNode,
+            String lpDuration,
+            double vaultAmount,
+            int playerPointsAmount,
+            String message,
+            String displayName,
+            String rarityId
+    ) {
+        this(chance, type, item, lpGroup, lpNode, lpDuration, vaultAmount, playerPointsAmount,
+                message, displayName, Rarity.parse(rarityId, chance), rarityId);
+    }
+
+    private Reward(
+            int chance,
+            Type type,
+            ItemStack item,
+            String lpGroup,
+            String lpNode,
+            String lpDuration,
+            double vaultAmount,
+            int playerPointsAmount,
+            String message,
+            String displayName,
+            Rarity rarity,
+            String rarityId
+    ) {
         this.chance = chance;
         this.type = type;
         this.item = item;
@@ -114,6 +154,21 @@ public class Reward {
         this.message = message;
         this.displayName = displayName;
         this.rarity = rarity == null ? Rarity.fromChance(chance) : rarity;
+        this.rarityId = normalizeRarityId(rarityId, chance);
+    }
+
+    public static String normalizeRarityId(String value, int chance) {
+        if (value == null || value.isBlank()) {
+            return Rarity.fromChance(chance).name().toLowerCase(Locale.ROOT);
+        }
+        Rarity known = Rarity.parseKnown(value);
+        if (known != null) {
+            return known.name().toLowerCase(Locale.ROOT);
+        }
+        String normalized = value.trim().toLowerCase(Locale.ROOT)
+                .replaceAll("[^\\p{L}\\p{N}_-]", "_")
+                .replaceAll("_+", "_");
+        return normalized.isBlank() ? Rarity.fromChance(chance).name().toLowerCase(Locale.ROOT) : normalized;
     }
 
     public int chance() { return chance; }
@@ -128,4 +183,5 @@ public class Reward {
     public String message() { return message; }
     public String displayName() { return displayName; }
     public Rarity rarity() { return rarity; }
+    public String rarityId() { return rarityId; }
 }

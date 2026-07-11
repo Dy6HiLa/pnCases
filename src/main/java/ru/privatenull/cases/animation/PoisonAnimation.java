@@ -14,14 +14,14 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 import org.joml.Vector3f;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.cases.model.Reward;
-import ru.privatenull.pnCases;
+import ru.privatenull.util.EntityCleanup;
+import ru.privatenull.PnCasesPlugin;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -38,7 +38,7 @@ public class PoisonAnimation extends CaseAnimation {
     private static final int REVEAL_TICKS = 68;
     private static final int AUTO_BREAK_TICK = 260;
 
-    public PoisonAnimation(pnCases plugin) {
+    public PoisonAnimation(PnCasesPlugin plugin) {
         super(plugin);
     }
 
@@ -512,71 +512,8 @@ public class PoisonAnimation extends CaseAnimation {
         return resolveRewardVisual(reward, def);
     }
 
-    private static ItemStack findMatchingAnimationItem(Reward reward, CaseDefinition def) {
-        String rewardName = normalizeName(reward.displayName());
-        String groupName = normalizeName(reward.lpGroup());
-        String nodeName = normalizeName(reward.lpNode());
-
-        for (ItemStack item : def.animationItems()) {
-            if (item == null) continue;
-
-            String itemName = normalizeName(getDisplayName(item));
-            if (matchesName(itemName, rewardName) || matchesName(itemName, groupName) || matchesName(itemName, nodeName)) {
-                return item.clone();
-            }
-        }
-
-        return null;
-    }
-
-    private static ItemStack buildFallbackRewardVisual(Reward reward) {
-        ItemStack item = new ItemStack(Material.NETHER_STAR);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            String name = reward.displayName();
-            if (name == null || name.isBlank()) {
-                name = reward.lpGroup() != null && !reward.lpGroup().isBlank()
-                        ? "&f" + reward.lpGroup()
-                        : "&fНаграда";
-            }
-            meta.setDisplayName(ru.privatenull.util.ColorUtil.colorize(name));
-            item.setItemMeta(meta);
-        }
-        return item;
-    }
-
-    private static String getDisplayName(ItemStack item) {
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null && meta.hasDisplayName()) {
-            return meta.getDisplayName();
-        }
-        return item.getType().name();
-    }
-
-    private static boolean matchesName(String itemName, String rewardName) {
-        if (itemName.length() < 2 || rewardName.length() < 2) {
-            return false;
-        }
-        return itemName.equals(rewardName) || itemName.contains(rewardName) || rewardName.contains(itemName);
-    }
-
-    private static String normalizeName(String value) {
-        if (value == null || value.isBlank()) {
-            return "";
-        }
-        String colored = ru.privatenull.util.ColorUtil.colorize(value);
-        String stripped = ChatColor.stripColor(colored);
-        if (stripped == null) {
-            stripped = colored;
-        }
-        return stripped.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+", "");
-    }
-
     private static void safeRemove(Entity e) {
-        try {
-            if (e != null && !e.isDead()) e.remove();
-        } catch (Exception ignored) {
-        }
+        EntityCleanup.remove(e);
     }
 
     private static final class SlimeGlob {

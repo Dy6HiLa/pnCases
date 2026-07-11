@@ -8,7 +8,8 @@ import org.bukkit.scheduler.BukkitTask;
 import org.joml.Vector3f;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.cases.model.Reward;
-import ru.privatenull.pnCases;
+import ru.privatenull.util.EntityCleanup;
+import ru.privatenull.PnCasesPlugin;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +17,7 @@ import java.util.Random;
 
 public class AnvilAnimation extends CaseAnimation {
 
-    public AnvilAnimation(pnCases plugin) {
+    public AnvilAnimation(PnCasesPlugin plugin) {
         super(plugin);
     }
 
@@ -194,7 +195,7 @@ public class AnvilAnimation extends CaseAnimation {
         return x < 0.5 ? 2.0 * x * x : 1.0 - Math.pow(-2.0 * x + 2.0, 2.0) / 2.0;
     }
 
-    private static void safeRemove(Entity e) {
-        try { e.remove(); } catch (Exception ignored) {}
+    private static void safeRemove(Entity entity) {
+        EntityCleanup.remove(entity);
     }
 }

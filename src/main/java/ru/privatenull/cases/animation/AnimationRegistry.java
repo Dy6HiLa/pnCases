@@ -1,6 +1,7 @@
 package ru.privatenull.cases.animation;
 
-import ru.privatenull.pnCases;
+import ru.privatenull.PnCasesPlugin;
+import ru.privatenull.cases.model.AnimationType;
 import ru.privatenull.util.ServerCompatibility;
 
 import java.lang.reflect.Constructor;
@@ -12,7 +13,7 @@ public class AnimationRegistry {
 
     private final Map<AnimationType, CaseAnimation> animations = new EnumMap<>(AnimationType.class);
 
-    public AnimationRegistry(pnCases plugin) {
+    public AnimationRegistry(PnCasesPlugin plugin) {
         if (ServerCompatibility.useMinecraft1165AnimationMode()) {
             CaseAnimation fortuneRing = new LegacyFortuneRingAnimation(plugin);
             for (AnimationType type : AnimationType.values()) {
@@ -55,10 +56,10 @@ public class AnimationRegistry {
         }
     }
 
-    private static CaseAnimation createModern(pnCases plugin, String className, AnimationType fallbackType) {
+    private static CaseAnimation createModern(PnCasesPlugin plugin, String className, AnimationType fallbackType) {
         try {
             Class<?> rawClass = Class.forName(className);
-            Constructor<?> constructor = rawClass.getConstructor(pnCases.class);
+            Constructor<?> constructor = rawClass.getConstructor(PnCasesPlugin.class);
             Object instance = constructor.newInstance(plugin);
             if (instance instanceof CaseAnimation animation) {
                 return animation;

@@ -1,10 +1,7 @@
 package ru.privatenull.storage;
 
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
-import ru.privatenull.cases.model.Reward;
 
 import java.io.File;
 import java.sql.Connection;
@@ -14,8 +11,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Base64;
-import java.util.Locale;
-import java.util.UUID;
+import java.util.logging.Level;
 
 public final class SqliteDatabase implements AutoCloseable {
 
@@ -38,7 +34,7 @@ public final class SqliteDatabase implements AutoCloseable {
             this.connection = DriverManager.getConnection("jdbc:sqlite:" + file.getAbsolutePath());
             configure();
             createSchema();
-            migrateLegacyYaml();
+            new LegacyYamlMigrator(plugin.getDataFolder(), connection).migrate();
         } catch (Exception ex) {
             throw new IllegalStateException("Не удалось открыть SQLite базу pnCases: " + ex.getMessage(), ex);
         }
@@ -54,7 +50,8 @@ public final class SqliteDatabase implements AutoCloseable {
             if (!connection.isClosed()) {
                 connection.close();
             }
-        } catch (SQLException ignored) {
+        } catch (SQLException exception) {
+            plugin.getLogger().log(Level.WARNING, "Не удалось закрыть SQLite базу pnCases", exception);
         }
     }
 
@@ -143,194 +140,6 @@ public final class SqliteDatabase implements AutoCloseable {
         }
     }
 
-    private void migrateLegacyYaml() throws SQLException {
-        runMigration(this::migrateKeys);
-        runMigration(this::migratePlayerPrefs);
-        runMigration(this::migrateOpenHistory);
-        runMigration(this::migratePendingRewards);
-    }
-
-    private void runMigration(Migration migration) throws SQLException {
-        boolean autoCommit = connection.getAutoCommit();
-        connection.setAutoCommit(false);
-        try {
-            migration.run();
-            connection.commit();
-        } catch (SQLException | RuntimeException ex) {
-            connection.rollback();
-            throw ex;
-        } finally {
-            connection.setAutoCommit(autoCommit);
-        }
-    }
-
-    private void migrateKeys() throws SQLException {
-        if (isMigrated("legacy.keys.yml")) return;
-
-        File legacy = new File(plugin.getDataFolder(), "keys.yml");
-        if (!legacy.exists()) {
-            markMigrated("legacy.keys.yml");
-            return;
-        }
-
-        YamlConfiguration yaml = YamlConfiguration.loadConfiguration(legacy);
-        ConfigurationSection players = yaml.getConfigurationSection("players");
-        if (players != null) {
-            try (PreparedStatement statement = connection.prepareStatement("""
-                    INSERT INTO player_keys(player_uuid, key_id, amount)
-                    VALUES (?, ?, ?)
-                    ON CONFLICT(player_uuid, key_id) DO UPDATE SET amount = player_keys.amount + excluded.amount
-                    """)) {
-                for (String uuidRaw : players.getKeys(false)) {
-                    if (!isUuid(uuidRaw)) continue;
-                    ConfigurationSection keys = players.getConfigurationSection(uuidRaw);
-                    if (keys == null) continue;
-
-                    for (String keyId : keys.getKeys(false)) {
-                        int amount = Math.max(0, keys.getInt(keyId, 0));
-                        if (amount <= 0) continue;
-
-                        statement.setString(1, uuidRaw);
-                        statement.setString(2, keyId.toLowerCase(Locale.ROOT));
-                        statement.setInt(3, amount);
-                        statement.addBatch();
-                    }
-                }
-                statement.executeBatch();
-            }
-        }
-
-        markMigrated("legacy.keys.yml");
-    }
-
-    private void migratePlayerPrefs() throws SQLException {
-        if (isMigrated("legacy.player_prefs.yml")) return;
-
-        File legacy = new File(plugin.getDataFolder(), "player_prefs.yml");
-        if (!legacy.exists()) {
-            markMigrated("legacy.player_prefs.yml");
-            return;
-        }
-
-        YamlConfiguration yaml = YamlConfiguration.loadConfiguration(legacy);
-        ConfigurationSection players = yaml.getConfigurationSection("players");
-        if (players != null) {
-            try (PreparedStatement statement = connection.prepareStatement("""
-                    INSERT OR REPLACE INTO player_prefs(player_uuid, animation)
-                    VALUES (?, ?)
-                    """)) {
-                for (String uuidRaw : players.getKeys(false)) {
-                    if (!isUuid(uuidRaw)) continue;
-                    String animation = yaml.getString("players." + uuidRaw + ".animation");
-                    if (animation == null || animation.isBlank()) continue;
-
-                    statement.setString(1, uuidRaw);
-                    statement.setString(2, animation.toUpperCase(Locale.ROOT));
-                    statement.addBatch();
-                }
-                statement.executeBatch();
-            }
-        }
-
-        markMigrated("legacy.player_prefs.yml");
-    }
-
-    private void migrateOpenHistory() throws SQLException {
-        if (isMigrated("legacy.open_history.yml")) return;
-
-        File legacy = new File(plugin.getDataFolder(), "open_history.yml");
-        if (!legacy.exists()) {
-            markMigrated("legacy.open_history.yml");
-            return;
-        }
-
-        YamlConfiguration yaml = YamlConfiguration.loadConfiguration(legacy);
-        ConfigurationSection cases = yaml.getConfigurationSection("cases");
-        if (cases != null) {
-            try (PreparedStatement statement = connection.prepareStatement("""
-                    INSERT INTO open_history(case_name, player_name, reward_name, opened_at)
-                    VALUES (?, ?, ?, ?)
-                    """)) {
-                for (String caseName : cases.getKeys(false)) {
-                    ConfigurationSection entries = cases.getConfigurationSection(caseName);
-                    if (entries == null) continue;
-
-                    for (String entryKey : entries.getKeys(false)) {
-                        ConfigurationSection entry = entries.getConfigurationSection(entryKey);
-                        if (entry == null) continue;
-
-                        statement.setString(1, caseName.toLowerCase(Locale.ROOT));
-                        statement.setString(2, entry.getString("player", "Unknown"));
-                        statement.setString(3, entry.getString("reward", "Награда"));
-                        statement.setLong(4, Math.max(0L, entry.getLong("time", 0L)));
-                        statement.addBatch();
-                    }
-                }
-                statement.executeBatch();
-            }
-        }
-
-        markMigrated("legacy.open_history.yml");
-    }
-
-    private void migratePendingRewards() throws SQLException {
-        if (isMigrated("legacy.pending_rewards.yml")) return;
-
-        File legacy = new File(plugin.getDataFolder(), "pending_rewards.yml");
-        if (!legacy.exists()) {
-            markMigrated("legacy.pending_rewards.yml");
-            return;
-        }
-
-        YamlConfiguration yaml = YamlConfiguration.loadConfiguration(legacy);
-        ConfigurationSection players = yaml.getConfigurationSection("players");
-        if (players != null) {
-            try (PreparedStatement statement = connection.prepareStatement("""
-                    INSERT OR REPLACE INTO pending_rewards(
-                        player_uuid, type, chance, rarity, item_base64, lp_group, lp_node, lp_duration,
-                        vault_amount, player_points_amount, message, display_name
-                    )
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """)) {
-                for (String uuidRaw : players.getKeys(false)) {
-                    if (!isUuid(uuidRaw)) continue;
-                    String base = "players." + uuidRaw;
-                    int chance = yaml.getInt(base + ".chance", 100);
-
-                    statement.setString(1, uuidRaw);
-                    statement.setString(2, yaml.getString(base + ".type", "ITEM"));
-                    statement.setInt(3, chance);
-                    statement.setString(4, yaml.getString(base + ".rarity", defaultRarity(chance)));
-                    statement.setString(5, yaml.getString(base + ".item", null));
-                    statement.setString(6, yaml.getString(base + ".lpGroup", null));
-                    statement.setString(7, yaml.getString(base + ".lpNode", null));
-                    statement.setString(8, yaml.getString(base + ".lpDuration", null));
-                    statement.setDouble(9, yaml.getDouble(base + ".vaultAmount", 0.0));
-                    statement.setInt(10, yaml.getInt(base + ".playerPointsAmount", 0));
-                    statement.setString(11, yaml.getString(base + ".message", null));
-                    statement.setString(12, yaml.getString(base + ".displayName", null));
-                    statement.addBatch();
-                }
-                statement.executeBatch();
-            }
-        }
-
-        markMigrated("legacy.pending_rewards.yml");
-    }
-
-    private boolean isMigrated(String key) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("SELECT value FROM schema_meta WHERE key = ?")) {
-            statement.setString(1, key);
-            try (ResultSet result = statement.executeQuery()) {
-                return result.next() && "true".equalsIgnoreCase(result.getString("value"));
-            }
-        }
-    }
-
-    private void markMigrated(String key) throws SQLException {
-        setMeta(key, "true");
-    }
-
     private void setMeta(String key, String value) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement("""
                 INSERT INTO schema_meta(key, value)
@@ -377,21 +186,4 @@ public final class SqliteDatabase implements AutoCloseable {
         }
     }
 
-    private static String defaultRarity(int chance) {
-        return Reward.Rarity.fromChance(chance).name();
-    }
-
-    private static boolean isUuid(String value) {
-        try {
-            UUID.fromString(value);
-            return true;
-        } catch (Exception ignored) {
-            return false;
-        }
-    }
-
-    @FunctionalInterface
-    private interface Migration {
-        void run() throws SQLException;
-    }
 }

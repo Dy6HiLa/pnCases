@@ -8,7 +8,8 @@ import org.bukkit.scheduler.BukkitTask;
 import org.joml.Vector3f;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.cases.model.Reward;
-import ru.privatenull.pnCases;
+import ru.privatenull.util.EntityCleanup;
+import ru.privatenull.PnCasesPlugin;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,14 +19,13 @@ public class DynamiteAnimation extends CaseAnimation {
 
     private static final int PHASE0_END = 46;
     private static final int PHASE1_END = 78;
-    private static final int PHASE2_END = 84;
     private static final int PHASE3_END = 138;
     private static final int PHASE4_END = 188;
 
     private static final int DEBRIS_COUNT    = 10;
     private static final int GUNPOWDER_COUNT = 8;
 
-    public DynamiteAnimation(pnCases plugin) {
+    public DynamiteAnimation(PnCasesPlugin plugin) {
         super(plugin);
     }
 
@@ -399,7 +399,7 @@ public class DynamiteAnimation extends CaseAnimation {
         td.setText(resolveRewardName(reward, visual));
     }
 
-    private static void safeRemove(Entity e) {
-        try { if (e != null && !e.isDead()) e.remove(); } catch (Exception ignored) {}
+    private static void safeRemove(Entity entity) {
+        EntityCleanup.remove(entity);
     }
 }

@@ -5,6 +5,11 @@ import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
+import ru.privatenull.cases.model.Reward;
+
+import static ru.privatenull.cases.config.RewardConfigValues.firstPresent;
+import static ru.privatenull.cases.config.RewardConfigValues.inferType;
+import static ru.privatenull.cases.config.RewardConfigValues.nestedMap;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -293,7 +298,8 @@ public final class ConfigValidator {
             }
 
             String rawType = String.valueOf(map.containsKey("type") ? map.get("type") : "ITEM");
-            String type = inferRewardType(rawType, map);
+            Reward.Type rewardType = inferType(rawType, map);
+            String type = rewardType == null ? null : rewardType.name();
             if (type == null) {
                 errors.add(rewardPath + ".type = '" + rawType + "' неизвестен. Доступно: ITEM, LUCKPERMS, VAULT, PLAYERPOINTS.");
                 continue;
@@ -423,37 +429,6 @@ public final class ConfigValidator {
         }
     }
 
-    private static String normalizeRewardType(String rawType) {
-        if (rawType == null) return "ITEM";
-        return switch (rawType.trim().toUpperCase(Locale.ROOT)) {
-            case "ITEM", "LUCKPERMS", "VAULT", "PLAYERPOINTS" -> rawType.trim().toUpperCase(Locale.ROOT);
-            case "MONEY", "ECONOMY", "ECO" -> "VAULT";
-            case "POINTS", "PLAYER_POINTS", "PLAYER-POINTS" -> "PLAYERPOINTS";
-            default -> null;
-        };
-    }
-
-    private static String inferRewardType(String rawType, java.util.Map<?, ?> rewardMap) {
-        String normalized = normalizeRewardType(rawType);
-        if ("ITEM".equals(normalized) && hasVaultRewardData(rewardMap)) {
-            return "VAULT";
-        }
-        if ("ITEM".equals(normalized) && hasPlayerPointsRewardData(rewardMap)) {
-            return "PLAYERPOINTS";
-        }
-        return normalized;
-    }
-
-    private static boolean hasVaultRewardData(java.util.Map<?, ?> rewardMap) {
-        java.util.Map<?, ?> vault = nestedMap(rewardMap, "vault", "money", "economy", "eco");
-        return firstPresent(vault, rewardMap, "amount", "money", "value", "vault_amount", "vault-amount") != null;
-    }
-
-    private static boolean hasPlayerPointsRewardData(java.util.Map<?, ?> rewardMap) {
-        java.util.Map<?, ?> points = nestedMap(rewardMap, "playerpoints", "player_points", "player-points", "points");
-        return firstPresent(points, rewardMap, "amount", "points", "value", "player_points", "player-points") != null;
-    }
-
     private static boolean isKnownRarity(String value) {
         if (value == null || value.isBlank()) return true;
         return switch (value.trim().toUpperCase(Locale.ROOT)) {
@@ -465,32 +440,6 @@ public final class ConfigValidator {
                  "MYTHIC", "MYTHICAL", "МИФИЧЕСКАЯ" -> true;
             default -> false;
         };
-    }
-
-    private static java.util.Map<?, ?> nestedMap(java.util.Map<?, ?> map, String... keys) {
-        if (map == null) return null;
-        for (String key : keys) {
-            Object value = map.get(key);
-            if (value instanceof java.util.Map<?, ?> nested) {
-                return nested;
-            }
-        }
-        return null;
-    }
-
-    private static Object firstPresent(java.util.Map<?, ?> primary, java.util.Map<?, ?> fallback, String... keys) {
-        Object value = firstPresent(primary, keys);
-        return value != null ? value : firstPresent(fallback, keys);
-    }
-
-    private static Object firstPresent(java.util.Map<?, ?> map, String... keys) {
-        if (map == null) return null;
-        for (String key : keys) {
-            if (map.containsKey(key)) {
-                return map.get(key);
-            }
-        }
-        return null;
     }
 
     private static boolean isBlank(Object value) {

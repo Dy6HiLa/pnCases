@@ -47,6 +47,7 @@ public final class VaultEconomyProvider {
             try {
                 return current.format(amount);
             } catch (Throwable ignored) {
+                return "$" + FALLBACK_FORMAT.format(amount);
             }
         }
         return "$" + FALLBACK_FORMAT.format(amount);

@@ -1,6 +1,6 @@
 package ru.privatenull.storage;
 
-import ru.privatenull.cases.animation.AnimationType;
+import ru.privatenull.cases.model.AnimationType;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;

@@ -41,7 +41,7 @@ public final class PendingRewardStorage {
             statement.setString(1, uuid.toString());
             statement.setString(2, reward.type().name());
             statement.setInt(3, reward.chance());
-            statement.setString(4, reward.rarity().name());
+            statement.setString(4, reward.rarityId());
             statement.setString(5, SqliteDatabase.serializeItem(reward.item()));
             statement.setString(6, reward.lpGroup());
             statement.setString(7, reward.lpNode());
@@ -83,7 +83,7 @@ public final class PendingRewardStorage {
                         result.getInt("player_points_amount"),
                         result.getString("message"),
                         result.getString("display_name"),
-                        Reward.Rarity.parse(result.getString("rarity"), chance)
+                        result.getString("rarity")
                 );
             }
         } catch (SQLException ex) {
@@ -113,6 +113,7 @@ public final class PendingRewardStorage {
                 try {
                     uuids.add(UUID.fromString(result.getString("player_uuid")));
                 } catch (IllegalArgumentException ignored) {
+                    continue;
                 }
             }
             return uuids;

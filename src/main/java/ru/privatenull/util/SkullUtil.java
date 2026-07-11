@@ -14,6 +14,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.UUID;
+import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -37,7 +38,8 @@ public class SkullUtil {
             if (skinUrl != null && !applyPaperProfile(meta, skinUrl)) {
                 applyGameProfile(meta, skinUrl);
             }
-        } catch (Exception ignored) {
+        } catch (Exception exception) {
+            Bukkit.getLogger().log(Level.FINE, "pnCases could not apply skull texture", exception);
         }
 
         head.setItemMeta(meta);
@@ -58,8 +60,8 @@ public class SkullUtil {
             meta.setOwnerProfile(profile);
             return true;
         } catch (RuntimeException ignored) {
+            return false;
         }
-        return false;
     }
 
     private static void applyGameProfile(SkullMeta meta, URL skinUrl) throws ReflectiveOperationException {
@@ -107,8 +109,8 @@ public class SkullUtil {
             Matcher m2 = TEXTURE_URL.matcher(decoded);
             if (m2.find()) return new URL(m2.group());
         } catch (Exception ignored) {
+            return null;
         }
-
         return null;
     }
 }

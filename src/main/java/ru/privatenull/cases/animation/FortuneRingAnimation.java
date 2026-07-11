@@ -20,7 +20,8 @@ import org.bukkit.util.Vector;
 import org.joml.Vector3f;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.cases.model.Reward;
-import ru.privatenull.pnCases;
+import ru.privatenull.util.EntityCleanup;
+import ru.privatenull.PnCasesPlugin;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +38,7 @@ public final class FortuneRingAnimation extends CaseAnimation {
 
     private final Set<HiddenCaseBlock> hiddenBlocks = ConcurrentHashMap.newKeySet();
 
-    public FortuneRingAnimation(pnCases plugin) {
+    public FortuneRingAnimation(PnCasesPlugin plugin) {
         super(plugin);
     }
 
@@ -366,12 +367,7 @@ public final class FortuneRingAnimation extends CaseAnimation {
     }
 
     private static void safeRemove(Entity entity) {
-        try {
-            if (entity != null && !entity.isDead()) {
-                entity.remove();
-            }
-        } catch (Exception ignored) {
-        }
+        EntityCleanup.remove(entity);
     }
 
     private record HiddenCaseBlock(Block block, BlockData blockData) {

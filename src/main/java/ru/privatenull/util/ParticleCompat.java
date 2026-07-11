@@ -48,6 +48,7 @@ public final class ParticleCompat {
                 try {
                     world.spawnParticle(fallback, location, count, offsetX, offsetY, offsetZ, extra);
                 } catch (IllegalArgumentException ignoredAgain) {
+                    return;
                 }
             }
         }

@@ -1,6 +1,5 @@
 package ru.privatenull.cases.animation;
 
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -14,17 +13,16 @@ import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.joml.Vector3f;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.cases.model.Reward;
-import ru.privatenull.pnCases;
+import ru.privatenull.util.EntityCleanup;
+import ru.privatenull.PnCasesPlugin;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 public class CauldronRouletteAnimation extends CaseAnimation {
 
@@ -48,7 +46,7 @@ public class CauldronRouletteAnimation extends CaseAnimation {
             Material.SCULK
     };
 
-    public CauldronRouletteAnimation(pnCases plugin) {
+    public CauldronRouletteAnimation(PnCasesPlugin plugin) {
         super(plugin);
     }
 
@@ -406,50 +404,6 @@ public class CauldronRouletteAnimation extends CaseAnimation {
         return resolveRewardVisual(reward, def);
     }
 
-    private static ItemStack findMatchingAnimationItem(Reward reward, CaseDefinition def) {
-        String rewardName = normalizeName(reward.displayName());
-        String groupName = normalizeName(reward.lpGroup());
-        String nodeName = normalizeName(reward.lpNode());
-
-        for (ItemStack item : def.animationItems()) {
-            if (item == null) continue;
-
-            String itemName = normalizeName(getDisplayName(item));
-            if (matchesName(itemName, rewardName) || matchesName(itemName, groupName) || matchesName(itemName, nodeName)) {
-                return item.clone();
-            }
-        }
-
-        return null;
-    }
-
-    private static String getDisplayName(ItemStack item) {
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null && meta.hasDisplayName()) {
-            return meta.getDisplayName();
-        }
-        return item.getType().name();
-    }
-
-    private static boolean matchesName(String itemName, String rewardName) {
-        if (itemName.length() < 2 || rewardName.length() < 2) {
-            return false;
-        }
-        return itemName.equals(rewardName) || itemName.contains(rewardName) || rewardName.contains(itemName);
-    }
-
-    private static String normalizeName(String value) {
-        if (value == null || value.isBlank()) {
-            return "";
-        }
-        String colored = ru.privatenull.util.ColorUtil.colorize(value);
-        String stripped = ChatColor.stripColor(colored);
-        if (stripped == null) {
-            stripped = colored;
-        }
-        return stripped.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+", "");
-    }
-
     private void setLabel(TextDisplay textDisplay, Reward reward, ItemStack visual) {
         textDisplay.setText(
                 "§x§4§2§9§F§9§1§l«Разлом выдал награду»\n" +
@@ -554,9 +508,6 @@ public class CauldronRouletteAnimation extends CaseAnimation {
     }
 
     private static void safeRemove(Entity entity) {
-        try {
-            if (entity != null && !entity.isDead()) entity.remove();
-        } catch (Exception ignored) {
-        }
+        EntityCleanup.remove(entity);
     }
 }

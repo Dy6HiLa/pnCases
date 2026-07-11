@@ -33,7 +33,7 @@ import org.bukkit.util.Transformation;
 import org.joml.Vector3f;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.cases.model.Reward;
-import ru.privatenull.pnCases;
+import ru.privatenull.PnCasesPlugin;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -47,7 +47,7 @@ public final class PillagerRaidAnimation extends CaseAnimation {
     private static final int STRIKE_END = 126;
     private static final int REVEAL_END = 184;
 
-    public PillagerRaidAnimation(pnCases plugin) {
+    public PillagerRaidAnimation(PnCasesPlugin plugin) {
         super(plugin);
     }
 

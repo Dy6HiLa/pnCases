@@ -15,11 +15,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.8/pnCases-1.4.8.jar">
-    <img src="https://img.shields.io/badge/Скачать-1.4.8-429F91?style=for-the-badge&labelColor=17241F" alt="Скачать pnCases 1.4.8">
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.9/pnCases-1.4.9.jar">
+    <img src="https://img.shields.io/badge/Скачать-1.4.9-429F91?style=for-the-badge&labelColor=17241F" alt="Скачать pnCases 1.4.9">
   </a>
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4.8">
-    <img src="https://img.shields.io/badge/Changelog-1.4.8-D8DF9D?style=for-the-badge&labelColor=17241F" alt="Changelog pnCases 1.4.8">
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4.9">
+    <img src="https://img.shields.io/badge/Changelog-1.4.9-D8DF9D?style=for-the-badge&labelColor=17241F" alt="Changelog pnCases 1.4.9">
   </a>
   <a href="LICENSE">
     <img src="https://img.shields.io/badge/License-MIT-429F91?style=for-the-badge&labelColor=17241F" alt="Лицензия MIT">
@@ -119,11 +119,11 @@
 
 <hr>
 
-<h2>🚀 pnCases 1.4.8</h2>
+<h2>🚀 pnCases 1.4.9</h2>
 
 <p>
-  <strong>pnCases 1.4.8</strong> — крупное обновление совместимости, настройки интерфейсов
-  и анимаций кейсов. Поддерживаются Paper и Purpur от 1.16.5 до 1.21.11.
+  <strong>pnCases 1.4.9</strong> — обновление настройки содержимого кейсов.
+  Окно наград и редкости теперь можно полностью оформить под свой сервер.
 </p>
 
 <table>
@@ -132,7 +132,7 @@
       <strong>Версия плагина</strong>
     </td>
     <td>
-      <code>1.4.8</code>
+      <code>1.4.9</code>
     </td>
   </tr>
   <tr>
@@ -161,14 +161,13 @@
   </tr>
 </table>
 
-<h3>Что нового в 1.4.8</h3>
+<h3>Что нового в 1.4.9</h3>
 
 <ul>
-  <li>Поддержка Paper и Purpur 1.16.5 с отдельным совместимым режимом.</li>
-  <li>Поддержка MiniMessage в YAML: <code>&lt;red&gt;</code>, <code>&lt;bold&gt;</code>, <code>&lt;gradient:#42A5F5:#AB47BC&gt;</code>.</li>
-  <li>Анимация «Осада разбойников» для Minecraft 1.21+.</li>
-  <li>Настраиваемый <code>gui.yml</code> и расширенная Machine GUI.</li>
-  <li>Команда <code>/pncases createcase &lt;id&gt;</code>, алиас <code>/cases</code> и несколько точек установки для одного кейса.</li>
+  <li>Полностью настраиваемое окно «Содержимое кейса»: размер, слоты наград, декор, кнопки, звуки, названия и описание предметов.</li>
+  <li>Собственные редкости наград с любым названием, цветом, символом, иконкой, свечением и Custom Model Data.</li>
+  <li>Выбор режима открытия собран в одну кнопку: ЛКМ переключает вперёд, ПКМ — назад.</li>
+  <li>Перестроена внутренняя структура плагина, чтобы настройки кейсов, награды, меню, голограммы и обновления работали независимо и предсказуемо.</li>
 </ul>
 
 <h3>Что было добавлено в 1.4.7</h3>
@@ -219,8 +218,8 @@
 <ol>
   <li>
     Скачайте
-    <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.8/pnCases-1.4.8.jar">
-      <code>pnCases-1.4.8.jar</code>
+    <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.9/pnCases-1.4.9.jar">
+      <code>pnCases-1.4.9.jar</code>
     </a>.
   </li>
   <li>Переместите JAR-файл в папку <code>plugins/</code>.</li>
@@ -674,7 +673,7 @@ plugins/pnCases/
 </p>
 
 <p align="center">
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.8/pnCases-1.4.8.jar">
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.9/pnCases-1.4.9.jar">
     Скачать последнюю версию
   </a>
   ·

@@ -9,8 +9,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import ru.privatenull.cases.model.CaseDefinition;
+import ru.privatenull.cases.model.AnimationType;
 import ru.privatenull.cases.model.Reward;
-import ru.privatenull.pnCases;
+import ru.privatenull.PnCasesPlugin;
 import ru.privatenull.util.MaterialCompat;
 import ru.privatenull.util.ParticleCompat;
 import ru.privatenull.util.VisualEntity;
@@ -22,7 +23,7 @@ public final class LegacyCaseAnimation extends CaseAnimation {
 
     private final AnimationType type;
 
-    public LegacyCaseAnimation(pnCases plugin, AnimationType type) {
+    public LegacyCaseAnimation(PnCasesPlugin plugin, AnimationType type) {
         super(plugin);
         this.type = type;
     }
@@ -255,9 +256,6 @@ public final class LegacyCaseAnimation extends CaseAnimation {
     }
 
     private static void safeRemove(VisualEntity visual) {
-        try {
-            visual.remove();
-        } catch (Exception ignored) {
-        }
+        if (visual != null) visual.remove();
     }
 }

@@ -2,7 +2,6 @@ package ru.privatenull.cases.model;
 
 import org.bukkit.Location;
 import org.bukkit.inventory.ItemStack;
-import ru.privatenull.cases.animation.AnimationType;
 
 import java.util.List;
 

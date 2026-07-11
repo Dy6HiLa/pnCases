@@ -68,6 +68,42 @@ public final class GuiConfig {
         return cfg != null && cfg.contains(path, true);
     }
 
+    public String raw(String path, String fallback) {
+        return cfg == null ? fallback : cfg.getString(path, fallback);
+    }
+
+    public int integer(String path, int fallback) {
+        return cfg == null ? fallback : cfg.getInt(path, fallback);
+    }
+
+    public double decimal(String path, double fallback) {
+        return cfg == null ? fallback : cfg.getDouble(path, fallback);
+    }
+
+    public boolean bool(String path, boolean fallback) {
+        return cfg == null ? fallback : cfg.getBoolean(path, fallback);
+    }
+
+    public List<Integer> integerList(String path, List<Integer> fallback) {
+        if (cfg == null || !cfg.isList(path)) {
+            return fallback == null ? List.of() : List.copyOf(fallback);
+        }
+
+        List<Integer> result = new ArrayList<>();
+        for (Object value : cfg.getList(path, List.of())) {
+            if (value instanceof Number number) {
+                result.add(number.intValue());
+                continue;
+            }
+            try {
+                result.add(Integer.parseInt(String.valueOf(value)));
+            } catch (NumberFormatException ex) {
+                plugin.getLogger().warning("gui.yml: '" + path + "' содержит неверный номер слота: " + value);
+            }
+        }
+        return result;
+    }
+
     private String replace(String raw, String... replacements) {
         String value = raw == null ? "" : raw;
         if (replacements.length % 2 != 0) {
@@ -178,20 +214,6 @@ public final class GuiConfig {
             return "&e";
         }
         return color;
-    }
-
-    private static String defaultSectionTitle(String section) {
-        return switch (section) {
-            case "animation" -> "Анимация";
-            case "hologram" -> "Голограмма";
-            case "showcase" -> "Витрина";
-            case "menu" -> "Меню кейса";
-            case "purchase" -> "Покупка";
-            case "toggles" -> "Быстрые настройки";
-            case "layout" -> "Разметка";
-            case "buttons" -> "Навигация";
-            default -> "Настройка";
-        };
     }
 
     private static String defaultSectionColor(String section) {

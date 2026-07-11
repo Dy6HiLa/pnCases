@@ -11,20 +11,22 @@ import org.bukkit.scheduler.BukkitTask;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.cases.model.Reward;
 import ru.privatenull.util.ColorUtil;
-import ru.privatenull.pnCases;
+import ru.privatenull.util.EntityCleanup;
+import ru.privatenull.PnCasesPlugin;
 
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
 
 public abstract class CaseAnimation {
 
-    protected final pnCases plugin;
+    protected final PnCasesPlugin plugin;
 
     private final Set<Entity> trackedEntities = ConcurrentHashMap.newKeySet();
     private final Set<BukkitTask> trackedTasks = ConcurrentHashMap.newKeySet();
 
-    protected CaseAnimation(pnCases plugin) {
+    protected CaseAnimation(PnCasesPlugin plugin) {
         this.plugin = plugin;
     }
 
@@ -157,12 +159,16 @@ public abstract class CaseAnimation {
 
     public void cancelAll() {
         for (BukkitTask task : trackedTasks) {
-            try { task.cancel(); } catch (Exception ignored) {}
+            try {
+                task.cancel();
+            } catch (RuntimeException exception) {
+                plugin.getLogger().log(Level.FINE, "Could not cancel animation task", exception);
+            }
         }
         trackedTasks.clear();
 
         for (Entity e : trackedEntities) {
-            try { if (!e.isDead()) e.remove(); } catch (Exception ignored) {}
+            EntityCleanup.remove(e);
         }
         trackedEntities.clear();
     }
