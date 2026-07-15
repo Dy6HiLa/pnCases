@@ -61,6 +61,7 @@ public class Reward {
     private final int chance;
     private final Type type;
     private final ItemStack item;
+    private final ItemStack visualItem;
     private final String lpGroup;
     private final String lpNode;
     private final String lpDuration;
@@ -109,7 +110,7 @@ public class Reward {
             Rarity rarity
     ) {
         this(chance, type, item, lpGroup, lpNode, lpDuration, vaultAmount, playerPointsAmount,
-                message, displayName, rarity, rarity == null ? null : rarity.name());
+                message, displayName, rarity, rarity == null ? null : rarity.name(), item);
     }
 
     public Reward(
@@ -126,7 +127,25 @@ public class Reward {
             String rarityId
     ) {
         this(chance, type, item, lpGroup, lpNode, lpDuration, vaultAmount, playerPointsAmount,
-                message, displayName, Rarity.parse(rarityId, chance), rarityId);
+                message, displayName, Rarity.parse(rarityId, chance), rarityId, item);
+    }
+
+    public Reward(
+            int chance,
+            Type type,
+            ItemStack item,
+            String lpGroup,
+            String lpNode,
+            String lpDuration,
+            double vaultAmount,
+            int playerPointsAmount,
+            String message,
+            String displayName,
+            String rarityId,
+            ItemStack visualItem
+    ) {
+        this(chance, type, item, lpGroup, lpNode, lpDuration, vaultAmount, playerPointsAmount,
+                message, displayName, Rarity.parse(rarityId, chance), rarityId, visualItem);
     }
 
     private Reward(
@@ -141,11 +160,13 @@ public class Reward {
             String message,
             String displayName,
             Rarity rarity,
-            String rarityId
+            String rarityId,
+            ItemStack visualItem
     ) {
         this.chance = chance;
         this.type = type;
         this.item = item;
+        this.visualItem = visualItem == null ? item : visualItem;
         this.lpGroup = lpGroup;
         this.lpNode = lpNode;
         this.lpDuration = lpDuration;
@@ -174,7 +195,7 @@ public class Reward {
     public int chance() { return chance; }
     public Type type() { return type; }
     public ItemStack item() { return type == Type.ITEM ? item : null; }
-    public ItemStack visualItem() { return item; }
+    public ItemStack visualItem() { return visualItem; }
     public String lpGroup() { return lpGroup; }
     public String lpNode() { return lpNode; }
     public String lpDuration() { return lpDuration; }

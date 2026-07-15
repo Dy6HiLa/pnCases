@@ -80,7 +80,8 @@ final class RewardConfigParser {
                 parsed.playerPointsAmount(),
                 message,
                 parsed.displayName(),
-                rarityId
+                rarityId,
+                parsed.visualItem()
         );
     }
 
@@ -97,7 +98,10 @@ final class RewardConfigParser {
             if (meta != null && meta.hasDisplayName()) displayName = meta.getDisplayName();
         }
         if (displayName == null && item != null) displayName = "&f" + item.getType().name();
-        return new ParsedReward(item, null, null, null, 0.0, 0, displayName);
+        ItemStack visual = visualItem(map, displayName);
+        if (item == null) item = visual;
+        if (visual == null) visual = item;
+        return new ParsedReward(item, visual, null, null, null, 0.0, 0, displayName);
     }
 
     private ParsedReward parseLuckPerms(Map<?, ?> map) {
@@ -114,7 +118,7 @@ final class RewardConfigParser {
         }
         ItemStack visual = visualItem(map, displayName);
         displayName = visualName(visual, displayName == null ? "&dПривилегия" : displayName);
-        return new ParsedReward(visual, group, node, duration, 0.0, 0, displayName);
+        return new ParsedReward(null, visual, group, node, duration, 0.0, 0, displayName);
     }
 
     private ParsedReward parseVault(Map<?, ?> map) {
@@ -122,7 +126,7 @@ final class RewardConfigParser {
         double amount = decimal(firstPresent(vault, map, "amount", "money", "value"), 0.0);
         String displayName = "&a" + presentation.formatVaultAmount(amount);
         ItemStack visual = visualItem(map, displayName);
-        return new ParsedReward(visual, null, null, null, amount, 0, visualName(visual, displayName));
+        return new ParsedReward(null, visual, null, null, null, amount, 0, visualName(visual, displayName));
     }
 
     private ParsedReward parsePlayerPoints(Map<?, ?> map) {
@@ -130,12 +134,23 @@ final class RewardConfigParser {
         int amount = Math.max(0, integer(firstPresent(points, map, "amount", "points", "value"), 0));
         String displayName = "&b" + presentation.formatPlayerPointsAmount(amount);
         ItemStack visual = visualItem(map, displayName);
-        return new ParsedReward(visual, null, null, null, 0.0, amount, visualName(visual, displayName));
+        return new ParsedReward(null, visual, null, null, null, 0.0, amount, visualName(visual, displayName));
     }
 
     private ItemStack visualItem(Map<?, ?> reward, String displayName) {
-        Object raw = firstPresent(reward, "visual", "visual_item", "visual-item", "display_item", "display-item", "item", "items");
+        Object raw = firstPresent(reward, "visual", "visual_item", "visual-item", "display_item", "display-item",
+                "icon", "icon_item", "icon-item", "item", "items");
         if (raw instanceof Map<?, ?> map) return ItemFactory.fromMap(map);
+        if (raw instanceof String value && !value.isBlank()) {
+            Map<String, Object> icon = new HashMap<>();
+            if (looksLikeBase64(value)) {
+                icon.put("base64", value);
+            } else {
+                icon.put("material", value);
+            }
+            if (displayName != null && !displayName.isBlank()) icon.put("name", displayName);
+            return ItemFactory.fromMap(icon);
+        }
         if (!reward.containsKey("base64") && !reward.containsKey("material")) return null;
 
         Map<String, Object> values = new HashMap<>();
@@ -146,6 +161,11 @@ final class RewardConfigParser {
             values.put("name", displayName);
         }
         return ItemFactory.fromMap(values);
+    }
+
+    private boolean looksLikeBase64(String value) {
+        String normalized = value.trim().toLowerCase(java.util.Locale.ROOT);
+        return normalized.startsWith("base64:") || normalized.startsWith("base64-") || normalized.startsWith("eyj");
     }
 
     private String visualName(ItemStack item, String fallback) {
@@ -174,6 +194,7 @@ final class RewardConfigParser {
 
     private record ParsedReward(
             ItemStack item,
+            ItemStack visualItem,
             String group,
             String node,
             String duration,
