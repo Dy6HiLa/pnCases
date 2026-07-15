@@ -42,13 +42,13 @@ public final class LegacyCaseAnimation extends CaseAnimation {
         VisualEntity label = VisualEntity.text(base.clone().add(0.5, 2.85, 0.5), resolveRewardName(reward, rewardVisual));
         VisualEntity prop = createMainProp(type, centerBase);
         List<VisualEntity> orbit = createOrbit(type, def, rewardVisual, centerBase);
-        track(display.entity());
-        track(label.entity());
+        track(display.entity(), onFinish);
+        track(label.entity(), onFinish);
         if (prop != null) {
-            track(prop.entity());
+            track(prop.entity(), onFinish);
         }
         for (VisualEntity visual : orbit) {
-            track(visual.entity());
+            track(visual.entity(), onFinish);
         }
 
         BukkitTask[] taskHolder = new BukkitTask[1];
@@ -112,7 +112,7 @@ public final class LegacyCaseAnimation extends CaseAnimation {
                 cancel();
             }
         }.runTaskTimer(plugin, 0L, 1L);
-        track(taskHolder[0]);
+        track(taskHolder[0], world, onFinish);
     }
 
     private VisualEntity createMainProp(AnimationType type, Location centerBase) {

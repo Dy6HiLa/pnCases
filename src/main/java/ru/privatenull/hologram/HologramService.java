@@ -101,7 +101,7 @@ public final class HologramService {
         String name = specFactory.name(def, blockLocation);
         removeExternal(name, provider);
         externalNames.remove(name);
-        clearNativeDisplays(def.name());
+        clearNativeDisplays(def, blockLocation);
     }
 
     public void showCase(CaseDefinition def) {
@@ -220,6 +220,51 @@ public final class HologramService {
                 }
             }
         }
+    }
+
+    /**
+     * Removes only the legacy native display belonging to one physical case
+     * block. Older builds tagged native displays by case id only, so the
+     * configured hologram position is used to distinguish multiple bindings.
+     */
+    private void clearNativeDisplays(CaseDefinition definition, Location blockLocation) {
+        if (definition == null || blockLocation == null || blockLocation.getWorld() == null) return;
+
+        Location expected = blockLocation.clone().add(0.5, 1.8, 0.5);
+        try {
+            ConfigurationSection config = getHologramSection(definition);
+            if (config != null) {
+                expected = specFactory.build(definition, config, blockLocation).location();
+            }
+        } catch (RuntimeException ignored) {
+            // The default legacy position remains safe for cleanup.
+        }
+
+        String caseTag = "pncases_" + definition.name();
+        World world = blockLocation.getWorld();
+        for (Entity entity : new ArrayList<>(world.getEntities())) {
+            Set<String> tags = entity.getScoreboardTags();
+            if (!tags.contains("pncases_hologram") || !tags.contains(caseTag)) continue;
+            Location location = entity.getLocation();
+            if (sameHologramPosition(
+                    location.getX(), location.getY(), location.getZ(),
+                    expected.getX(), expected.getY(), expected.getZ())) {
+                entity.remove();
+            }
+        }
+    }
+
+    static boolean sameHologramPosition(
+            double x,
+            double y,
+            double z,
+            double expectedX,
+            double expectedY,
+            double expectedZ
+    ) {
+        return Math.abs(x - expectedX) <= 0.25
+                && Math.abs(y - expectedY) <= 0.25
+                && Math.abs(z - expectedZ) <= 0.25;
     }
 
     private void reloadProvider() {

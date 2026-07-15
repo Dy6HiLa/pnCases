@@ -9,6 +9,7 @@ import ru.privatenull.cases.CaseManager;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.pnlibrary.text.ColorUtil;
 import ru.privatenull.util.EnchantmentCompat;
+import ru.privatenull.util.GuiItemFlags;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -68,7 +69,7 @@ final class MachineItemFactory {
                 "item", readableItemName(item));
         meta.setDisplayName(caseManager.getPlugin().getGuiConfig().text(path + ".name", title, replacements));
         meta.setLore(caseManager.getPlugin().getGuiConfig().list(path + ".lore", lore, replacements));
-        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+        GuiItemFlags.hideAttributes(meta);
         item.setItemMeta(meta);
         return item;
     }
@@ -166,7 +167,7 @@ final class MachineItemFactory {
         if (meta == null) return item;
         meta.setDisplayName(color(name));
         meta.setLore(lore.stream().map(MachineItemFactory::color).toList());
-        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+        GuiItemFlags.hideAttributes(meta);
         item.setItemMeta(meta);
         return item;
     }

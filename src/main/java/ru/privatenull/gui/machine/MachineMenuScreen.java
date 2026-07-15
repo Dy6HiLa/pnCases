@@ -26,11 +26,22 @@ final class MachineMenuScreen {
     void open(Player player, String caseName) {
         CaseDefinition definition = caseManager.getCaseByName(caseName);
         if (definition == null) return;
+        if (MachineScreenRefresh.refreshIfOpen(
+                caseManager, player, MachineGuiHolder.Type.MENU, definition.name(),
+                inventory -> fill(inventory, definition))) {
+            return;
+        }
         Inventory inventory = Bukkit.createInventory(
                 MachineGuiHolder.menu(caseName), 54,
                 caseManager.getPlugin().getGuiConfig().text(
                         "machine.titles.menu", "&8Настройка меню кейса", items.replacements(definition))
         );
+        fill(inventory, definition);
+        caseManager.getPlugin().getGuiOpenAnimations().open(player, inventory);
+        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.18f, 1.25f);
+    }
+
+    private void fill(Inventory inventory, CaseDefinition definition) {
         items.fill(inventory, items.pane(Material.BLACK_STAINED_GLASS_PANE, " ", List.of()));
         inventory.setItem(4, items.configuredButton(
                 "machine.menu.header", Material.CRAFTING_TABLE,
@@ -66,8 +77,6 @@ final class MachineMenuScreen {
                 List.of("", "&7Открывает обычное меню кейса.", "", "&7ЛКМ &8— &fпосмотреть"),
                 definition));
         inventory.setItem(SLOT_BACK, items.backButton(definition));
-        caseManager.getPlugin().getGuiOpenAnimations().open(player, inventory);
-        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.18f, 1.25f);
     }
 
     private ItemStack size(CaseDefinition definition) {

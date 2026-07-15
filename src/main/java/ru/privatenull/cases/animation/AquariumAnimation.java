@@ -45,7 +45,7 @@ public final class AquariumAnimation extends CaseAnimation {
         }
 
         Block caseBlock = base.getBlock();
-        HiddenBlock hidden = hideAsGlass(caseBlock);
+        HiddenBlock hidden = hideAsGlass(caseBlock, onFinish);
         Location center = caseBlock.getLocation().add(0.5, 0.0, 0.5);
 
         ItemDisplay heart = item(world, center.clone().add(0.0, 1.02, 0.0),
@@ -56,10 +56,10 @@ public final class AquariumAnimation extends CaseAnimation {
         for (int index = 0; index < crystals.length; index++) {
             crystals[index] = item(world, center.clone().add(0.0, 1.05, 0.0),
                     new ItemStack(Material.PRISMARINE_CRYSTALS), 0.24f);
-            track(crystals[index]);
+            track(crystals[index], onFinish);
         }
-        track(heart);
-        track(rewardDisplay);
+        track(heart, onFinish);
+        track(rewardDisplay, onFinish);
 
         BukkitTask[] taskHolder = new BukkitTask[1];
         taskHolder[0] = new BukkitRunnable() {
@@ -103,7 +103,8 @@ public final class AquariumAnimation extends CaseAnimation {
                     rewardDisplay.setRotation((tick * 6.0f) % 360.0f, 0.0f);
                     scale(rewardDisplay, (float) (0.18 + progress * 0.82));
                     waterParticles(world, center.clone().add(0.0, progress * 0.65, 0.0), tick, 0.56, 5);
-                    if (tick == 86) {
+                    if (tick == 86 && hidden != null && hiddenBlocks.contains(hidden)
+                            && caseBlock.getType() == Material.GLASS) {
                         world.playSound(center, Sound.BLOCK_GLASS_BREAK, 0.35f, 1.70f);
                         caseBlock.setType(Material.AIR, false);
                         world.spawnParticle(Particle.BLOCK, center.clone().add(0.0, 0.55, 0.0), 18,
@@ -137,19 +138,30 @@ public final class AquariumAnimation extends CaseAnimation {
                 cancel();
             }
         }.runTaskTimer(plugin, 0L, 1L);
-        track(taskHolder[0]);
+        track(taskHolder[0], world, onFinish);
     }
 
     @Override
     public void cancelAll() {
         super.cancelAll();
-        for (HiddenBlock hidden : hiddenBlocks) hidden.restore();
-        hiddenBlocks.clear();
+        restoreHiddenBlocks();
     }
 
-    private HiddenBlock hideAsGlass(Block block) {
+    @Override
+    public void onWorldUnload(World world) {
+        restoreHiddenBlocks(world);
+    }
+
+    @Override
+    protected void onCancelRun(Runnable owner) {
+        for (HiddenBlock hidden : hiddenBlocks) {
+            if (hidden.owner == owner && hiddenBlocks.remove(hidden)) hidden.restore();
+        }
+    }
+
+    private HiddenBlock hideAsGlass(Block block, Runnable owner) {
         if (block == null || block.getType().isAir()) return null;
-        HiddenBlock hidden = new HiddenBlock(block, block.getState());
+        HiddenBlock hidden = new HiddenBlock(block, block.getState(), owner);
         hiddenBlocks.add(hidden);
         block.setType(Material.GLASS, false);
         return hidden;
@@ -157,8 +169,19 @@ public final class AquariumAnimation extends CaseAnimation {
 
     private void restore(HiddenBlock hidden) {
         if (hidden == null) return;
-        hiddenBlocks.remove(hidden);
-        hidden.restore();
+        if (hiddenBlocks.remove(hidden)) hidden.restore();
+    }
+
+    private void restoreHiddenBlocks() {
+        for (HiddenBlock hidden : hiddenBlocks) {
+            if (hiddenBlocks.remove(hidden)) hidden.restore();
+        }
+    }
+
+    private void restoreHiddenBlocks(World world) {
+        for (HiddenBlock hidden : hiddenBlocks) {
+            if (hidden.isIn(world) && hiddenBlocks.remove(hidden)) hidden.restore();
+        }
     }
 
     private static ItemDisplay item(World world, Location location, ItemStack stack, float scale) {
@@ -208,7 +231,11 @@ public final class AquariumAnimation extends CaseAnimation {
         return 1.0 - Math.pow(1.0 - clamped, 3.0);
     }
 
-    private record HiddenBlock(Block block, BlockState state) {
+    private record HiddenBlock(Block block, BlockState state, Runnable owner) {
+        private boolean isIn(World world) {
+            return block != null && world != null && block.getWorld().equals(world);
+        }
+
         private void restore() {
             if (block == null || state == null || (block.getType() != Material.GLASS && !block.getType().isAir())) return;
             state.update(true, false);

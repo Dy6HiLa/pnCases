@@ -43,7 +43,7 @@ public class DynamiteAnimation extends CaseAnimation {
         BlockDisplay tnt = (BlockDisplay) w.spawnEntity(tntStart, EntityType.BLOCK_DISPLAY);
         tnt.setBlock(Material.TNT.createBlockData());
         centerBlock(tnt, 1.0f);
-        track(tnt);
+        track(tnt, onFinish);
 
         double dx = tntTarget.getX() - tntStart.getX();
         double dz = tntTarget.getZ() - tntStart.getZ();
@@ -55,14 +55,14 @@ public class DynamiteAnimation extends CaseAnimation {
         rewardDisplay.setItemStack(rewardVisual);
         rewardDisplay.setBillboard(Display.Billboard.VERTICAL);
         hideDisplay(rewardDisplay);
-        track(rewardDisplay);
+        track(rewardDisplay, onFinish);
 
         TextDisplay label = (TextDisplay) w.spawnEntity(base.clone().add(0, 3.2, 0), EntityType.TEXT_DISPLAY);
         label.setBillboard(Display.Billboard.CENTER);
         label.setSeeThrough(true);
         label.setDefaultBackground(false);
         label.setText("");
-        track(label);
+        track(label, onFinish);
 
         List<BlockDisplay> debris    = new ArrayList<>();
         List<ItemDisplay>  gunpowder = new ArrayList<>();
@@ -211,7 +211,7 @@ public class DynamiteAnimation extends CaseAnimation {
                                 tf.getRightRotation()
                         ));
                         debris.add(bd);
-                        track(bd);
+                        track(bd, onFinish);
 
                         double angle  = rng.nextDouble() * 2 * Math.PI;
                         double hSpeed = 0.12 + rng.nextDouble() * 0.18;
@@ -234,7 +234,7 @@ public class DynamiteAnimation extends CaseAnimation {
                                 tf.getRightRotation()
                         ));
                         gunpowder.add(gp);
-                        track(gp);
+                        track(gp, onFinish);
 
                         double angle  = rng.nextDouble() * 2 * Math.PI;
                         double hSpeed = 0.08 + rng.nextDouble() * 0.14;
@@ -373,7 +373,7 @@ public class DynamiteAnimation extends CaseAnimation {
                 cancel();
             }
         }.runTaskTimer(plugin, 0L, 1L);
-        track(taskHolder[0]);
+        track(taskHolder[0], w, onFinish);
     }
 
     private static void centerBlock(BlockDisplay bd, float scale) {

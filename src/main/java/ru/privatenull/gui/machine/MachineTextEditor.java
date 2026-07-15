@@ -94,7 +94,7 @@ final class MachineTextEditor {
             message(player, "machine-text.hologram-empty");
             return;
         }
-        configEditor.update(player, caseName, root -> {
+        configEditor.updateHologram(player, caseName, root -> {
             ConfigurationSection hologram = section(root, "hologram");
             hologram.set("enabled", true);
             hologram.set("lines", lines);

@@ -20,6 +20,7 @@ import ru.privatenull.listeners.CaseBlockListener;
 import ru.privatenull.gui.caseview.CaseGuiListener;
 import ru.privatenull.gui.caseview.CaseGuiHolder;
 import ru.privatenull.gui.caseview.CaseMenuService;
+import ru.privatenull.gui.caseview.AnimationSelectHolder;
 import ru.privatenull.listeners.RuntimeListener;
 import ru.privatenull.pnlibrary.lifecycle.PluginBanner;
 import ru.privatenull.pnlibrary.database.DatabaseSettings;
@@ -56,7 +57,7 @@ public final class PnCasesPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         if (!ServerCompatibility.isSupportedServer()) {
-            getLogger().severe("pnCases 1.4.9 поддерживает Minecraft 1.16.5 - 1.21.11. Плагин отключён.");
+            getLogger().severe("pnCases 1.5.0 поддерживает Minecraft 1.16.5 - 1.21.11. Плагин отключён.");
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
@@ -87,11 +88,6 @@ public final class PnCasesPlugin extends JavaPlugin {
         caseManager.setCaseView(new CaseMenuService(this, caseManager));
         caseManager.exportMainCasesToFilesIfMissing();
         caseManager.reloadFromConfig();
-        getServer().getScheduler().runTaskLater(this, () -> {
-            if (caseManager != null) {
-                caseManager.reloadFromConfig();
-            }
-        }, 40L);
         setupUpdateChecker();
         Metrics metrics = new Metrics(this, BSTATS_PLUGIN_ID);
         metrics.addCustomChart(new SimplePie("database_type", () -> database.type().name()));
@@ -242,7 +238,9 @@ public final class PnCasesPlugin extends JavaPlugin {
         for (var player : getServer().getOnlinePlayers()) {
             var top = player.getOpenInventory().getTopInventory();
             Object holder = top == null ? null : top.getHolder();
-            if (holder instanceof MachineGuiHolder || holder instanceof CaseGuiHolder) {
+            if (holder instanceof MachineGuiHolder
+                    || holder instanceof CaseGuiHolder
+                    || holder instanceof AnimationSelectHolder) {
                 player.closeInventory();
             }
         }

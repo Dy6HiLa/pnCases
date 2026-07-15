@@ -43,7 +43,7 @@ public class AnvilAnimation extends CaseAnimation {
                 new Vector3f(1.0f, 1.0f, 1.0f),
                 tf.getRightRotation()
         ));
-        track(anvil);
+        track(anvil, onFinish);
 
         ItemDisplay rewardDisplay = (ItemDisplay) w.spawnEntity(base.clone().add(0, ANVIL_LAND_Y + 0.3, 0), EntityType.ITEM_DISPLAY);
         rewardDisplay.setItemStack(rewardVisual);
@@ -54,14 +54,14 @@ public class AnvilAnimation extends CaseAnimation {
                 new Vector3f(0f, 0f, 0f),
                 rtf.getRightRotation()
         ));
-        track(rewardDisplay);
+        track(rewardDisplay, onFinish);
 
         TextDisplay label = (TextDisplay) w.spawnEntity(base.clone().add(0, ANVIL_LAND_Y + 1.8, 0), EntityType.TEXT_DISPLAY);
         label.setBillboard(Display.Billboard.CENTER);
         label.setSeeThrough(true);
         label.setDefaultBackground(false);
         label.setText("");
-        track(label);
+        track(label, onFinish);
 
         Random rng = new Random();
         List<Integer> hitTicks = new ArrayList<>();
@@ -170,7 +170,7 @@ public class AnvilAnimation extends CaseAnimation {
                 cancel();
             }
         }.runTaskTimer(plugin, 0L, 1L);
-        track(taskHolder[0]);
+        track(taskHolder[0], w, onFinish);
     }
 
     private static void spawnFinalParticles(World w, Location loc) {

@@ -21,21 +21,15 @@ final class MachineCaseState {
     SlotRole roleAt(CaseDefinition definition, int slot) {
         CaseGuiLayout layout = definition.guiLayout();
         if (slot == layout.openSlot()) return SlotRole.OPEN;
+        if (slot == layout.previewSlot()) return SlotRole.PREVIEW;
+        if (slot == layout.animationSlot()) return SlotRole.ANIMATION;
         if (layout.historySlots().contains(slot)) return SlotRole.HISTORY;
         if (layout.decorSlots().contains(slot)) return SlotRole.DECOR;
-        if (definition.fixedAnimation() == null
-                && !ServerCompatibility.useMinecraft1165AnimationMode()
-                && slot == layout.animationSlot()) {
-            return SlotRole.ANIMATION;
-        }
         return SlotRole.EMPTY;
     }
 
     SlotRole stepRole(SlotRole role, boolean backwards) {
         SlotRole next = backwards ? role.previous() : role.next();
-        if (ServerCompatibility.useMinecraft1165AnimationMode() && next == SlotRole.ANIMATION) {
-            return backwards ? next.previous() : next.next();
-        }
         return next;
     }
 

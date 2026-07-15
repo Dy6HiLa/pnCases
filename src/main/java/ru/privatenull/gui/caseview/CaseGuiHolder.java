@@ -9,7 +9,7 @@ public final class CaseGuiHolder implements InventoryHolder {
 
     private final Type type;
     private final String caseName;
-    private final int page;
+    private int page;
 
     private CaseGuiHolder(Type type, String caseName, int page) {
         this.type = type;
@@ -28,6 +28,7 @@ public final class CaseGuiHolder implements InventoryHolder {
     public Type type() { return type; }
     public String caseName() { return caseName; }
     public int page() { return page; }
+    public void page(int page) { this.page = Math.max(0, page); }
 
     @Override
     public Inventory getInventory() { return null; }

@@ -63,7 +63,7 @@ public class PortalAnimation extends CaseAnimation {
             id.setBillboard(Display.Billboard.VERTICAL);
             setItemScale(id, 0f);
             items.add(id);
-            track(id);
+            track(id, onFinish);
             alive[i] = false;
 
             px[i] = base.getX() + 0.5;
@@ -74,20 +74,20 @@ public class PortalAnimation extends CaseAnimation {
         BlockDisplay singularity = (BlockDisplay) w.spawnEntity(centre.clone(), EntityType.BLOCK_DISPLAY);
         singularity.setBlock(Material.BLACK_CONCRETE.createBlockData());
         setSingularityScale(singularity, 0f);
-        track(singularity);
+        track(singularity, onFinish);
 
         ItemDisplay rewardDisplay = (ItemDisplay) w.spawnEntity(centre.clone(), EntityType.ITEM_DISPLAY);
         rewardDisplay.setItemStack(rewardVisual);
         rewardDisplay.setBillboard(Display.Billboard.FIXED);
         setItemScale(rewardDisplay, 0f);
-        track(rewardDisplay);
+        track(rewardDisplay, onFinish);
 
         TextDisplay label = (TextDisplay) w.spawnEntity(base.clone().add(0, 4.8, 0), EntityType.TEXT_DISPLAY);
         label.setBillboard(Display.Billboard.CENTER);
         label.setSeeThrough(true);
         label.setDefaultBackground(false);
         label.setText("");
-        track(label);
+        track(label, onFinish);
 
         BukkitTask[] holder = new BukkitTask[1];
         holder[0] = new BukkitRunnable() {
@@ -422,7 +422,7 @@ public class PortalAnimation extends CaseAnimation {
                 cancel();
             }
         }.runTaskTimer(plugin, 0L, 1L);
-        track(holder[0]);
+        track(holder[0], w, onFinish);
     }
 
     private static void setItemScale(ItemDisplay id, float scale) {

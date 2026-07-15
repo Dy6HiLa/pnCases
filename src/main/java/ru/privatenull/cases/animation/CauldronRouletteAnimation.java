@@ -67,18 +67,18 @@ public class CauldronRouletteAnimation extends CaseAnimation {
             shard.setBlock(SHARD_MATERIALS[i % SHARD_MATERIALS.length].createBlockData());
             setBlockScale(shard, 0f);
             shards.add(shard);
-            track(shard);
+            track(shard, onFinish);
         }
 
         BlockDisplay core = (BlockDisplay) world.spawnEntity(base.clone().add(0, 1.45, 0), EntityType.BLOCK_DISPLAY);
         core.setBlock(Material.BLACK_CONCRETE.createBlockData());
         setBlockScale(core, 0f);
-        track(core);
+        track(core, onFinish);
 
         BlockDisplay halo = (BlockDisplay) world.spawnEntity(base.clone().add(0, 1.45, 0), EntityType.BLOCK_DISPLAY);
         halo.setBlock(Material.PURPLE_STAINED_GLASS.createBlockData());
         setBlockScale(halo, 0f);
-        track(halo);
+        track(halo, onFinish);
 
         List<ItemDisplay> ghosts = new ArrayList<>();
         for (int i = 0; i < GHOST_COUNT; i++) {
@@ -87,21 +87,21 @@ public class CauldronRouletteAnimation extends CaseAnimation {
             ghost.setBillboard(Display.Billboard.VERTICAL);
             setItemScale(ghost, 0f);
             ghosts.add(ghost);
-            track(ghost);
+            track(ghost, onFinish);
         }
 
         ItemDisplay rewardDisplay = (ItemDisplay) world.spawnEntity(base.clone().add(0, 1.55, 0), EntityType.ITEM_DISPLAY);
         rewardDisplay.setItemStack(rewardVisual);
         rewardDisplay.setBillboard(Display.Billboard.VERTICAL);
         setItemScale(rewardDisplay, 0f);
-        track(rewardDisplay);
+        track(rewardDisplay, onFinish);
 
         TextDisplay label = (TextDisplay) world.spawnEntity(base.clone().add(0, 3.35, 0), EntityType.TEXT_DISPLAY);
         label.setBillboard(Display.Billboard.CENTER);
         label.setSeeThrough(true);
         label.setDefaultBackground(false);
         label.setText("");
-        track(label);
+        track(label, onFinish);
 
         BukkitTask[] taskHolder = new BukkitTask[1];
         taskHolder[0] = new BukkitRunnable() {
@@ -382,7 +382,7 @@ public class CauldronRouletteAnimation extends CaseAnimation {
                 cancel();
             }
         }.runTaskTimer(plugin, 0L, 1L);
-        track(taskHolder[0]);
+        track(taskHolder[0], world, onFinish);
     }
 
     private static List<ItemStack> buildGhostVisuals(CaseDefinition def, ItemStack rewardVisual) {

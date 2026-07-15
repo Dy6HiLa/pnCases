@@ -33,6 +33,11 @@ final class MachineMainScreen {
                     "machine-case-not-found", "case", caseName));
             return;
         }
+        if (MachineScreenRefresh.refreshIfOpen(
+                caseManager, player, MachineGuiHolder.Type.MAIN, definition.name(),
+                inventory -> fill(inventory, definition))) {
+            return;
+        }
         Inventory inventory = Bukkit.createInventory(
                 MachineGuiHolder.main(definition.name()),
                 54,

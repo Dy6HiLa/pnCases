@@ -31,12 +31,23 @@ final class MachineTogglesScreen {
     void open(Player player, String caseName) {
         CaseDefinition definition = caseManager.getCaseByName(caseName);
         if (definition == null) return;
+        if (MachineScreenRefresh.refreshIfOpen(
+                caseManager, player, MachineGuiHolder.Type.TOGGLES, definition.name(),
+                inventory -> fill(inventory, definition))) {
+            return;
+        }
         Inventory inventory = Bukkit.createInventory(
                 MachineGuiHolder.toggles(caseName),
                 54,
                 caseManager.getPlugin().getGuiConfig().text(
                         "machine.titles.toggles", "&8Быстрые настройки", items.replacements(definition))
         );
+        fill(inventory, definition);
+        caseManager.getPlugin().getGuiOpenAnimations().open(player, inventory);
+        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.18f, 1.25f);
+    }
+
+    private void fill(Inventory inventory, CaseDefinition definition) {
         IdleParticleSettings settings = definition.idleParticles();
         items.fill(inventory, items.pane(Material.BLACK_STAINED_GLASS_PANE, " ", List.of()));
         inventory.setItem(4, items.configuredButton("machine.toggles.header", Material.LEVER,
@@ -81,8 +92,6 @@ final class MachineTogglesScreen {
                         "&7Цена покупки ключа за уровни опыта.", "",
                         "&7ЛКМ &8— &fоткрыть подробные настройки"), definition));
         inventory.setItem(SLOT_BACK, items.backButton(definition));
-        caseManager.getPlugin().getGuiOpenAnimations().open(player, inventory);
-        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.18f, 1.25f);
     }
 
     private ItemStack toggle(String path, Material material, String name, boolean enabled,

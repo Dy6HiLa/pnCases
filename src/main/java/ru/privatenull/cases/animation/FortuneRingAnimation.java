@@ -6,7 +6,7 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.block.data.BlockData;
+import org.bukkit.block.BlockState;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -49,6 +49,11 @@ public final class FortuneRingAnimation extends CaseAnimation {
     }
 
     @Override
+    public void onWorldUnload(World world) {
+        restoreHiddenBlocks(world);
+    }
+
+    @Override
     public void play(Player player, CaseDefinition def, Reward reward, Location base, Runnable onFinish) {
         World world = base.getWorld();
         if (world == null) {
@@ -61,7 +66,7 @@ public final class FortuneRingAnimation extends CaseAnimation {
         List<ItemDisplay> orbitItems = new ArrayList<>();
         Vector rightAxis = rightAxis(player, base);
         Location center = base.clone().add(0.0, 1.55, 0.0);
-        HiddenCaseBlock hiddenBlock = hideCaseBlock(base);
+        HiddenCaseBlock hiddenBlock = hideCaseBlock(base, onFinish);
 
         for (int i = 0; i < ITEM_COUNT; i++) {
             ItemDisplay display = (ItemDisplay) world.spawnEntity(center, EntityType.ITEM_DISPLAY);
@@ -69,21 +74,21 @@ public final class FortuneRingAnimation extends CaseAnimation {
             display.setBillboard(Display.Billboard.VERTICAL);
             setScale(display, 0.0f);
             orbitItems.add(display);
-            track(display);
+            track(display, onFinish);
         }
 
         ItemDisplay rewardDisplay = (ItemDisplay) world.spawnEntity(center, EntityType.ITEM_DISPLAY);
         rewardDisplay.setItemStack(rewardVisual);
         rewardDisplay.setBillboard(Display.Billboard.VERTICAL);
         setScale(rewardDisplay, 0.0f);
-        track(rewardDisplay);
+        track(rewardDisplay, onFinish);
 
         TextDisplay label = (TextDisplay) world.spawnEntity(base.clone().add(0.0, 3.20, 0.0), EntityType.TEXT_DISPLAY);
         label.setBillboard(Display.Billboard.CENTER);
         label.setSeeThrough(true);
         label.setDefaultBackground(false);
         label.setText("");
-        track(label);
+        track(label, onFinish);
 
         BukkitTask[] taskHolder = new BukkitTask[1];
         taskHolder[0] = new BukkitRunnable() {
@@ -248,34 +253,48 @@ public final class FortuneRingAnimation extends CaseAnimation {
                 cancel();
             }
         }.runTaskTimer(plugin, 0L, 1L);
-        track(taskHolder[0]);
+        track(taskHolder[0], world, onFinish);
     }
 
-    private HiddenCaseBlock hideCaseBlock(Location base) {
+    @Override
+    protected void onCancelRun(Runnable owner) {
+        for (HiddenCaseBlock hiddenBlock : hiddenBlocks) {
+            if (hiddenBlock.owner == owner && hiddenBlocks.remove(hiddenBlock)) hiddenBlock.restore();
+        }
+    }
+
+    private HiddenCaseBlock hideCaseBlock(Location base, Runnable owner) {
         Block block = base.getBlock();
         if (block.getType().isAir()) {
             return null;
         }
 
-        HiddenCaseBlock hiddenBlock = new HiddenCaseBlock(block, block.getBlockData());
+        HiddenCaseBlock hiddenBlock = new HiddenCaseBlock(block, block.getState(), owner);
         hiddenBlocks.add(hiddenBlock);
         block.setType(Material.AIR, false);
         return hiddenBlock;
     }
 
     private void restoreHiddenBlock(HiddenCaseBlock hiddenBlock) {
-        if (hiddenBlock == null) {
-            return;
+        if (hiddenBlock != null && hiddenBlocks.remove(hiddenBlock)) {
+            hiddenBlock.restore();
         }
-        hiddenBlocks.remove(hiddenBlock);
-        hiddenBlock.restore();
     }
 
     private void restoreHiddenBlocks() {
         for (HiddenCaseBlock hiddenBlock : hiddenBlocks) {
-            hiddenBlock.restore();
+            if (hiddenBlocks.remove(hiddenBlock)) {
+                hiddenBlock.restore();
+            }
         }
-        hiddenBlocks.clear();
+    }
+
+    private void restoreHiddenBlocks(World world) {
+        for (HiddenCaseBlock hiddenBlock : hiddenBlocks) {
+            if (hiddenBlock.isIn(world) && hiddenBlocks.remove(hiddenBlock)) {
+                hiddenBlock.restore();
+            }
+        }
     }
 
     private List<ItemStack> buildVisuals(CaseDefinition def, ItemStack rewardVisual) {
@@ -370,12 +389,16 @@ public final class FortuneRingAnimation extends CaseAnimation {
         EntityCleanup.remove(entity);
     }
 
-    private record HiddenCaseBlock(Block block, BlockData blockData) {
+    private record HiddenCaseBlock(Block block, BlockState state, Runnable owner) {
+        private boolean isIn(World world) {
+            return block != null && world != null && block.getWorld().equals(world);
+        }
+
         private void restore() {
-            if (block == null || blockData == null || !block.getType().isAir()) {
+            if (block == null || state == null || !block.getType().isAir()) {
                 return;
             }
-            block.setBlockData(blockData, false);
+            state.update(true, false);
         }
     }
 }

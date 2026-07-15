@@ -10,7 +10,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import ru.privatenull.cases.CaseManager;
 import ru.privatenull.cases.model.CaseDefinition;
-import ru.privatenull.util.InventoryViewCompat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +18,7 @@ import java.util.TreeSet;
 
 import static ru.privatenull.config.ConfigSections.section;
 import static ru.privatenull.util.ItemFactory.isRealItem;
-import static ru.privatenull.util.ItemFactory.writeItem;
+import static ru.privatenull.util.ItemFactory.writeExactItem;
 import static ru.privatenull.util.ItemNames.readableItemName;
 
 final class MachineLayoutEditor {
@@ -40,6 +39,11 @@ final class MachineLayoutEditor {
     void open(Player player, String caseName) {
         CaseDefinition definition = caseManager.getCaseByName(caseName);
         if (definition == null) return;
+        if (MachineScreenRefresh.refreshIfOpen(
+                caseManager, player, MachineGuiHolder.Type.LAYOUT, definition.name(),
+                inventory -> fill(inventory, definition))) {
+            return;
+        }
         Inventory inventory = Bukkit.createInventory(
                 MachineGuiHolder.layout(caseName),
                 54,
@@ -60,7 +64,11 @@ final class MachineLayoutEditor {
         }
 
         SlotRole next = state.stepRole(current, event.isRightClick());
-        if ((current == SlotRole.OPEN || current == SlotRole.ANIMATION) && next != current) {
+        if (isRequired(current) && isRequired(next)) {
+            swapRequiredRoles(player, definition, slot, current, next);
+            return;
+        }
+        if (isRequired(current) && next != current) {
             player.sendMessage(caseManager.getPlugin().getMessages().get(
                     "machine-layout-required-slot", "slot", current.displayName));
             player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.18f, 1.0f);
@@ -81,12 +89,9 @@ final class MachineLayoutEditor {
             player.closeInventory();
             return;
         }
-        Inventory top = InventoryViewCompat.topInventory(player);
-        if (top != null && top.getHolder() instanceof MachineGuiHolder holder
-                && holder.type() == MachineGuiHolder.Type.LAYOUT
-                && holder.caseName().equalsIgnoreCase(caseName)) {
-            fill(top, updated);
-        } else {
+        if (!MachineScreenRefresh.refreshIfOpen(
+                caseManager, player, MachineGuiHolder.Type.LAYOUT, caseName,
+                inventory -> fill(inventory, updated))) {
             open(player, caseName);
         }
     }
@@ -96,22 +101,44 @@ final class MachineLayoutEditor {
         if (role == SlotRole.EMPTY) {
             configEditor.update(player, definition.name(), root -> {
                 ConfigurationSection gui = section(root, "gui");
-                writeItem(section(gui, "decor"), "item", cursor);
+                writeExactItem(section(gui, "decor"), "item", cursor);
                 setRole(gui, definition, slot, SlotRole.DECOR);
             });
         } else if (role == SlotRole.DECOR) {
             configEditor.update(player, definition.name(), root ->
-                    writeItem(section(section(root, "gui"), "decor"), "item", cursor));
+                    writeExactItem(section(section(root, "gui"), "decor"), "item", cursor));
         } else if (role == SlotRole.OPEN) {
             configEditor.update(player, definition.name(), root ->
-                    writeItem(section(root, "gui"), "open-item", cursor));
+                    writeExactItem(section(root, "gui"), "open-item", cursor));
         } else if (role == SlotRole.ANIMATION) {
             configEditor.update(player, definition.name(), root ->
-                    writeItem(section(root, "gui"), "animation-item", cursor));
+                    writeExactItem(section(root, "gui"), "animation-item", cursor));
+        } else if (role == SlotRole.PREVIEW) {
+            configEditor.update(player, definition.name(), root ->
+                    writeExactItem(section(root, "gui"), "preview-item", cursor));
         } else if (role == SlotRole.HISTORY) {
             configEditor.update(player, definition.name(), root ->
-                    writeItem(section(section(root, "gui"), "history"), "empty-item", cursor));
+                    writeExactItem(section(section(root, "gui"), "history"), "empty-item", cursor));
         }
+        refresh(player, definition.name());
+    }
+
+    private void swapRequiredRoles(Player player, CaseDefinition definition, int clickedSlot,
+                                   SlotRole current, SlotRole next) {
+        int nextSlot = requiredSlot(definition, next);
+        configEditor.update(player, definition.name(), root -> {
+            ConfigurationSection gui = section(root, "gui");
+            Set<Integer> decor = readSlots(gui.getConfigurationSection("decor"), definition.guiLayout().decorSlots());
+            Set<Integer> history = readSlots(gui.getConfigurationSection("history"), definition.guiLayout().historySlots());
+            decor.remove(clickedSlot);
+            decor.remove(nextSlot);
+            history.remove(clickedSlot);
+            history.remove(nextSlot);
+            setRequiredSlot(gui, next, clickedSlot);
+            setRequiredSlot(gui, current, nextSlot);
+            section(gui, "decor").set("slots", new ArrayList<>(decor));
+            section(gui, "history").set("slots", new ArrayList<>(history));
+        });
         refresh(player, definition.name());
     }
 
@@ -128,14 +155,35 @@ final class MachineLayoutEditor {
         history.remove(slot);
 
         switch (role) {
-            case OPEN -> gui.set("open_slot", slot);
-            case ANIMATION -> gui.set("animation_slot", slot);
+            case OPEN, ANIMATION, PREVIEW -> setRequiredSlot(gui, role, slot);
             case DECOR -> decor.add(slot);
             case HISTORY -> history.add(slot);
             case EMPTY -> { }
         }
         section(gui, "decor").set("slots", new ArrayList<>(decor));
         section(gui, "history").set("slots", new ArrayList<>(history));
+    }
+
+    private static boolean isRequired(SlotRole role) {
+        return role == SlotRole.OPEN || role == SlotRole.PREVIEW || role == SlotRole.ANIMATION;
+    }
+
+    private static void setRequiredSlot(ConfigurationSection gui, SlotRole role, int slot) {
+        switch (role) {
+            case OPEN -> gui.set("open_slot", slot);
+            case PREVIEW -> gui.set("preview_slot", slot);
+            case ANIMATION -> gui.set("animation_slot", slot);
+            default -> throw new IllegalArgumentException("Not a required slot role: " + role);
+        }
+    }
+
+    private static int requiredSlot(CaseDefinition definition, SlotRole role) {
+        return switch (role) {
+            case OPEN -> definition.guiLayout().openSlot();
+            case PREVIEW -> definition.guiLayout().previewSlot();
+            case ANIMATION -> definition.guiLayout().animationSlot();
+            default -> throw new IllegalArgumentException("Not a required slot role: " + role);
+        };
     }
 
     private Set<Integer> readSlots(ConfigurationSection section, List<Integer> fallback) {
@@ -199,6 +247,8 @@ final class MachineLayoutEditor {
             case OPEN -> definition.openButton();
             case ANIMATION -> definition.guiLayout().animationItem() == null
                     ? new ItemStack(Material.CLOCK) : definition.guiLayout().animationItem();
+            case PREVIEW -> definition.guiLayout().previewItem() == null
+                    ? new ItemStack(Material.ENDER_EYE) : definition.guiLayout().previewItem();
             case HISTORY -> definition.guiLayout().emptyHistoryItem();
             case DECOR -> definition.guiLayout().decorItem();
             case EMPTY -> new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
@@ -206,6 +256,7 @@ final class MachineLayoutEditor {
         Material fallback = switch (role) {
             case OPEN -> Material.CHEST;
             case ANIMATION -> Material.CLOCK;
+            case PREVIEW -> Material.ENDER_EYE;
             case HISTORY -> Material.BARRIER;
             case DECOR -> Material.GRAY_STAINED_GLASS_PANE;
             case EMPTY -> Material.BLACK_STAINED_GLASS_PANE;

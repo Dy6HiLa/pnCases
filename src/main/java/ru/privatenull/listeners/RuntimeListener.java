@@ -7,10 +7,11 @@ import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 import ru.privatenull.PnCasesPlugin;
 import ru.privatenull.cases.CaseManager;
-import ru.privatenull.cases.model.Reward;
 import ru.privatenull.storage.PendingRewardStorage;
 
+import java.util.Set;
 import java.util.UUID;
+import java.util.logging.Level;
 
 public final class RuntimeListener implements Listener {
 
@@ -26,17 +27,23 @@ public final class RuntimeListener implements Listener {
     }
 
     public void deliverPendingToOnlinePlayers() {
-        for (UUID playerId : pendingRewards.getAll()) {
+        Set<UUID> pendingPlayers;
+        try {
+            pendingPlayers = pendingRewards.getAll();
+        } catch (RuntimeException exception) {
+            plugin.getLogger().log(Level.SEVERE, "Не удалось прочитать отложенные награды.", exception);
+            return;
+        }
+        for (UUID playerId : pendingPlayers) {
             var player = plugin.getServer().getPlayer(playerId);
             if (player == null || !player.isOnline()) continue;
-            Reward pending = pendingRewards.load(playerId);
-            if (pending == null) continue;
 
             plugin.getServer().getScheduler().runTask(plugin, () -> {
-                caseManager.giveReward(player, pending);
-                pendingRewards.clear(playerId);
-                plugin.getLogger().info("Выдал отложенную награду игроку " + player.getName()
-                        + " после перезапуска.");
+                if (!player.isOnline() || !caseManager.hasPendingReward(playerId)) return;
+                if (caseManager.deliverPendingReward(player)) {
+                    plugin.getLogger().info("Выдал отложенную награду игроку " + player.getName()
+                            + " после перезапуска.");
+                }
             });
         }
     }
@@ -58,15 +65,15 @@ public final class RuntimeListener implements Listener {
         }
 
         UUID playerId = event.getPlayer().getUniqueId();
-        Reward pending = pendingRewards.load(playerId);
-        if (pending == null) return;
+        if (!caseManager.hasPendingReward(playerId)) return;
 
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             if (!event.getPlayer().isOnline()) return;
-            caseManager.giveReward(event.getPlayer(), pending);
-            pendingRewards.clear(playerId);
-            plugin.getLogger().info("Выдал отложенную награду игроку " + event.getPlayer().getName()
-                    + " после перезапуска во время анимации.");
+            if (!caseManager.hasPendingReward(playerId)) return;
+            if (caseManager.deliverPendingReward(event.getPlayer())) {
+                plugin.getLogger().info("Выдал отложенную награду игроку " + event.getPlayer().getName()
+                        + " после перезапуска во время анимации.");
+            }
         }, 20L);
     }
 }

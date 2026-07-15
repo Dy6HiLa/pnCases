@@ -78,7 +78,7 @@ public final class MobHuntAnimation extends CaseAnimation implements Listener {
             session.mobs.add(mob);
             session.spawnLocations.put(mob.getUniqueId(), spawn.clone());
             sessionsByMob.put(mob.getUniqueId(), session);
-            track(mob);
+            track(mob, onFinish);
         }
 
         player.sendMessage(plugin.getMessages().get("mob-hunt-start"));
@@ -122,7 +122,7 @@ public final class MobHuntAnimation extends CaseAnimation implements Listener {
                 }
             }
         }.runTaskTimer(plugin, 10L, 10L);
-        track(session.monitorTask);
+        track(session.monitorTask, world, onFinish);
     }
 
     @EventHandler
@@ -183,7 +183,7 @@ public final class MobHuntAnimation extends CaseAnimation implements Listener {
         if (session == null) return;
         sessionsByProjectile.put(projectile.getUniqueId(), session);
         session.projectiles.add(projectile);
-        track(projectile);
+        track(projectile, session.onFinish);
     }
 
     @EventHandler
@@ -196,10 +196,35 @@ public final class MobHuntAnimation extends CaseAnimation implements Listener {
     }
 
     @Override
+    public void cancelRun(Runnable owner) {
+        for (Session session : new HashSet<>(sessionsByPlayer.values())) {
+            if (session.onFinish == owner) cleanup(session, false);
+        }
+        super.cancelRun(owner);
+    }
+
+    @Override
+    public void cancelWorld(World world) {
+        if (world == null) return;
+        for (Session session : new HashSet<>(sessionsByPlayer.values())) {
+            World sessionWorld = session.base.getWorld();
+            if (sessionWorld != null && sessionWorld.getUID().equals(world.getUID())) {
+                cleanup(session, false);
+            }
+        }
+        super.cancelWorld(world);
+    }
+
+    @Override
     public void cancelAll() {
         for (Session session : new HashSet<>(sessionsByPlayer.values())) cleanup(session, false);
-        HandlerList.unregisterAll(this);
         super.cancelAll();
+    }
+
+    @Override
+    public void shutdown() {
+        cancelAll();
+        HandlerList.unregisterAll(this);
     }
 
     private Mob spawnGuardian(World world, Location location, int index) {
@@ -312,7 +337,7 @@ public final class MobHuntAnimation extends CaseAnimation implements Listener {
                 beginReveal(session, selectedLocation, false);
             }
         }.runTaskTimer(plugin, 7L, 8L);
-        track(session.deathTask);
+        track(session.deathTask, session.base.getWorld(), session.onFinish);
     }
 
     private static double angleFromCenter(Location center, Location point) {
@@ -342,7 +367,7 @@ public final class MobHuntAnimation extends CaseAnimation implements Listener {
         ItemStack visual = resolveRewardVisual(session.reward, session.definition);
         Location frameCenter = location.clone().add(0.0, 0.55, 0.0);
         session.rewardReveal = createRewardReveal(frameCenter, visual, resolveRewardName(session.reward, visual));
-        for (Entity entity : session.rewardReveal.entities()) track(entity);
+        for (Entity entity : session.rewardReveal.entities()) track(entity, session.onFinish);
         world.playSound(location, Sound.ENTITY_PLAYER_LEVELUP, 0.65f, forced ? 1.10f : 1.55f);
         world.spawnParticle(Particle.TOTEM_OF_UNDYING, frameCenter, 30, 0.35, 0.45, 0.35, 0.08);
         session.revealTask = new BukkitRunnable() {
@@ -369,7 +394,7 @@ public final class MobHuntAnimation extends CaseAnimation implements Listener {
                 if (tick >= 65) cleanup(session, true);
             }
         }.runTaskTimer(plugin, 1L, 1L);
-        track(session.revealTask);
+        track(session.revealTask, world, session.onFinish);
     }
 
     private void cleanup(Session session, boolean finish) {

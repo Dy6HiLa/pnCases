@@ -28,11 +28,22 @@ final class MachineShowcaseScreen {
     void open(Player player, String caseName) {
         CaseDefinition definition = caseManager.getCaseByName(caseName);
         if (definition == null) return;
+        if (MachineScreenRefresh.refreshIfOpen(
+                caseManager, player, MachineGuiHolder.Type.PARTICLES, definition.name(),
+                inventory -> fill(inventory, definition))) {
+            return;
+        }
         Inventory inventory = Bukkit.createInventory(
                 MachineGuiHolder.particles(caseName), 54,
                 caseManager.getPlugin().getGuiConfig().text(
                         "machine.titles.showcase", "&8Витрина кейса", items.replacements(definition))
         );
+        fill(inventory, definition);
+        caseManager.getPlugin().getGuiOpenAnimations().open(player, inventory);
+        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.18f, 1.25f);
+    }
+
+    private void fill(Inventory inventory, CaseDefinition definition) {
         IdleParticleSettings settings = definition.idleParticles();
         items.fill(inventory, items.pane(Material.BLACK_STAINED_GLASS_PANE, " ", List.of()));
         inventory.setItem(4, items.configuredButton(
@@ -47,8 +58,6 @@ final class MachineShowcaseScreen {
         inventory.setItem(SLOT_PARTICLES_STYLE, style(definition, settings));
         inventory.setItem(SLOT_PARTICLES_THEME, theme(definition, settings));
         inventory.setItem(SLOT_BACK, items.backButton(definition));
-        caseManager.getPlugin().getGuiOpenAnimations().open(player, inventory);
-        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.18f, 1.25f);
     }
 
     private ItemStack toggle(CaseDefinition definition, IdleParticleSettings settings) {

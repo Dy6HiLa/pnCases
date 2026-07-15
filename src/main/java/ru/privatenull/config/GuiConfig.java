@@ -1,12 +1,16 @@
 package ru.privatenull.config;
 
+import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import ru.privatenull.pnlibrary.text.ColorUtil;
@@ -28,19 +32,48 @@ public final class GuiConfig {
         if (!file.exists()) {
             plugin.saveResource("gui.yml", false);
         }
-        cfg = YamlConfiguration.loadConfiguration(file);
+        YamlConfiguration defaults = loadDefaults();
+        YamlConfiguration loaded = new YamlConfiguration();
+        try {
+            loaded.load(file);
+        } catch (IOException | InvalidConfigurationException ex) {
+            plugin.getLogger().severe("gui.yml повреждён и не был перезаписан: " + ex.getMessage());
+            backupBrokenFile();
+            if (cfg == null) {
+                cfg = defaults;
+            } else {
+                cfg.setDefaults(defaults);
+            }
+            return;
+        }
 
-        try (InputStreamReader reader = new InputStreamReader(
-                plugin.getResource("gui.yml"),
-                StandardCharsets.UTF_8
-        )) {
-            YamlConfiguration defaults = YamlConfiguration.loadConfiguration(reader);
-            cfg.setDefaults(defaults);
-            migrateLegacyMessagesGui();
-            removeLegacyMachineSection();
-            copyMissingDefaults(defaults);
-        } catch (IOException | NullPointerException ex) {
-            plugin.getLogger().warning("Не удалось загрузить defaults для gui.yml: " + ex.getMessage());
+        cfg = loaded;
+        cfg.setDefaults(defaults);
+        migrateLegacyMessagesGui();
+        removeLegacyMachineSection();
+        copyMissingDefaults(defaults);
+    }
+
+    private YamlConfiguration loadDefaults() {
+        YamlConfiguration defaults = new YamlConfiguration();
+        try (InputStream input = plugin.getResource("gui.yml")) {
+            if (input == null) throw new IOException("resource gui.yml not found");
+            try (InputStreamReader reader = new InputStreamReader(input, StandardCharsets.UTF_8)) {
+                defaults.load(reader);
+            }
+        } catch (IOException | InvalidConfigurationException ex) {
+            plugin.getLogger().severe("Не удалось прочитать встроенный gui.yml: " + ex.getMessage());
+        }
+        return defaults;
+    }
+
+    private void backupBrokenFile() {
+        try {
+            Files.copy(file.toPath(), file.toPath().resolveSibling(file.getName() + ".broken.bak"),
+                    StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException backupFailure) {
+            plugin.getLogger().warning("Не удалось создать gui.yml.broken.bak: "
+                    + backupFailure.getMessage());
         }
     }
 
@@ -260,11 +293,7 @@ public final class GuiConfig {
             return;
         }
 
-        try {
-            cfg.save(file);
-        } catch (IOException ex) {
-            plugin.getLogger().warning("Не удалось обновить gui.yml новыми настройками: " + ex.getMessage());
-        }
+        AtomicYamlFiles.save(cfg, file, plugin.getLogger());
     }
 
     private void removeLegacyMachineSection() {
@@ -272,11 +301,7 @@ public final class GuiConfig {
             return;
         }
         cfg.set("machine", null);
-        try {
-            cfg.save(file);
-        } catch (IOException ex) {
-            plugin.getLogger().warning("Не удалось удалить устаревший раздел machine из gui.yml: " + ex.getMessage());
-        }
+        AtomicYamlFiles.save(cfg, file, plugin.getLogger());
     }
 
     private static boolean isMachinePath(String path) {
@@ -289,7 +314,14 @@ public final class GuiConfig {
             return;
         }
 
-        YamlConfiguration messages = YamlConfiguration.loadConfiguration(messagesFile);
+        YamlConfiguration messages = new YamlConfiguration();
+        try {
+            messages.load(messagesFile);
+        } catch (IOException | InvalidConfigurationException ex) {
+            plugin.getLogger().severe("Раздел gui не перенесён: messages.yml повреждён и оставлен без изменений: "
+                    + ex.getMessage());
+            return;
+        }
         org.bukkit.configuration.ConfigurationSection legacy = messages.getConfigurationSection("gui");
         if (legacy == null) {
             return;
@@ -306,12 +338,9 @@ public final class GuiConfig {
         }
         messages.set("gui", null);
 
-        try {
-            cfg.save(file);
-            messages.save(messagesFile);
+        if (AtomicYamlFiles.save(cfg, file, plugin.getLogger())
+                && AtomicYamlFiles.save(messages, messagesFile, plugin.getLogger())) {
             plugin.getLogger().info("Раздел gui перенесён из messages.yml в gui.yml.");
-        } catch (IOException ex) {
-            plugin.getLogger().warning("Не удалось перенести раздел gui из messages.yml: " + ex.getMessage());
         }
     }
 }

@@ -10,6 +10,7 @@ import ru.privatenull.cases.model.Reward;
 import ru.privatenull.PnCasesPlugin;
 import ru.privatenull.pnlibrary.text.ColorUtil;
 import ru.privatenull.util.EnchantmentCompat;
+import ru.privatenull.util.GuiItemFlags;
 import ru.privatenull.util.MaterialCompat;
 
 import java.util.ArrayList;
@@ -91,9 +92,7 @@ public final class RewardPresentationService {
         }
 
         meta.setLore(mergeLore(originalLore, configuredLore));
-        if (plugin.getGuiConfig().bool("preview.reward.hide-attributes", true)) {
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-        }
+        GuiItemFlags.hideAttributes(meta);
         int customModelData = rarity.customModelData() > 0
                 ? rarity.customModelData()
                 : plugin.getGuiConfig().integer("preview.reward.custom-model-data", 0);

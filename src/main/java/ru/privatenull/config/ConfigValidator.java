@@ -3,8 +3,12 @@ package ru.privatenull.config;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
+import ru.privatenull.PnCasesPlugin;
+import ru.privatenull.cases.config.CaseConfigRepository;
 import ru.privatenull.cases.model.Reward;
 
 import static ru.privatenull.cases.config.RewardConfigValues.firstPresent;
@@ -12,7 +16,11 @@ import static ru.privatenull.cases.config.RewardConfigValues.inferType;
 import static ru.privatenull.cases.config.RewardConfigValues.nestedMap;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -42,7 +50,12 @@ public final class ConfigValidator {
         validateCases(plugin, config, knownKeys, warnings, errors);
 
         if (changed) {
-            plugin.saveConfig();
+            boolean saved = plugin instanceof PnCasesPlugin pnCases
+                    ? new CaseConfigRepository(pnCases).saveMainConfig()
+                    : saveLegacy(plugin);
+            if (!saved) {
+                errors.add("Не удалось безопасно сохранить добавленные поля config.yml.");
+            }
         }
 
         if (!patches.isEmpty()) {
@@ -62,6 +75,16 @@ public final class ConfigValidator {
         }
 
         return new Result(errors.size(), warnings.size(), patches.size());
+    }
+
+    private static boolean saveLegacy(JavaPlugin plugin) {
+        try {
+            plugin.saveConfig();
+            return true;
+        } catch (RuntimeException exception) {
+            plugin.getLogger().severe("Не удалось сохранить config.yml: " + exception.getMessage());
+            return false;
+        }
     }
 
     private static boolean patchMissing(FileConfiguration config, List<String> patches, String path, Object value) {
@@ -96,34 +119,163 @@ public final class ConfigValidator {
     }
 
     private static void validateCases(JavaPlugin plugin, FileConfiguration config, Set<String> knownKeys, List<String> warnings, List<String> errors) {
+        Set<String> seenIds = new HashSet<>();
+        Map<String, String> blockOwners = new HashMap<>();
+        boolean found = false;
         ConfigurationSection cases = config.getConfigurationSection("cases");
-        if (cases == null) {
-            if (!hasCaseFiles(plugin) && !hasBundledCaseFiles(plugin)) {
-                errors.add("Секция cases отсутствует и plugins/pnCases/cases/*.yml не найдены. Плагин не загрузит ни одного кейса.");
+        boolean autoExport = config.getBoolean("case-files.auto-export", true);
+        Set<String> authoritativeEmbedded = new HashSet<>();
+        if (autoExport && cases != null) {
+            for (String caseName : cases.getKeys(false)) {
+                authoritativeEmbedded.add(CaseConfigRepository.normalizeName(caseName));
             }
-            return;
         }
 
-        for (String caseName : cases.getKeys(false)) {
-            ConfigurationSection section = cases.getConfigurationSection(caseName);
-            String path = "cases." + caseName;
-            if (section == null) {
-                errors.add(path + " должен быть секцией.");
-                continue;
-            }
+        File directory = new File(plugin.getDataFolder(), "cases");
+        File[] files = directory.listFiles((dir, name) -> name.toLowerCase(Locale.ROOT).endsWith(".yml"));
+        if (files != null) {
+            Arrays.sort(files, Comparator.comparing(File::getName, String.CASE_INSENSITIVE_ORDER));
+            for (File file : files) {
+                found = true;
+                String fileName = file.getName();
+                String caseId = CaseConfigRepository.normalizeName(fileName.substring(0, fileName.length() - 4));
+                String path = "cases/" + fileName;
+                if (!CaseConfigRepository.isValidId(caseId)) {
+                    errors.add(path + " имеет недопустимое имя. Используйте только a-z, 0-9, _ и - (до 64 символов).");
+                    continue;
+                }
+                if (authoritativeEmbedded.contains(caseId)) {
+                    warnings.add(path + " временно игнорируется до завершения auto-export; используется cases."
+                            + caseId + " из config.yml.");
+                    continue;
+                }
+                if (!seenIds.add(caseId)) {
+                    errors.add(path + " дублирует id кейса '" + caseId + "'.");
+                    continue;
+                }
 
-            validateBlock(path, section, warnings);
-            validateGui(path, section, warnings);
-            validateCost(path, section, knownKeys, warnings, errors);
-            validateAnimation(path, section, warnings);
-            validateRewards(path, section, warnings, errors);
+                YamlConfiguration yaml = new YamlConfiguration();
+                try {
+                    yaml.load(file);
+                } catch (IOException | InvalidConfigurationException ex) {
+                    errors.add(path + " не читается как YAML: " + ex.getMessage());
+                    continue;
+                }
+                ConfigurationSection section = yaml.getConfigurationSection("case");
+                if (section == null) section = yaml;
+                warnIdMismatch(path, caseId, section, warnings);
+                validateCase(path, section, knownKeys, warnings, errors);
+                validateUniqueBlocks(path, caseId, section, blockOwners, errors);
+            }
+        }
+
+        if (cases != null) {
+            for (String caseName : cases.getKeys(false)) {
+                found = true;
+                String caseId = CaseConfigRepository.normalizeName(caseName);
+                String path = "cases." + caseName;
+                if (!CaseConfigRepository.isValidId(caseId)) {
+                    errors.add(path + " имеет недопустимый id. Используйте только a-z, 0-9, _ и - (до 64 символов).");
+                    continue;
+                }
+                if (!seenIds.add(caseId)) {
+                    errors.add(path + " дублирует cases/" + caseId + ".yml. Оставьте только один источник кейса.");
+                    continue;
+                }
+                ConfigurationSection section = cases.getConfigurationSection(caseName);
+                if (section == null) {
+                    errors.add(path + " должен быть секцией.");
+                    continue;
+                }
+                warnIdMismatch(path, caseId, section, warnings);
+                validateCase(path, section, knownKeys, warnings, errors);
+                validateUniqueBlocks(path, caseId, section, blockOwners, errors);
+            }
+        }
+
+        if (!found && !hasBundledCaseFiles(plugin)) {
+            errors.add("Секция cases отсутствует и plugins/pnCases/cases/*.yml не найдены. Плагин не загрузит ни одного кейса.");
         }
     }
 
-    private static boolean hasCaseFiles(JavaPlugin plugin) {
-        File dir = new File(plugin.getDataFolder(), "cases");
-        File[] files = dir.listFiles((file, name) -> name.toLowerCase(Locale.ROOT).endsWith(".yml"));
-        return files != null && files.length > 0;
+    private static void warnIdMismatch(String path, String canonicalId, ConfigurationSection section, List<String> warnings) {
+        String explicitId = section.getString("id", section.getString("case_id", section.getString("case-id")));
+        if (explicitId != null && !explicitId.isBlank()
+                && !canonicalId.equals(CaseConfigRepository.normalizeName(explicitId))) {
+            warnings.add(path + " содержит id='" + explicitId + "', но будет использован id '" + canonicalId
+                    + "' из имени файла/секции.");
+        }
+    }
+
+    private static void validateCase(
+            String path,
+            ConfigurationSection section,
+            Set<String> knownKeys,
+            List<String> warnings,
+            List<String> errors
+    ) {
+        validateBlock(path, section, warnings);
+        validateGui(path, section, warnings);
+        validateCost(path, section, knownKeys, warnings, errors);
+        validateAnimation(path, section, warnings);
+        validateRewards(path, section, warnings, errors);
+    }
+
+    private static void validateUniqueBlocks(
+            String path,
+            String caseId,
+            ConfigurationSection section,
+            Map<String, String> owners,
+            List<String> errors
+    ) {
+        registerBlock(path + ".block", caseId, blockKey(section.getConfigurationSection("block")), owners, errors);
+        List<?> blocks = section.getList("blocks", List.of());
+        for (int index = 0; index < blocks.size(); index++) {
+            Object raw = blocks.get(index);
+            String key = null;
+            if (raw instanceof ConfigurationSection block) {
+                key = blockKey(block);
+            } else if (raw instanceof Map<?, ?> block) {
+                key = blockKey(block.get("world"), block.get("x"), block.get("y"), block.get("z"));
+            }
+            registerBlock(path + ".blocks[" + index + "]", caseId, key, owners, errors);
+        }
+    }
+
+    private static void registerBlock(
+            String path,
+            String caseId,
+            String blockKey,
+            Map<String, String> owners,
+            List<String> errors
+    ) {
+        if (blockKey == null) return;
+        String owner = owners.putIfAbsent(blockKey, caseId);
+        if (owner != null && !owner.equals(caseId)) {
+            errors.add(path + " конфликтует с кейсом '" + owner + "': один блок нельзя привязать к двум кейсам.");
+        }
+    }
+
+    private static String blockKey(ConfigurationSection block) {
+        return block == null ? null : blockKey(block.get("world"), block.get("x"), block.get("y"), block.get("z"));
+    }
+
+    private static String blockKey(Object worldValue, Object xValue, Object yValue, Object zValue) {
+        if (worldValue == null || String.valueOf(worldValue).isBlank()) return null;
+        Integer x = strictInt(xValue);
+        Integer y = strictInt(yValue);
+        Integer z = strictInt(zValue);
+        if (x == null || y == null || z == null) return null;
+        return String.valueOf(worldValue).trim().toLowerCase(Locale.ROOT) + ':' + x + ':' + y + ':' + z;
+    }
+
+    private static Integer strictInt(Object value) {
+        if (value instanceof Number number) return number.intValue();
+        try {
+            return Integer.parseInt(String.valueOf(value));
+        } catch (RuntimeException ignored) {
+            return null;
+        }
     }
 
     private static boolean hasBundledCaseFiles(JavaPlugin plugin) {

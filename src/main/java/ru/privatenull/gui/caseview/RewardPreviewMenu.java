@@ -12,6 +12,8 @@ import ru.privatenull.cases.model.Reward;
 import ru.privatenull.cases.model.CaseGuiLayoutRules;
 import ru.privatenull.pnlibrary.text.ColorUtil;
 import ru.privatenull.util.EnchantmentCompat;
+import ru.privatenull.util.GuiItemFlags;
+import ru.privatenull.util.InventoryViewCompat;
 import ru.privatenull.util.SoundCompat;
 
 import java.util.ArrayList;
@@ -19,6 +21,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 
 public final class RewardPreviewMenu {
@@ -112,7 +115,24 @@ public final class RewardPreviewMenu {
         }
 
         if (pageChange) {
-            player.openInventory(inventory);
+            Inventory current = InventoryViewCompat.topInventory(player);
+            if (current != null
+                    && current.getSize() == inventory.getSize()
+                    && current.getHolder() instanceof CaseGuiHolder currentHolder
+                    && currentHolder.type() == CaseGuiHolder.Type.PREVIEW
+                    && currentHolder.caseName().equalsIgnoreCase(caseName)) {
+                caseManager.getPlugin().getGuiOpenAnimations().cancel(player);
+                currentHolder.page(safePage);
+                for (int slot = 0; slot < current.getSize(); slot++) {
+                    ItemStack previous = current.getItem(slot);
+                    ItemStack desired = inventory.getItem(slot);
+                    if (!Objects.equals(previous, desired)) {
+                        caseManager.getPlugin().getGuiUpdates().setTopSlot(player, slot, desired);
+                    }
+                }
+            } else {
+                player.openInventory(inventory);
+            }
         } else {
             caseManager.getPlugin().getGuiOpenAnimations().open(player, inventory);
         }
@@ -178,9 +198,7 @@ public final class RewardPreviewMenu {
         if (customModelData > 0) {
             meta.setCustomModelData(customModelData);
         }
-        if (caseManager.getPlugin().getGuiConfig().bool(path + ".hide-attributes", true)) {
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-        }
+        GuiItemFlags.hideAttributes(meta);
         if (caseManager.getPlugin().getGuiConfig().bool(path + ".glow", false)) {
             var enchantment = EnchantmentCompat.unbreaking();
             if (enchantment != null) {

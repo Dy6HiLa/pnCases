@@ -16,11 +16,19 @@ final class MachineConfigEditor {
     }
 
     boolean update(Player player, String caseName, Consumer<ConfigurationSection> updater) {
-        return update(player, caseName, updater, true, true);
+        return update(player, caseName, updater, false, false);
     }
 
     boolean updateAnimation(Player player, String caseName, Consumer<ConfigurationSection> updater) {
         return update(player, caseName, updater, false, false);
+    }
+
+    boolean updateHologram(Player player, String caseName, Consumer<ConfigurationSection> updater) {
+        return update(player, caseName, updater, true, false);
+    }
+
+    boolean updateShowcase(Player player, String caseName, Consumer<ConfigurationSection> updater) {
+        return update(player, caseName, updater, false, true);
     }
 
     private boolean update(Player player, String caseName, Consumer<ConfigurationSection> updater,

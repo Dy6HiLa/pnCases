@@ -7,6 +7,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -58,18 +59,32 @@ public final class CaseGuiListener implements Listener {
 
         CaseDefinition definition = caseManager.getCaseByName(holder.caseName());
         if (definition == null) return;
-        if (slot == definition.guiLayout().animationSlot() && definition.fixedAnimation() == null) {
-            animationMenu.open(player, holder.caseName());
+        if (slot == definition.guiLayout().openSlot()) {
+            if (event.getClick() == ClickType.MIDDLE
+                    || (event.getClick().isLeftClick() && definition.buyKeyWithXpLevels() <= 0)) {
+                rewardPreviewMenu.open(player, holder.caseName(), 0);
+                return;
+            }
+            openOrBuy(player, event, holder, definition);
             return;
         }
-        if (slot != definition.guiLayout().openSlot()) return;
-
-        if (event.getClick() == ClickType.MIDDLE
-                || (event.getClick().isLeftClick() && definition.buyKeyWithXpLevels() <= 0)) {
+        if (slot == definition.guiLayout().previewSlot()) {
             rewardPreviewMenu.open(player, holder.caseName(), 0);
             return;
         }
-        openOrBuy(player, event, holder, definition);
+        if (slot == definition.guiLayout().animationSlot() && definition.fixedAnimation() == null) {
+            animationMenu.open(player, holder.caseName());
+        }
+    }
+
+    @EventHandler
+    public void onDrag(InventoryDragEvent event) {
+        Object holder = event.getInventory().getHolder();
+        if (!(holder instanceof CaseGuiHolder) && !(holder instanceof AnimationSelectHolder)) return;
+        int topSize = event.getView().getTopInventory().getSize();
+        if (event.getRawSlots().stream().anyMatch(slot -> slot >= 0 && slot < topSize)) {
+            event.setCancelled(true);
+        }
     }
 
     private void openOrBuy(Player player, InventoryClickEvent event, CaseGuiHolder holder, CaseDefinition definition) {
@@ -86,7 +101,7 @@ public final class CaseGuiListener implements Listener {
         int need = Math.max(1, definition.costAmount());
         if (keyId == null || keyId.isEmpty() || !caseManager.keyExists(keyId)) {
             showInvalidKey(player, event.getInventory(), definition);
-            scheduleRefresh(player, holder.caseName(), definition, playerId, 30L);
+            scheduleRefresh(player, holder.caseName(), playerId, 30L);
             return;
         }
 
@@ -104,7 +119,7 @@ public final class CaseGuiListener implements Listener {
         } else {
             showInsufficientPayment(player, event.getInventory(), definition, wantsBuy, have, need, buyLevels);
         }
-        scheduleRefresh(player, holder.caseName(), definition, playerId, 30L);
+        scheduleRefresh(player, holder.caseName(), playerId, 30L);
     }
 
     private void showInvalidKey(Player player, Inventory inventory, CaseDefinition definition) {
@@ -166,7 +181,7 @@ public final class CaseGuiListener implements Listener {
         player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.24f, 1.0f);
     }
 
-    private void scheduleRefresh(Player player, String caseName, CaseDefinition definition, UUID playerId, long delay) {
+    private void scheduleRefresh(Player player, String caseName, UUID playerId, long delay) {
         new BukkitRunnable() {
             @Override
             public void run() {
@@ -175,7 +190,13 @@ public final class CaseGuiListener implements Listener {
                 Inventory top = InventoryViewCompat.topInventory(player);
                 if (top == null || !(top.getHolder() instanceof CaseGuiHolder holder)) return;
                 if (holder.type() != CaseGuiHolder.Type.CASE || !Objects.equals(holder.caseName(), caseName)) return;
-                caseManager.fillCaseGui(top, player, definition);
+                CaseDefinition current = caseManager.getCaseByName(caseName);
+                if (current == null) return;
+                caseManager.getPlugin().getGuiUpdates().setTopSlot(
+                        player,
+                        current.guiLayout().openSlot(),
+                        caseManager.buildGuiOpenItem(player, current)
+                );
             }
         }.runTaskLater(caseManager.getPlugin(), delay);
     }

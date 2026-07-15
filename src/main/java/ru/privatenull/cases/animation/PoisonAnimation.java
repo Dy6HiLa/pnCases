@@ -11,7 +11,6 @@ import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.HandlerList;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -70,20 +69,20 @@ public class PoisonAnimation extends CaseAnimation {
             slime.setGlowing(true);
             slime.setCustomNameVisible(false);
         });
-        track(cube);
+        track(cube, onFinish);
 
         TextDisplay info = (TextDisplay) world.spawnEntity(base.clone().add(0, 2.85, 0), org.bukkit.entity.EntityType.TEXT_DISPLAY);
         info.setBillboard(Display.Billboard.CENTER);
         info.setSeeThrough(true);
         info.setDefaultBackground(false);
         info.setText(buildStatusText(0));
-        track(info);
+        track(info, onFinish);
 
         ItemDisplay rewardDisplay = (ItemDisplay) world.spawnEntity(base.clone().add(0, 1.1, 0), org.bukkit.entity.EntityType.ITEM_DISPLAY);
         rewardDisplay.setItemStack(rewardVisual);
         rewardDisplay.setBillboard(Display.Billboard.VERTICAL);
         setScale(rewardDisplay, 0f);
-        track(rewardDisplay);
+        track(rewardDisplay, onFinish);
 
         List<SlimeGlob> globs = new ArrayList<>();
 
@@ -150,6 +149,7 @@ public class PoisonAnimation extends CaseAnimation {
             }
         };
         Bukkit.getPluginManager().registerEvents(listenerHolder[0], plugin);
+        track(listenerHolder[0], world, onFinish);
 
         taskHolder[0] = new BukkitRunnable() {
             @Override
@@ -209,7 +209,7 @@ public class PoisonAnimation extends CaseAnimation {
 
                     int spitInterval = Math.max(10, 24 - hits[0] * 2);
                     if (tick[0] % spitInterval == 0) {
-                        spitSlime(world, cube.getLocation().clone().add(0, 0.95, 0), random, globs);
+                        spitSlime(world, cube.getLocation().clone().add(0, 0.95, 0), random, globs, onFinish);
                         world.playSound(cube.getLocation(), Sound.ENTITY_SLIME_ATTACK, 0.28f, 0.85f);
                     }
 
@@ -328,7 +328,7 @@ public class PoisonAnimation extends CaseAnimation {
                 untrack(info);
 
                 if (listenerHolder[0] != null) {
-                    HandlerList.unregisterAll(listenerHolder[0]);
+                    unregister(listenerHolder[0]);
                 }
                 if (taskHolder[0] != null) {
                     untrack(taskHolder[0]);
@@ -339,10 +339,10 @@ public class PoisonAnimation extends CaseAnimation {
             }
         }.runTaskTimer(plugin, 0L, 1L);
 
-        track(taskHolder[0]);
+        track(taskHolder[0], world, onFinish);
     }
 
-    private static void spitSlime(World world, Location from, Random random, List<SlimeGlob> globs) {
+    private void spitSlime(World world, Location from, Random random, List<SlimeGlob> globs, Runnable owner) {
         int count = 3 + random.nextInt(2);
 
         world.spawnParticle(Particle.ITEM_SLIME, from, 10, 0.16, 0.12, 0.16, 0.03);
@@ -353,6 +353,7 @@ public class PoisonAnimation extends CaseAnimation {
             glob.setItemStack(new ItemStack(Material.SLIME_BALL));
             glob.setBillboard(Display.Billboard.VERTICAL);
             setScale(glob, 0.28f);
+            track(glob, owner);
 
             double angle = random.nextDouble() * Math.PI * 2D;
             double speed = 0.12 + random.nextDouble() * 0.10;

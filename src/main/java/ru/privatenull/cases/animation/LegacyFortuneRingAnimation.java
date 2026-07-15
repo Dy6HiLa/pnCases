@@ -44,6 +44,11 @@ public final class LegacyFortuneRingAnimation extends CaseAnimation {
     }
 
     @Override
+    public void onWorldUnload(World world) {
+        restoreHiddenBlocks(world);
+    }
+
+    @Override
     public void play(Player player, CaseDefinition def, Reward reward, Location base, Runnable onFinish) {
         World world = base.getWorld();
         if (world == null) {
@@ -54,22 +59,22 @@ public final class LegacyFortuneRingAnimation extends CaseAnimation {
         ItemStack rewardVisual = resolveRewardVisual(reward, def);
         List<ItemStack> visuals = buildVisuals(def, rewardVisual);
         Vector rightAxis = rightAxis(player, base);
-        HiddenCaseBlock hiddenBlock = hideCaseBlock(base);
+        HiddenCaseBlock hiddenBlock = hideCaseBlock(base, onFinish);
 
         List<VisualEntity> orbitItems = new ArrayList<>();
         Location center = base.clone().add(0.0, 1.50, 0.0);
         for (int i = 0; i < ITEM_COUNT; i++) {
             VisualEntity visual = VisualEntity.item(center, visuals.get(i % visuals.size()));
             orbitItems.add(visual);
-            track(visual.entity());
+            track(visual.entity(), onFinish);
         }
 
         VisualEntity rewardDisplay = VisualEntity.item(base.clone().add(0.0, -4.0, 0.0), rewardVisual);
         rewardDisplay.setScale(0.55f);
-        track(rewardDisplay.entity());
+        track(rewardDisplay.entity(), onFinish);
 
         VisualEntity label = VisualEntity.text(base.clone().add(0.0, 3.15, 0.0), "");
-        track(label.entity());
+        track(label.entity(), onFinish);
 
         BukkitTask[] taskHolder = new BukkitTask[1];
         taskHolder[0] = new BukkitRunnable() {
@@ -248,34 +253,48 @@ public final class LegacyFortuneRingAnimation extends CaseAnimation {
                 cancel();
             }
         }.runTaskTimer(plugin, 0L, 1L);
-        track(taskHolder[0]);
+        track(taskHolder[0], world, onFinish);
     }
 
-    private HiddenCaseBlock hideCaseBlock(Location base) {
+    @Override
+    protected void onCancelRun(Runnable owner) {
+        for (HiddenCaseBlock hiddenBlock : hiddenBlocks) {
+            if (hiddenBlock.owner == owner && hiddenBlocks.remove(hiddenBlock)) hiddenBlock.restore();
+        }
+    }
+
+    private HiddenCaseBlock hideCaseBlock(Location base, Runnable owner) {
         Block block = base.getBlock();
         if (block.getType().isAir()) {
             return null;
         }
 
-        HiddenCaseBlock hiddenBlock = new HiddenCaseBlock(block, block.getState());
+        HiddenCaseBlock hiddenBlock = new HiddenCaseBlock(block, block.getState(), owner);
         hiddenBlocks.add(hiddenBlock);
         block.setType(Material.AIR, false);
         return hiddenBlock;
     }
 
     private void restoreHiddenBlock(HiddenCaseBlock hiddenBlock) {
-        if (hiddenBlock == null) {
-            return;
+        if (hiddenBlock != null && hiddenBlocks.remove(hiddenBlock)) {
+            hiddenBlock.restore();
         }
-        hiddenBlocks.remove(hiddenBlock);
-        hiddenBlock.restore();
     }
 
     private void restoreHiddenBlocks() {
         for (HiddenCaseBlock hiddenBlock : hiddenBlocks) {
-            hiddenBlock.restore();
+            if (hiddenBlocks.remove(hiddenBlock)) {
+                hiddenBlock.restore();
+            }
         }
-        hiddenBlocks.clear();
+    }
+
+    private void restoreHiddenBlocks(World world) {
+        for (HiddenCaseBlock hiddenBlock : hiddenBlocks) {
+            if (hiddenBlock.isIn(world) && hiddenBlocks.remove(hiddenBlock)) {
+                hiddenBlock.restore();
+            }
+        }
     }
 
     private List<ItemStack> buildVisuals(CaseDefinition def, ItemStack rewardVisual) {
@@ -374,7 +393,11 @@ public final class LegacyFortuneRingAnimation extends CaseAnimation {
         if (visual != null) visual.remove();
     }
 
-    private record HiddenCaseBlock(Block block, BlockState state) {
+    private record HiddenCaseBlock(Block block, BlockState state, Runnable owner) {
+        private boolean isIn(World world) {
+            return block != null && world != null && block.getWorld().equals(world);
+        }
+
         private void restore() {
             if (block == null || state == null || !block.getType().isAir()) {
                 return;

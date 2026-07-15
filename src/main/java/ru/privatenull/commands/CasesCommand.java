@@ -62,9 +62,13 @@ public final class CasesCommand implements CommandExecutor {
         var validation = plugin.validateCurrentConfig();
         plugin.getMessages().load();
         plugin.getGuiConfig().load();
-        caseManager.reloadFromConfig();
+        boolean casesReloaded = caseManager.reloadFromConfig();
         plugin.reloadRuntimeConfig();
-        sender.sendMessage(plugin.getMessages().get("config-reloaded"));
+        if (casesReloaded) {
+            sender.sendMessage(plugin.getMessages().get("config-reloaded"));
+        } else {
+            sender.sendMessage(plugin.getMessages().get("cases-reload-failed"));
+        }
         if (validation.hasProblems()) {
             sender.sendMessage(plugin.getMessages().get("config-validation-result",
                     "errors", String.valueOf(validation.errors()),
@@ -175,6 +179,8 @@ public final class CasesCommand implements CommandExecutor {
             case REMOVED -> sender.sendMessage(plugin.getMessages().get("delcase-success", "case", caseName));
             case NOT_BOUND -> sender.sendMessage(plugin.getMessages().get("delcase-not-bound", "case", caseName));
             case NOT_FOUND -> sender.sendMessage(plugin.getMessages().get("delcase-not-found", "case", caseName));
+            case SAVE_FAILED -> sender.sendMessage(plugin.getMessages().get("delcase-save-failed", "case", caseName));
+            case REFRESH_FAILED -> sender.sendMessage(plugin.getMessages().get("delcase-refresh-failed", "case", caseName));
         }
         return true;
     }
@@ -226,12 +232,20 @@ public final class CasesCommand implements CommandExecutor {
             return true;
         }
 
-        caseManager.bindCaseToBlock(caseName, target);
-        player.sendMessage(plugin.getMessages().get("setcase-success",
-                "case", caseName, "world", target.getWorld().getName(),
-                "x", String.valueOf(target.getX()), "y", String.valueOf(target.getY()),
-                "z", String.valueOf(target.getZ())));
-        player.sendMessage(plugin.getMessages().get("setcase-machine-hint", "case", caseName));
+        switch (caseManager.bindCaseToBlock(caseName, target)) {
+            case BOUND -> {
+                player.sendMessage(plugin.getMessages().get("setcase-success",
+                        "case", caseName, "world", target.getWorld().getName(),
+                        "x", String.valueOf(target.getX()), "y", String.valueOf(target.getY()),
+                        "z", String.valueOf(target.getZ())));
+                player.sendMessage(plugin.getMessages().get("setcase-machine-hint", "case", caseName));
+            }
+            case ALREADY_BOUND -> player.sendMessage(plugin.getMessages().get("setcase-already-bound", "case", caseName));
+            case NOT_FOUND -> player.sendMessage(plugin.getMessages().get("setcase-not-found", "case", caseName));
+            case BLOCK_OCCUPIED -> player.sendMessage(plugin.getMessages().get("setcase-block-occupied"));
+            case SAVE_FAILED -> player.sendMessage(plugin.getMessages().get("setcase-save-failed", "case", caseName));
+            case REFRESH_FAILED -> player.sendMessage(plugin.getMessages().get("setcase-refresh-failed", "case", caseName));
+        }
         return true;
     }
 
@@ -241,6 +255,7 @@ public final class CasesCommand implements CommandExecutor {
             case ALREADY_EXISTS -> sender.sendMessage(plugin.getMessages().get("createcase-exists", "case", caseName));
             case INVALID_ID -> sender.sendMessage(plugin.getMessages().get("createcase-invalid", "case", caseName));
             case SAVE_FAILED -> sender.sendMessage(plugin.getMessages().get("createcase-failed", "case", caseName));
+            case RELOAD_FAILED -> sender.sendMessage(plugin.getMessages().get("createcase-reload-failed", "case", caseName));
         }
     }
 

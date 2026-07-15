@@ -17,7 +17,6 @@ import static ru.privatenull.config.ConfigSections.section;
 import static ru.privatenull.gui.machine.MachineSlots.*;
 import static ru.privatenull.util.ItemFactory.isRealItem;
 import static ru.privatenull.util.ItemFactory.writeExactItem;
-import static ru.privatenull.util.ItemFactory.writeItem;
 
 final class MachineActionController {
 
@@ -118,13 +117,13 @@ final class MachineActionController {
         if (backToMain(player, definition, slot)) return;
 
         if (slot == SLOT_TOGGLES_HOLOGRAM) {
-            update(player, definition, root -> section(root, "hologram").set("enabled", !state.hologramEnabled(definition)));
+            updateHologram(player, definition, root -> section(root, "hologram").set("enabled", !state.hologramEnabled(definition)));
             togglesScreen.open(player, definition.name());
         } else if (slot == SLOT_TOGGLES_SHOWCASE) {
-            update(player, definition, root -> section(root, "idle-particles").set("enabled", !definition.idleParticles().enabled()));
+            updateShowcase(player, definition, root -> section(root, "idle-particles").set("enabled", !definition.idleParticles().enabled()));
             togglesScreen.open(player, definition.name());
         } else if (slot == SLOT_TOGGLES_EFFECTS) {
-            update(player, definition, root -> section(root, "idle-particles").set("effects", !definition.idleParticles().effectsEnabled()));
+            updateShowcase(player, definition, root -> section(root, "idle-particles").set("effects", !definition.idleParticles().effectsEnabled()));
             togglesScreen.open(player, definition.name());
         } else if (slot == SLOT_TOGGLES_XP_BUY) {
             update(player, definition, root -> section(root, "cost").set("buy_xp_enabled", !state.xpBuyEnabled(definition)));
@@ -161,11 +160,11 @@ final class MachineActionController {
         if (backToMain(player, definition, slot)) return;
 
         if (slot == SLOT_HOLOGRAM_TOGGLE) {
-            update(player, definition, root -> section(root, "hologram").set("enabled", !state.hologramEnabled(definition)));
+            updateHologram(player, definition, root -> section(root, "hologram").set("enabled", !state.hologramEnabled(definition)));
             hologramScreen.open(player, definition.name());
         } else if (slot == SLOT_HOLOGRAM_HEIGHT) {
             double next = boundedStep(state.hologramHeight(definition), event, 0.1, 1.0, -5.0, 10.0, 1);
-            update(player, definition, root -> {
+            updateHologram(player, definition, root -> {
                 ConfigurationSection hologram = section(root, "hologram");
                 hologram.set("enabled", true);
                 hologram.set("y", next);
@@ -182,19 +181,19 @@ final class MachineActionController {
         IdleParticleSettings settings = definition.idleParticles();
         ItemStack cursor = event.getCursor();
         if (slot == SLOT_PARTICLES_ITEM && isRealItem(cursor)) {
-            update(player, definition, root -> writeExactItem(section(root, "idle-particles"), "item", cursor));
+            updateShowcase(player, definition, root -> writeExactItem(section(root, "idle-particles"), "item", cursor));
         } else if (slot == SLOT_PARTICLES_TOGGLE) {
-            update(player, definition, root -> section(root, "idle-particles").set("enabled", !settings.enabled()));
+            updateShowcase(player, definition, root -> section(root, "idle-particles").set("enabled", !settings.enabled()));
         } else if (slot == SLOT_PARTICLES_EFFECTS) {
-            update(player, definition, root -> section(root, "idle-particles").set("effects", !settings.effectsEnabled()));
+            updateShowcase(player, definition, root -> section(root, "idle-particles").set("effects", !settings.effectsEnabled()));
         } else if (slot == SLOT_PARTICLES_ITEM && event.isRightClick()) {
-            update(player, definition, root -> section(root, "idle-particles").set("item", null));
+            updateShowcase(player, definition, root -> section(root, "idle-particles").set("item", null));
         } else if (slot == SLOT_PARTICLES_STYLE) {
             IdleParticleSettings.Style next = nextEnum(settings.style(), IdleParticleSettings.Style.values(), event.isRightClick());
-            update(player, definition, root -> section(root, "idle-particles").set("style", next.name()));
+            updateShowcase(player, definition, root -> section(root, "idle-particles").set("style", next.name()));
         } else if (slot == SLOT_PARTICLES_THEME) {
             IdleParticleSettings.Theme next = nextEnum(settings.theme(), IdleParticleSettings.Theme.values(), event.isRightClick());
-            update(player, definition, root -> section(root, "idle-particles").set("theme", next.name()));
+            updateShowcase(player, definition, root -> section(root, "idle-particles").set("theme", next.name()));
         } else {
             return;
         }
@@ -226,11 +225,11 @@ final class MachineActionController {
         if (!isRealItem(cursor)) return;
 
         if (slot == SLOT_OPEN_ITEM) {
-            update(player, definition, root -> writeItem(section(root, "gui"), "open-item", cursor));
+            update(player, definition, root -> writeExactItem(section(root, "gui"), "open-item", cursor));
         } else if (slot == SLOT_DECOR_ITEM) {
-            update(player, definition, root -> writeItem(section(section(root, "gui"), "decor"), "item", cursor));
+            update(player, definition, root -> writeExactItem(section(section(root, "gui"), "decor"), "item", cursor));
         } else if (slot == SLOT_HISTORY_EMPTY_ITEM) {
-            update(player, definition, root -> writeItem(section(section(root, "gui"), "history"), "empty-item", cursor));
+            update(player, definition, root -> writeExactItem(section(section(root, "gui"), "history"), "empty-item", cursor));
         } else {
             return;
         }
@@ -264,6 +263,16 @@ final class MachineActionController {
 
     private void update(Player player, CaseDefinition definition, java.util.function.Consumer<ConfigurationSection> updater) {
         configEditor.update(player, definition.name(), updater);
+    }
+
+    private void updateHologram(Player player, CaseDefinition definition,
+                                 java.util.function.Consumer<ConfigurationSection> updater) {
+        configEditor.updateHologram(player, definition.name(), updater);
+    }
+
+    private void updateShowcase(Player player, CaseDefinition definition,
+                                java.util.function.Consumer<ConfigurationSection> updater) {
+        configEditor.updateShowcase(player, definition.name(), updater);
     }
 
     private static int boundedStep(int current, InventoryClickEvent event, int normal, int shifted, int min, int max) {

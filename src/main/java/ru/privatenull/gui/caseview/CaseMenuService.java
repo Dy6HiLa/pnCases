@@ -98,7 +98,12 @@ public final class CaseMenuService implements CaseView {
 
     @Override
     public ItemStack buildPreviewButton(CaseDefinition definition) {
-        if (definition.guiLayout().previewItem() != null) return definition.guiLayout().previewItem().clone();
+        if (definition.guiLayout().previewItem() != null) {
+            ItemStack configured = definition.guiLayout().previewItem().clone();
+            configured.setAmount(1);
+            hideAttributes(configured);
+            return configured;
+        }
 
         ItemStack item = new ItemStack(Material.ENDER_EYE);
         ItemMeta meta = item.getItemMeta();
@@ -130,11 +135,14 @@ public final class CaseMenuService implements CaseView {
         inventory.clear();
         CaseGuiLayout layout = definition.guiLayout();
         fillDecor(inventory, layout);
-        inventory.setItem(layout.openSlot(), buildOpenButton(player, definition));
         fillHistory(inventory, definition);
         if (definition.fixedAnimation() == null && !ServerCompatibility.useMinecraft1165AnimationMode()) {
             inventory.setItem(layout.animationSlot(), buildAnimationButton(player, definition));
         }
+        inventory.setItem(layout.previewSlot(), buildPreviewButton(definition));
+        // Opening is the highest-priority action. Keep it last as an additional
+        // safety net for CaseGuiLayout instances built outside the YAML parser.
+        inventory.setItem(layout.openSlot(), buildOpenButton(player, definition));
     }
 
     @Override

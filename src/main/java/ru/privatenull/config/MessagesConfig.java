@@ -1,11 +1,17 @@
 package ru.privatenull.config;
 
+import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 import ru.privatenull.pnlibrary.text.ColorUtil;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,17 +31,47 @@ public final class MessagesConfig {
         if (!file.exists()) {
             plugin.saveResource("messages.yml", false);
         }
-        cfg = YamlConfiguration.loadConfiguration(file);
+        YamlConfiguration defaults = loadDefaults();
+        YamlConfiguration loaded = new YamlConfiguration();
+        try {
+            loaded.load(file);
+        } catch (IOException | InvalidConfigurationException ex) {
+            plugin.getLogger().severe("messages.yml повреждён и не был перезаписан: " + ex.getMessage());
+            backupBrokenFile();
+            if (cfg == null) {
+                cfg = defaults;
+            } else {
+                cfg.setDefaults(defaults);
+            }
+            return;
+        }
 
-        YamlConfiguration defaults = YamlConfiguration.loadConfiguration(
-                new java.io.InputStreamReader(
-                        plugin.getResource("messages.yml"),
-                        java.nio.charset.StandardCharsets.UTF_8
-                )
-        );
+        cfg = loaded;
         cfg.setDefaults(defaults);
-        removeBoldFormatting();
         copyMissingDefaults(defaults);
+    }
+
+    private YamlConfiguration loadDefaults() {
+        YamlConfiguration defaults = new YamlConfiguration();
+        try (InputStream input = plugin.getResource("messages.yml")) {
+            if (input == null) throw new IOException("resource messages.yml not found");
+            try (InputStreamReader reader = new InputStreamReader(input, StandardCharsets.UTF_8)) {
+                defaults.load(reader);
+            }
+        } catch (IOException | InvalidConfigurationException ex) {
+            plugin.getLogger().severe("Не удалось прочитать встроенный messages.yml: " + ex.getMessage());
+        }
+        return defaults;
+    }
+
+    private void backupBrokenFile() {
+        try {
+            Files.copy(file.toPath(), file.toPath().resolveSibling(file.getName() + ".broken.bak"),
+                    StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException backupFailure) {
+            plugin.getLogger().warning("Не удалось создать messages.yml.broken.bak: "
+                    + backupFailure.getMessage());
+        }
     }
 
     public String get(String path, String... replacements) {
@@ -111,46 +147,7 @@ public final class MessagesConfig {
             return;
         }
 
-        try {
-            cfg.save(file);
-        } catch (IOException ex) {
-            plugin.getLogger().warning("Не удалось обновить messages.yml новыми настройками: " + ex.getMessage());
-        }
+        AtomicYamlFiles.save(cfg, file, plugin.getLogger());
     }
 
-    private void removeBoldFormatting() {
-        boolean changed = false;
-        for (String path : cfg.getKeys(true)) {
-            if (cfg.isString(path)) {
-                String current = cfg.getString(path, "");
-                String cleaned = stripBold(current);
-                if (!current.equals(cleaned)) {
-                    cfg.set(path, cleaned);
-                    changed = true;
-                }
-                continue;
-            }
-            if (cfg.isList(path)) {
-                List<String> current = cfg.getStringList(path);
-                List<String> cleaned = current.stream().map(MessagesConfig::stripBold).toList();
-                if (!current.equals(cleaned)) {
-                    cfg.set(path, cleaned);
-                    changed = true;
-                }
-            }
-        }
-        if (!changed) {
-            return;
-        }
-        try {
-            cfg.save(file);
-            plugin.getLogger().info("Жирное форматирование удалено из messages.yml.");
-        } catch (IOException ex) {
-            plugin.getLogger().warning("Не удалось очистить жирное форматирование в messages.yml: " + ex.getMessage());
-        }
-    }
-
-    private static String stripBold(String value) {
-        return value == null ? "" : value.replaceAll("(?i)(?:[&§]l|</?bold>|</?b>)", "");
-    }
 }

@@ -93,7 +93,15 @@ public final class MongoCasesDatabase implements CasesDatabase {
         Document changed = keys.findOneAndUpdate(and(keyFilter(uuid, keyId), gte("amount", amount)),
                 inc("amount", -amount), new FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER));
         if (changed == null) return false;
-        if (changed.getInteger("amount", 0) <= 0) keys.deleteOne(eq("_id", changed.getObjectId("_id")));
+        if (changed.getInteger("amount", 0) <= 0) {
+            try {
+                keys.deleteOne(eq("_id", changed.getObjectId("_id")));
+            } catch (RuntimeException ignored) {
+                // The atomic decrement already succeeded. A zero-value row is
+                // harmless and must not turn a paid opening into an ambiguous
+                // failure that could be charged twice on retry.
+            }
+        }
         return true;
     }
 

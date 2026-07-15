@@ -34,6 +34,12 @@ final class MachineAnimationScreen {
         CaseDefinition definition = caseManager.getCaseByName(caseName);
         if (definition == null) return;
 
+        if (MachineScreenRefresh.refreshIfOpen(
+                caseManager, player, MachineGuiHolder.Type.ANIMATION, definition.name(),
+                inventory -> fill(inventory, definition))) {
+            return;
+        }
+
         Inventory inventory = Bukkit.createInventory(
                 MachineGuiHolder.animation(caseName),
                 54,
@@ -43,6 +49,12 @@ final class MachineAnimationScreen {
                         items.replacements(definition)
                 )
         );
+        fill(inventory, definition);
+        caseManager.getPlugin().getGuiOpenAnimations().open(player, inventory);
+        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.18f, 1.25f);
+    }
+
+    private void fill(Inventory inventory, CaseDefinition definition) {
         items.fill(inventory, items.pane(Material.BLACK_STAINED_GLASS_PANE, " ", List.of()));
         inventory.setItem(4, items.configuredButton(
                 "machine.animation.header",
@@ -53,8 +65,6 @@ final class MachineAnimationScreen {
         ));
         inventory.setItem(SLOT_ANIMATION_MODE, modeButton(definition));
         inventory.setItem(SLOT_BACK, items.backButton(definition));
-        caseManager.getPlugin().getGuiOpenAnimations().open(player, inventory);
-        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.18f, 1.25f);
     }
 
     AnimationType[] availableTypes() {

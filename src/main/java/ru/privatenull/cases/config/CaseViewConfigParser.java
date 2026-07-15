@@ -24,8 +24,7 @@ final class CaseViewConfigParser {
         CaseGuiLayout defaults = CaseGuiLayout.defaults();
         if (gui == null) return defaults;
 
-        int size = CaseGuiLayoutRules.normalizeSize(integer(gui, defaults.size(), "size", "rows"));
-        if (gui.contains("rows")) size = CaseGuiLayoutRules.normalizeSize(gui.getInt("rows", 6));
+        int size = resolveSize(gui);
 
         int openSlot = integer(gui, defaults.openSlot(), "open_slot", "open-slot", "open_item_slot", "open-item-slot");
         int animationSlot = integer(gui, defaults.animationSlot(), "animation_slot", "animation-slot");
@@ -33,18 +32,32 @@ final class CaseViewConfigParser {
 
         ConfigurationSection decor = gui.getConfigurationSection("decor");
         ConfigurationSection history = gui.getConfigurationSection("history");
+        CaseGuiLayoutRules.ResolvedSlots slots = CaseGuiLayoutRules.resolveSlots(
+                size,
+                openSlot, defaults.openSlot(),
+                animationSlot, defaults.animationSlot(),
+                previewSlot, defaults.previewSlot(),
+                readSlots(history, defaults.historySlots(), "slots"),
+                readSlots(decor, defaults.decorSlots(), "slots")
+        );
         return new CaseGuiLayout(
                 size,
-                CaseGuiLayoutRules.clampSlot(openSlot, size, defaults.openSlot()),
-                CaseGuiLayoutRules.clampSlot(animationSlot, size, defaults.animationSlot()),
-                CaseGuiLayoutRules.clampSlot(previewSlot, size, defaults.previewSlot()),
-                CaseGuiLayoutRules.filterSlots(readSlots(history, defaults.historySlots(), "slots"), size),
-                CaseGuiLayoutRules.filterSlots(readSlots(decor, defaults.decorSlots(), "slots"), size),
+                slots.openSlot(),
+                slots.animationSlot(),
+                slots.previewSlot(),
+                slots.historySlots(),
+                slots.decorSlots(),
                 readItem(decor, "item", null, Material.GRAY_STAINED_GLASS_PANE, " "),
                 readItem(gui, "animation-item", null, null, null),
                 readItem(gui, "preview-item", null, null, null),
                 readItem(history, "empty-item", null, Material.BARRIER, "&8История пуста")
         );
+    }
+
+    static int resolveSize(ConfigurationSection gui) {
+        if (gui == null) return CaseGuiLayout.DEFAULT_SIZE;
+        return CaseGuiLayoutRules.normalizeSize(integer(
+                gui, CaseGuiLayout.DEFAULT_SIZE, "size", "rows"));
     }
 
     IdleParticleSettings parseIdleParticles(ConfigurationSection section) {

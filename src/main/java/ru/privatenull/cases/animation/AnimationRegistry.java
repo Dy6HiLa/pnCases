@@ -1,5 +1,6 @@
 package ru.privatenull.cases.animation;
 
+import org.bukkit.World;
 import ru.privatenull.PnCasesPlugin;
 import ru.privatenull.cases.model.AnimationType;
 import ru.privatenull.util.ServerCompatibility;
@@ -8,12 +9,15 @@ import java.lang.reflect.Constructor;
 import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.logging.Level;
 
 public class AnimationRegistry {
 
+    private final PnCasesPlugin plugin;
     private final Map<AnimationType, CaseAnimation> animations = new EnumMap<>(AnimationType.class);
 
     public AnimationRegistry(PnCasesPlugin plugin) {
+        this.plugin = plugin;
         if (ServerCompatibility.useMinecraft1165AnimationMode()) {
             CaseAnimation fortuneRing = new LegacyFortuneRingAnimation(plugin);
             for (AnimationType type : AnimationType.values()) {
@@ -56,8 +60,54 @@ public class AnimationRegistry {
 
     public void shutdownAll() {
         for (CaseAnimation animation : new HashSet<>(animations.values())) {
+            try {
+                animation.shutdown();
+            } catch (RuntimeException exception) {
+                plugin.getLogger().log(Level.SEVERE, "Could not shut down case animation", exception);
+            }
+        }
+    }
+
+    public void cancel(CaseAnimation animation) {
+        if (animation != null && animations.containsValue(animation)) {
             animation.cancelAll();
         }
+    }
+
+    public void onWorldUnload(World world) {
+        if (world == null) return;
+        for (CaseAnimation animation : new HashSet<>(animations.values())) {
+            try {
+                animation.onWorldUnload(world);
+            } catch (RuntimeException exception) {
+                plugin.getLogger().log(Level.SEVERE,
+                        "Could not restore case animation state before world unload: " + world.getName(),
+                        exception);
+            }
+        }
+    }
+
+    public void cancelWorld(World world) {
+        if (world == null) return;
+        for (CaseAnimation animation : new HashSet<>(animations.values())) {
+            try {
+                animation.cancelWorld(world);
+            } catch (RuntimeException exception) {
+                plugin.getLogger().log(Level.SEVERE,
+                        "Could not cancel case animation state for world unload: " + world.getName(),
+                        exception);
+            }
+        }
+    }
+
+    public void cancelWorld(CaseAnimation animation, World world) {
+        if (animation == null || world == null || !animations.containsValue(animation)) return;
+        animation.cancelWorld(world);
+    }
+
+    public void cancelRun(CaseAnimation animation, Runnable owner) {
+        if (animation == null || owner == null || !animations.containsValue(animation)) return;
+        animation.cancelRun(owner);
     }
 
     private static CaseAnimation createModern(PnCasesPlugin plugin, String className, AnimationType fallbackType) {

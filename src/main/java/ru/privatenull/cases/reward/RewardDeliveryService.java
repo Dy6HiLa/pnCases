@@ -12,6 +12,7 @@ import ru.privatenull.pnlibrary.text.ColorUtil;
 
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 
 public final class RewardDeliveryService {
 
@@ -26,7 +27,8 @@ public final class RewardDeliveryService {
         this.presentation = presentation;
     }
 
-    public void deliver(Player player, CaseDefinition definition, Reward reward) {
+    public boolean deliver(Player player, CaseDefinition definition, Reward reward) {
+        if (player == null || reward == null) return false;
         ItemStack visual = presentation.buildDisplayItem(definition, reward);
         String rewardLabel = color(presentation.resolveViewName(reward, visual));
         boolean delivered = switch (reward.type()) {
@@ -35,16 +37,24 @@ public final class RewardDeliveryService {
             case VAULT -> deliverVault(player, reward, rewardLabel);
             case PLAYERPOINTS -> deliverPlayerPoints(player, reward, rewardLabel);
         };
-        if (!delivered) return;
+        if (!delivered) return false;
 
-        if (definition != null) {
-            history.add(definition.name(), player.getName(), rewardLabel);
+        try {
+            if (definition != null) {
+                history.add(definition.name(), player.getName(), rewardLabel);
+            }
+            List<String> broadcast = plugin.getMessages().getList("broadcast",
+                    "player", player.getName(),
+                    "case", caseDisplayName(definition),
+                    "reward", rewardLabel);
+            Bukkit.getOnlinePlayers().forEach(online -> broadcast.forEach(online::sendMessage));
+        } catch (RuntimeException exception) {
+            // The actual item/provider transaction already succeeded. Keeping
+            // the pending row here would duplicate that reward after restart.
+            plugin.getLogger().log(Level.WARNING,
+                    "Награда выдана, но историю или объявление сохранить не удалось.", exception);
         }
-        List<String> broadcast = plugin.getMessages().getList("broadcast",
-                "player", player.getName(),
-                "case", caseDisplayName(definition),
-                "reward", rewardLabel);
-        Bukkit.getOnlinePlayers().forEach(online -> broadcast.forEach(online::sendMessage));
+        return true;
     }
 
     private boolean deliverItem(Player player, Reward reward, String rewardLabel) {
@@ -62,19 +72,37 @@ public final class RewardDeliveryService {
     }
 
     private boolean deliverLuckPerms(Player player, Reward reward, String rewardLabel) {
+        if (!Bukkit.getPluginManager().isPluginEnabled("LuckPerms")) {
+            player.sendMessage(plugin.getMessages().getOr("reward.provider-missing", "reward-provider-missing",
+                    "provider", "LuckPerms"));
+            plugin.getLogger().warning("Не удалось выдать LuckPerms-награду игроку " + player.getName()
+                    + ": плагин LuckPerms недоступен.");
+            return false;
+        }
+
         String subject = player.getUniqueId().toString();
         String duration = reward.lpDuration();
+        boolean attempted = false;
+        boolean dispatched = true;
         if (reward.lpGroup() != null && !reward.lpGroup().isBlank()) {
             String command = duration != null && !duration.isBlank()
                     ? "lp user " + subject + " parent addtemp " + reward.lpGroup() + " " + duration
                     : "lp user " + subject + " parent add " + reward.lpGroup();
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+            attempted = true;
+            dispatched &= Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
         }
         if (reward.lpNode() != null && !reward.lpNode().isBlank()) {
             String command = duration != null && !duration.isBlank()
                     ? "lp user " + subject + " permission settemp " + reward.lpNode() + " true " + duration
                     : "lp user " + subject + " permission set " + reward.lpNode() + " true";
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+            attempted = true;
+            dispatched &= Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+        }
+        if (!attempted || !dispatched) {
+            player.sendMessage(plugin.getMessages().getOr("reward.provider-missing", "reward-provider-missing",
+                    "provider", "LuckPerms"));
+            plugin.getLogger().warning("LuckPerms не подтвердил выдачу награды игроку " + player.getName() + ".");
+            return false;
         }
         sendRewardMessage(player, reward, rewardLabel, "", "", "reward-luckperms");
         player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.32f, 1.2f);

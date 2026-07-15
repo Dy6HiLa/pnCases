@@ -82,13 +82,26 @@ public final class CaseBlockCodec {
         if (raw == null) return null;
         String world = raw.get("world") == null ? "" : String.valueOf(raw.get("world")).trim();
         if (world.isBlank() || !raw.containsKey("x") || !raw.containsKey("y") || !raw.containsKey("z")) return null;
+        Integer x = coordinate(raw.get("x"));
+        Integer y = coordinate(raw.get("y"));
+        Integer z = coordinate(raw.get("z"));
+        if (x == null || y == null || z == null) return null;
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("world", world);
-        result.put("x", integer(raw.get("x"), 0));
-        result.put("y", integer(raw.get("y"), 0));
-        result.put("z", integer(raw.get("z"), 0));
+        result.put("x", x);
+        result.put("y", y);
+        result.put("z", z);
         return result;
+    }
+
+    private Integer coordinate(Object value) {
+        if (value instanceof Number number) return number.intValue();
+        try {
+            return Integer.parseInt(String.valueOf(value));
+        } catch (RuntimeException ignored) {
+            return null;
+        }
     }
 
     private String key(Map<String, Object> block) {

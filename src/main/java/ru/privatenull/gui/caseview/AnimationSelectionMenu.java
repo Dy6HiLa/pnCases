@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 final class AnimationSelectionMenu {
 
@@ -42,17 +43,20 @@ final class AnimationSelectionMenu {
                 45,
                 ColorUtil.colorize("&#82DCFFВыбор анимации")
         );
+        render(inventory, definition, caseManager.getPlayerAnimation(player.getUniqueId()));
+        caseManager.getPlugin().getGuiOpenAnimations().open(player, inventory);
+        player.playSound(player.getLocation(), Sound.BLOCK_BARREL_OPEN, 0.28f, 1.15f);
+    }
+
+    private void render(Inventory inventory, CaseDefinition definition, AnimationType selected) {
         ItemStack filler = pane(Material.GRAY_STAINED_GLASS_PANE, " ", Collections.emptyList());
         for (int slot = 0; slot < inventory.getSize(); slot++) inventory.setItem(slot, filler);
 
         AnimationType[] types = availableTypes();
-        AnimationType selected = caseManager.getPlayerAnimation(player.getUniqueId());
         for (int index = 0; index < types.length && index < ANIMATION_SLOTS.length; index++) {
             inventory.setItem(ANIMATION_SLOTS[index], animationItem(definition, types[index], types[index] == selected));
         }
         inventory.setItem(BACK_SLOT, backItem(definition));
-        caseManager.getPlugin().getGuiOpenAnimations().open(player, inventory);
-        player.playSound(player.getLocation(), Sound.BLOCK_BARREL_OPEN, 0.28f, 1.15f);
     }
 
     void handleClick(Player player, AnimationSelectHolder holder, int slot) {
@@ -66,20 +70,27 @@ final class AnimationSelectionMenu {
         AnimationType[] types = availableTypes();
         for (int index = 0; index < types.length && index < ANIMATION_SLOTS.length; index++) {
             if (slot != ANIMATION_SLOTS[index]) continue;
-            select(player, holder, types, types[index]);
+            select(player, holder, types[index]);
             return;
         }
     }
 
-    private void select(Player player, AnimationSelectHolder holder, AnimationType[] types, AnimationType chosen) {
+    private void select(Player player, AnimationSelectHolder holder, AnimationType chosen) {
         if (caseManager.getPlayerAnimation(player.getUniqueId()) == chosen) return;
+        caseManager.getPlugin().getGuiOpenAnimations().cancel(player);
         caseManager.setPlayerAnimation(player.getUniqueId(), chosen);
 
         Inventory inventory = InventoryViewCompat.topInventory(player);
         CaseDefinition definition = caseManager.getCaseByName(holder.caseName());
         if (inventory != null) {
-            for (int index = 0; index < types.length && index < ANIMATION_SLOTS.length; index++) {
-                inventory.setItem(ANIMATION_SLOTS[index], animationItem(definition, types[index], types[index] == chosen));
+            Inventory rendered = Bukkit.createInventory(holder, inventory.getSize());
+            render(rendered, definition, chosen);
+            for (int slot = 0; slot < inventory.getSize(); slot++) {
+                ItemStack current = inventory.getItem(slot);
+                ItemStack desired = rendered.getItem(slot);
+                if (!Objects.equals(current, desired)) {
+                    caseManager.getPlugin().getGuiUpdates().setTopSlot(player, slot, desired);
+                }
             }
         }
         playSelectSound(player, chosen);

@@ -3,7 +3,10 @@ package ru.privatenull.gui.machine;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import ru.privatenull.cases.CaseManager;
@@ -59,7 +62,7 @@ public final class MachineGuiListener implements Listener {
 
         int slot = event.getRawSlot();
         if (slot >= event.getInventory().getSize()) {
-            event.setCancelled(false);
+            event.setCancelled(transfersToTop(event));
             return;
         }
 
@@ -74,6 +77,28 @@ public final class MachineGuiListener implements Listener {
             return;
         }
         actions.handle(holder.type(), player, event, definition, slot);
+    }
+
+    @EventHandler
+    public void onDrag(InventoryDragEvent event) {
+        if (!(event.getInventory().getHolder() instanceof MachineGuiHolder)) return;
+        int topSize = event.getView().getTopInventory().getSize();
+        if (event.getRawSlots().stream().anyMatch(slot -> slot >= 0 && slot < topSize)) {
+            event.setCancelled(true);
+        }
+    }
+
+    private static boolean transfersToTop(InventoryClickEvent event) {
+        if (event.isShiftClick()
+                || event.getClick() == ClickType.NUMBER_KEY
+                || event.getClick() == ClickType.DOUBLE_CLICK) {
+            return true;
+        }
+        InventoryAction action = event.getAction();
+        return action == InventoryAction.MOVE_TO_OTHER_INVENTORY
+                || action == InventoryAction.HOTBAR_SWAP
+                || action == InventoryAction.HOTBAR_MOVE_AND_READD
+                || action == InventoryAction.COLLECT_TO_CURSOR;
     }
 
     @EventHandler

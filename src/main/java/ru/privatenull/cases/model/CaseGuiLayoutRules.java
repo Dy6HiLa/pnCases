@@ -3,6 +3,7 @@ package ru.privatenull.cases.model;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.ArrayList;
 
 public final class CaseGuiLayoutRules {
 
@@ -56,5 +57,48 @@ public final class CaseGuiLayoutRules {
         }
         reserved.add(slot);
         return slot;
+    }
+
+    /**
+     * Resolves every visible role in priority order. Primary buttons are always
+     * assigned first, so a malformed layout can never let history or decor
+     * overwrite the case-opening button.
+     */
+    public static ResolvedSlots resolveSlots(
+            int size,
+            int requestedOpen,
+            int fallbackOpen,
+            int requestedAnimation,
+            int fallbackAnimation,
+            int requestedPreview,
+            int fallbackPreview,
+            List<Integer> requestedHistory,
+            List<Integer> requestedDecor
+    ) {
+        int safeSize = normalizeSlotCount(size);
+        Set<Integer> reserved = new LinkedHashSet<>();
+        int open = reserveSlot(requestedOpen, fallbackOpen, safeSize, reserved);
+        int animation = reserveSlot(requestedAnimation, fallbackAnimation, safeSize, reserved);
+        int preview = reserveSlot(requestedPreview, fallbackPreview, safeSize, reserved);
+        List<Integer> history = reserveListedSlots(requestedHistory, safeSize, reserved);
+        List<Integer> decor = reserveListedSlots(requestedDecor, safeSize, reserved);
+        return new ResolvedSlots(open, animation, preview, history, decor);
+    }
+
+    private static List<Integer> reserveListedSlots(List<Integer> requested, int size, Set<Integer> reserved) {
+        List<Integer> result = new ArrayList<>();
+        for (int slot : filterSlots(requested, size)) {
+            if (reserved.add(slot)) result.add(slot);
+        }
+        return List.copyOf(result);
+    }
+
+    public record ResolvedSlots(
+            int openSlot,
+            int animationSlot,
+            int previewSlot,
+            List<Integer> historySlots,
+            List<Integer> decorSlots
+    ) {
     }
 }

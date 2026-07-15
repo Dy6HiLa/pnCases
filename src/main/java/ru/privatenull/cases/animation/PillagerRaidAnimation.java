@@ -9,6 +9,7 @@ import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.Orientable;
@@ -20,7 +21,6 @@ import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Pillager;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
@@ -40,15 +40,28 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class PillagerRaidAnimation extends CaseAnimation {
 
     private static final int APPROACH_END = 34;
     private static final int STRIKE_END = 126;
     private static final int REVEAL_END = 184;
+    private final Set<HiddenCaseBlock> hiddenBlocks = ConcurrentHashMap.newKeySet();
 
     public PillagerRaidAnimation(PnCasesPlugin plugin) {
         super(plugin);
+    }
+
+    @Override
+    public void cancelAll() {
+        super.cancelAll();
+        restoreHiddenBlocks();
+    }
+
+    @Override
+    public void onWorldUnload(World world) {
+        restoreHiddenBlocks(world);
     }
 
     @Override
@@ -61,25 +74,21 @@ public final class PillagerRaidAnimation extends CaseAnimation {
 
         // CaseManager passes the centre of the case block, not its lower corner.
         Location center = base.clone();
-        Block hiddenBlock = base.getBlock();
-        BlockData originalBlockData = hiddenBlock.getBlockData();
-        boolean hideBlock = !hiddenBlock.getType().isAir();
-        if (hideBlock) {
-            hiddenBlock.setType(Material.AIR, false);
-        }
+        Block caseBlock = base.getBlock();
+        HiddenCaseBlock hiddenBlock = hideCaseBlock(caseBlock, onFinish);
 
-        Location caseBlockOrigin = hiddenBlock.getLocation();
+        Location caseBlockOrigin = caseBlock.getLocation();
         List<BlockDisplay> supports = createWoodenRack(world, caseBlockOrigin);
         BlockDisplay barrel = block(world, caseBlockOrigin, Material.BARREL,
                 1.0f, 1.0f, 1.0f, null);
         for (BlockDisplay support : supports) {
-            track(support);
+            track(support, onFinish);
         }
-        track(barrel);
+        track(barrel, onFinish);
 
         List<Pillager> pillagers = spawnPillagers(world, center);
         for (Pillager pillager : pillagers) {
-            track(pillager);
+            track(pillager, onFinish);
         }
         Set<UUID> visualEntityIds = new HashSet<>();
         for (Pillager pillager : pillagers) {
@@ -89,8 +98,8 @@ public final class PillagerRaidAnimation extends CaseAnimation {
         ItemStack rewardVisual = resolveRewardVisual(reward, def);
         ItemDisplay rewardDisplay = item(world, center.clone().add(0.0, 1.15, 0.0), rewardVisual, 0.01f);
         TextDisplay label = text(world, center.clone().add(0.0, 2.85, 0.0));
-        track(rewardDisplay);
-        track(label);
+        track(rewardDisplay, onFinish);
+        track(label, onFinish);
 
         List<ItemStack> debrisSource = buildDebrisSource(def, rewardVisual);
         List<FlyingItem> flyingItems = new ArrayList<>();
@@ -118,6 +127,7 @@ public final class PillagerRaidAnimation extends CaseAnimation {
             }
         };
         Bukkit.getPluginManager().registerEvents(listenerHolder[0], plugin);
+        track(listenerHolder[0], world, onFinish);
 
         BukkitTask[] taskHolder = new BukkitTask[1];
         taskHolder[0] = new BukkitRunnable() {
@@ -158,7 +168,7 @@ public final class PillagerRaidAnimation extends CaseAnimation {
                 if (!broken && tick == STRIKE_END) {
                     broken = true;
                     breakBarrel(barrel, supports, center, world);
-                    spawnFlyingItems(center, debrisSource, flyingItems, world);
+                    spawnFlyingItems(center, debrisSource, flyingItems, world, onFinish);
                 }
 
                 if (broken && tick > STRIKE_END) {
@@ -200,7 +210,7 @@ public final class PillagerRaidAnimation extends CaseAnimation {
                 currentWorld.spawnParticle(Particle.SWEEP_ATTACK, target.clone().add(0.0, 1.05, 0.0), 1,
                         0.0, 0.0, 0.0, 0.0);
                 if (index < source.size()) {
-                    spawnSingleItem(target, source.get(index), index, items, currentWorld);
+                    spawnSingleItem(target, source.get(index), index, items, currentWorld, onFinish);
                 }
             }
 
@@ -234,11 +244,9 @@ public final class PillagerRaidAnimation extends CaseAnimation {
                     safeRemove(flyingItem.display);
                 }
                 if (listenerHolder[0] != null) {
-                    HandlerList.unregisterAll(listenerHolder[0]);
+                    unregister(listenerHolder[0]);
                 }
-                if (hideBlock && hiddenBlock.getType().isAir()) {
-                    hiddenBlock.setBlockData(originalBlockData, false);
-                }
+                restoreHiddenBlock(hiddenBlock);
                 if (taskHolder[0] != null) {
                     untrack(taskHolder[0]);
                 }
@@ -246,7 +254,42 @@ public final class PillagerRaidAnimation extends CaseAnimation {
                 cancel();
             }
         }.runTaskTimer(plugin, 0L, 1L);
-        track(taskHolder[0]);
+        track(taskHolder[0], world, onFinish);
+    }
+
+    @Override
+    protected void onCancelRun(Runnable owner) {
+        for (HiddenCaseBlock hiddenBlock : hiddenBlocks) {
+            if (hiddenBlock.owner == owner && hiddenBlocks.remove(hiddenBlock)) hiddenBlock.restore();
+        }
+    }
+
+    private HiddenCaseBlock hideCaseBlock(Block block, Runnable owner) {
+        if (block == null || block.getType().isAir()) return null;
+        HiddenCaseBlock hiddenBlock = new HiddenCaseBlock(block, block.getState(), owner);
+        hiddenBlocks.add(hiddenBlock);
+        block.setType(Material.AIR, false);
+        return hiddenBlock;
+    }
+
+    private void restoreHiddenBlock(HiddenCaseBlock hiddenBlock) {
+        if (hiddenBlock != null && hiddenBlocks.remove(hiddenBlock)) {
+            hiddenBlock.restore();
+        }
+    }
+
+    private void restoreHiddenBlocks() {
+        for (HiddenCaseBlock hiddenBlock : hiddenBlocks) {
+            if (hiddenBlocks.remove(hiddenBlock)) hiddenBlock.restore();
+        }
+    }
+
+    private void restoreHiddenBlocks(World world) {
+        for (HiddenCaseBlock hiddenBlock : hiddenBlocks) {
+            if (hiddenBlock.isIn(world) && hiddenBlocks.remove(hiddenBlock)) {
+                hiddenBlock.restore();
+            }
+        }
     }
 
     private List<Pillager> spawnPillagers(World world, Location center) {
@@ -327,18 +370,20 @@ public final class PillagerRaidAnimation extends CaseAnimation {
                 0.55, 0.40, 0.55, 0.16);
     }
 
-    private void spawnFlyingItems(Location center, List<ItemStack> source, List<FlyingItem> items, World world) {
+    private void spawnFlyingItems(Location center, List<ItemStack> source, List<FlyingItem> items,
+                                  World world, Runnable owner) {
         for (int index = 0; index < Math.min(8, source.size() + 4); index++) {
-            spawnSingleItem(center, source.get(index % source.size()), index, items, world);
+            spawnSingleItem(center, source.get(index % source.size()), index, items, world, owner);
         }
     }
 
-    private void spawnSingleItem(Location center, ItemStack source, int index, List<FlyingItem> items, World world) {
+    private void spawnSingleItem(Location center, ItemStack source, int index, List<FlyingItem> items,
+                                 World world, Runnable owner) {
         ItemDisplay display = item(world, center.clone().add(0.0, 0.75, 0.0), source, 0.52f);
         double angle = index * Math.PI * 0.72;
         items.add(new FlyingItem(display, Math.cos(angle) * (0.07 + index * 0.005),
                 0.13 + (index % 3) * 0.035, Math.sin(angle) * (0.07 + index * 0.005)));
-        track(display);
+        track(display, owner);
     }
 
     private void updateFlyingItems(List<FlyingItem> items) {
@@ -471,11 +516,23 @@ public final class PillagerRaidAnimation extends CaseAnimation {
         private double vx;
         private double vz;
         private double vy;
+
         private FlyingItem(ItemDisplay display, double vx, double vy, double vz) {
             this.display = display;
             this.vx = vx;
             this.vy = vy;
             this.vz = vz;
+        }
+    }
+
+    private record HiddenCaseBlock(Block block, BlockState state, Runnable owner) {
+        private boolean isIn(World world) {
+            return block != null && world != null && block.getWorld().equals(world);
+        }
+
+        private void restore() {
+            if (block == null || state == null || !block.getType().isAir()) return;
+            state.update(true, false);
         }
     }
 }
