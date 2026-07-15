@@ -7,7 +7,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import ru.privatenull.cases.CaseManager;
 import ru.privatenull.cases.model.CaseDefinition;
-import ru.privatenull.util.ColorUtil;
 
 import java.util.List;
 import java.util.Map;
@@ -42,20 +41,15 @@ final class MachineTextEditor {
 
         switch (field) {
             case GUI_TITLE -> {
-                message(player, "&#429F91[pnCases] &fНапиши новое название меню кейса в чат.");
-                message(player, "&7Текущее: &f" + definition.guiTitle());
-            }
-            case CASE_DISPLAY_NAME -> {
-                message(player, "&#429F91[pnCases] &fНапиши отображаемое название кейса в чат.");
-                message(player, "&7Оно будет видно в панели администратора и сообщениях.");
-                message(player, "&7Текущее: &f" + definition.displayName());
+                message(player, "machine-text.gui-title-prompt");
+                message(player, "machine-text.current", "value", definition.guiTitle());
             }
             case HOLOGRAM_LINES -> {
-                message(player, "&#429F91[pnCases] &fНапиши строки голограммы через &b|&f.");
-                message(player, "&7Пример: &aДонат кейс &8| &7ПКМ, чтобы открыть");
+                message(player, "machine-text.hologram-prompt");
+                message(player, "machine-text.hologram-example");
             }
         }
-        message(player, "&7Для отмены напиши &ccancel &7или &cотмена&7.");
+        message(player, "machine-text.cancel-hint");
         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.18f, 1.25f);
     }
 
@@ -76,12 +70,12 @@ final class MachineTextEditor {
 
     private void apply(Player player, PendingEdit pending, String value) {
         if (value.equalsIgnoreCase("cancel") || value.equalsIgnoreCase("отмена")) {
-            message(player, "&c[pnCases] Изменение отменено.");
+            message(player, "machine-text.cancelled");
             mainScreen.open(player, pending.caseName());
             return;
         }
         if (value.isBlank()) {
-            message(player, "&c[pnCases] Пустое значение не сохранено.");
+            message(player, "machine-text.empty");
             mainScreen.open(player, pending.caseName());
             return;
         }
@@ -89,8 +83,6 @@ final class MachineTextEditor {
         switch (pending.field()) {
             case GUI_TITLE -> configEditor.update(player, pending.caseName(),
                     root -> section(root, "gui").set("title", value));
-            case CASE_DISPLAY_NAME -> configEditor.update(player, pending.caseName(),
-                    root -> root.set("display-name", value));
             case HOLOGRAM_LINES -> applyHologramLines(player, pending.caseName(), value);
         }
         mainScreen.open(player, pending.caseName());
@@ -99,7 +91,7 @@ final class MachineTextEditor {
     private void applyHologramLines(Player player, String caseName, String value) {
         List<String> lines = state.parseHologramLines(value);
         if (lines.isEmpty()) {
-            message(player, "&c[pnCases] Строки голограммы пустые.");
+            message(player, "machine-text.hologram-empty");
             return;
         }
         configEditor.update(player, caseName, root -> {
@@ -109,8 +101,8 @@ final class MachineTextEditor {
         });
     }
 
-    private static void message(Player player, String value) {
-        player.sendMessage(ColorUtil.colorize(value));
+    private void message(Player player, String path, String... replacements) {
+        player.sendMessage(caseManager.getPlugin().getMessages().get(path, replacements));
     }
 
     private record PendingEdit(String caseName, MachineTextField field) {

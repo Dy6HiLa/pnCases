@@ -7,7 +7,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import ru.privatenull.cases.CaseManager;
 import ru.privatenull.cases.model.CaseDefinition;
-import ru.privatenull.util.ColorUtil;
+import ru.privatenull.pnlibrary.text.ColorUtil;
 import ru.privatenull.util.ServerCompatibility;
 
 import java.util.List;
@@ -29,38 +29,50 @@ final class MachineMainScreen {
     void open(Player player, String caseName) {
         CaseDefinition definition = caseManager.getCaseByName(caseName);
         if (definition == null) {
-            player.sendMessage(ColorUtil.colorize("&c[pnCases] Кейс не найден: &f" + caseName));
+            player.sendMessage(caseManager.getPlugin().getMessages().get(
+                    "machine-case-not-found", "case", caseName));
             return;
         }
         Inventory inventory = Bukkit.createInventory(
                 MachineGuiHolder.main(definition.name()),
                 54,
-                caseManager.getPlugin().getGuiConfig().text(
-                        "machine.titles.main", "&8Настройка кейса: {case}", items.replacements(definition))
+                ColorUtil.colorize("&#429F91Настройка кейса &8• &f" + caseName(definition))
         );
         fill(inventory, definition);
-        player.openInventory(inventory);
+        caseManager.getPlugin().getGuiOpenAnimations().open(player, inventory);
         player.playSound(player.getLocation(), Sound.BLOCK_BARREL_OPEN, 0.22f, 1.15f);
     }
 
     void fill(Inventory inventory, CaseDefinition definition) {
         items.fill(inventory, items.pane(Material.BLACK_STAINED_GLASS_PANE, " ", List.of()));
-        inventory.setItem(4, items.configuredButton("machine.main.header", Material.CHEST,
+        inventory.setItem(4, items.builtInButton(Material.CHEST,
                 "&x&4&2&9&F&9&1Настройка кейса",
-                List.of("", "&7Кейс: &f{case}", "&7Выбери раздел ниже.", ""), definition));
+                List.of(
+                        "",
+                        "&6«Основное»",
+                        "&f- Кейс: &e" + caseName(definition),
+                        "&f- ID: &e" + definition.name(),
+                        "&f- Тип: &a" + caseManager.getCaseTemplate(definition.name()),
+                        "",
+                        "&6«Действие»",
+                        "&f- ЛКМ &7— сменить тип",
+                        "&f- ПКМ &7— предыдущий тип",
+                        "",
+                        "&8При смене типа привязанные блоки сохраняются."
+                )));
 
         inventory.setItem(SLOT_MAIN_ANIMATION, items.sectionButton(
                 "machine.main.animation", machineIcon(Material.NETHER_STAR, Material.CLOCK),
                 "&x&4&2&9&F&9&1Анимация", List.of(
-                        "&7Фиксированная анимация или выбор игрока.",
-                        "&7Скорость, высота и плавность открытия.", "",
+                        "&7Выберите готовую анимацию открытия",
+                        "&7или разрешите игроку выбирать её самому.", "",
                         "&7Сейчас: " + state.currentAnimationLabel(definition), "",
                         "&7ЛКМ &8— &fоткрыть раздел"), definition));
         inventory.setItem(SLOT_MAIN_MENU, items.sectionButton(
                 "machine.main.menu", Material.CRAFTING_TABLE,
                 "&x&4&2&9&F&9&1Меню кейса", List.of(
-                        "&7Размер меню, название, кнопки и декор.",
-                        "&7Тут же настраивается пустая история.", "",
+                        "&7Оформление игрового меню: размер, заголовок,",
+                        "&7раскладка, декор и пустая история.", "",
                         "&7Размер: &f" + definition.guiLayout().size() + " слотов", "",
                         "&7ЛКМ &8— &fоткрыть раздел"), definition));
         inventory.setItem(SLOT_MAIN_TOGGLES, items.sectionButton(
@@ -97,14 +109,18 @@ final class MachineMainScreen {
                         "&7Статус: " + status(state.xpBuyEnabled(definition), "включена", "выключена"),
                         "&7Цена: &f" + Math.max(0, definition.buyKeyWithXpLevels()) + " уровней", "",
                         "&7ЛКМ &8— &fоткрыть раздел"), definition));
-        inventory.setItem(SLOT_MAIN_PREVIEW, items.sectionButton(
-                "machine.main.preview", machineIcon(Material.ENDER_EYE, Material.BOOK),
-                "&x&4&2&9&F&9&1Предпросмотр", List.of(
-                        "&7Открывает обычное меню кейса", "&7с текущими настройками.", "",
-                        "&7ЛКМ &8— &fпосмотреть"), definition));
         inventory.setItem(SLOT_MAIN_CLOSE, items.configuredButton(
                 "machine.main.close", Material.BARRIER, "&cЗакрыть",
                 List.of("", "&7ЛКМ &8— &fзакрыть настройку"), definition));
+    }
+
+    /**
+     * A case is named for administrators by the key that opens it.  This keeps
+     * the Machine screen in sync with the name configured under keys.<id>.name.
+     */
+    private String caseName(CaseDefinition definition) {
+        String keyName = caseManager.getKeyDisplayName(definition.costKeyId());
+        return keyName == null || keyName.isBlank() ? definition.displayName() : keyName;
     }
 
     private static String status(boolean enabled, String enabledText, String disabledText) {

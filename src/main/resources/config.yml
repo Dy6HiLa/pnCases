@@ -1,3 +1,22 @@
+database:
+  type: SQLITE # SQLITE / MYSQL / MONGODB
+  sqlite:
+    file: data.db
+    connection-timeout-ms: 10000
+  mysql:
+    host: localhost
+    port: 3306
+    database: pncases
+    username: root
+    password: ""
+    parameters: "useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true"
+    pool-size: 10
+    connection-timeout-ms: 10000
+  mongodb:
+    uri: "mongodb://localhost:27017"
+    database: pncases
+    collection: pncases
+
 case-files:
   auto-export: true
 

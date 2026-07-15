@@ -31,6 +31,9 @@ public final class ConfigValidator {
         List<String> patches = new ArrayList<>();
 
         boolean changed = patchMissing(config, patches, "reward-symbols.vault", "$");
+        changed |= patchMissing(config, patches, "database.type", "SQLITE");
+        changed |= patchMissing(config, patches, "database.sqlite.file", "data.db");
+        changed |= patchMissing(config, patches, "database.sqlite.connection-timeout-ms", 10_000L);
         changed |= patchMissing(config, patches, "reward-symbols.playerpoints", "✦");
         changed |= patchMissing(config, patches, "case-files.auto-export", true);
         changed |= patchMissing(config, patches, "holograms.provider", "AUTO");

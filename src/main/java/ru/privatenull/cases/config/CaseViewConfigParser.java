@@ -7,7 +7,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import ru.privatenull.cases.model.CaseGuiLayout;
 import ru.privatenull.cases.model.IdleParticleSettings;
 import ru.privatenull.cases.model.CaseGuiLayoutRules;
-import ru.privatenull.util.ColorUtil;
+import ru.privatenull.pnlibrary.text.ColorUtil;
 import ru.privatenull.util.ItemFactory;
 
 import java.util.ArrayList;

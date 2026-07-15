@@ -10,7 +10,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitTask;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.cases.model.Reward;
-import ru.privatenull.util.ColorUtil;
+import ru.privatenull.pnlibrary.text.ColorUtil;
 import ru.privatenull.util.EntityCleanup;
 import ru.privatenull.PnCasesPlugin;
 

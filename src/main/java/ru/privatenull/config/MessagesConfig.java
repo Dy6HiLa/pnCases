@@ -2,7 +2,7 @@ package ru.privatenull.config;
 
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
-import ru.privatenull.util.ColorUtil;
+import ru.privatenull.pnlibrary.text.ColorUtil;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,6 +34,7 @@ public final class MessagesConfig {
                 )
         );
         cfg.setDefaults(defaults);
+        removeBoldFormatting();
         copyMissingDefaults(defaults);
     }
 
@@ -115,5 +116,41 @@ public final class MessagesConfig {
         } catch (IOException ex) {
             plugin.getLogger().warning("Не удалось обновить messages.yml новыми настройками: " + ex.getMessage());
         }
+    }
+
+    private void removeBoldFormatting() {
+        boolean changed = false;
+        for (String path : cfg.getKeys(true)) {
+            if (cfg.isString(path)) {
+                String current = cfg.getString(path, "");
+                String cleaned = stripBold(current);
+                if (!current.equals(cleaned)) {
+                    cfg.set(path, cleaned);
+                    changed = true;
+                }
+                continue;
+            }
+            if (cfg.isList(path)) {
+                List<String> current = cfg.getStringList(path);
+                List<String> cleaned = current.stream().map(MessagesConfig::stripBold).toList();
+                if (!current.equals(cleaned)) {
+                    cfg.set(path, cleaned);
+                    changed = true;
+                }
+            }
+        }
+        if (!changed) {
+            return;
+        }
+        try {
+            cfg.save(file);
+            plugin.getLogger().info("Жирное форматирование удалено из messages.yml.");
+        } catch (IOException ex) {
+            plugin.getLogger().warning("Не удалось очистить жирное форматирование в messages.yml: " + ex.getMessage());
+        }
+    }
+
+    private static String stripBold(String value) {
+        return value == null ? "" : value.replaceAll("(?i)(?:[&§]l|</?bold>|</?b>)", "");
     }
 }

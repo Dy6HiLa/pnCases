@@ -13,7 +13,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 import ru.privatenull.cases.CaseManager;
 import ru.privatenull.cases.model.CaseDefinition;
-import ru.privatenull.util.ColorUtil;
+import ru.privatenull.pnlibrary.text.ColorUtil;
 import ru.privatenull.util.InventoryViewCompat;
 
 import java.util.ArrayList;
@@ -108,11 +108,13 @@ public final class CaseGuiListener implements Listener {
     }
 
     private void showInvalidKey(Player player, Inventory inventory, CaseDefinition definition) {
-        String title = caseManager.getPlugin().getMessages().getOr("gui.open.key-not-configured", "key-not-configured");
-        inventory.setItem(definition.guiLayout().openSlot(), pane(Material.BARRIER, title, List.of(
-                "&7У этого кейса не выбран рабочий ключ.",
-                "&7Проверь настройку &fcost.key&7."
-        )));
+        String title = caseManager.getPlugin().getGuiConfig().text(
+                "gui.open.key-not-configured", "&cКлюч не настроен");
+        inventory.setItem(definition.guiLayout().openSlot(), pane(Material.BARRIER, title,
+                caseManager.getPlugin().getGuiConfig().list("gui.open.key-not-configured-lore", List.of(
+                        "&7У этого кейса не выбран рабочий ключ.",
+                        "&7Проверь настройку &fcost.key&7."
+                ))));
         player.sendMessage(caseManager.getPlugin().getMessages().get("key-not-configured"));
         player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.24f, 1.0f);
     }
@@ -129,7 +131,7 @@ public final class CaseGuiListener implements Listener {
         caseManager.getPlugin().getKeyStorage().add(player.getUniqueId(), keyId, amount);
         inventory.setItem(definition.guiLayout().openSlot(), pane(
                 Material.LIME_STAINED_GLASS_PANE,
-                caseManager.getPlugin().getMessages().getOr("gui.buy.success", "gui-buy-success"),
+                caseManager.getPlugin().getGuiConfig().text("gui.buy.success", "&aПокупка завершена"),
                 Collections.emptyList()
         ));
         player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.28f, 1.2f);
@@ -147,17 +149,18 @@ public final class CaseGuiListener implements Listener {
         String title;
         List<String> lore = new ArrayList<>();
         if (!wantsBuy || buyLevels <= 0) {
-            title = caseManager.getPlugin().getMessages().getOr("gui.open.no-keys", "not-enough-keys",
+            title = caseManager.getPlugin().getGuiConfig().text("gui.open.no-keys", "&cНедостаточно ключей",
                     "have", String.valueOf(have), "need", String.valueOf(need));
-            String balance = caseManager.getPlugin().getMessages().getOr(
-                    "gui.case-button.keys-balance", "gui-keys-balance",
+            String balance = caseManager.getPlugin().getGuiConfig().text(
+                    "gui.case-button.keys-balance", "&7Ключи: &f{have}&7/&f{need}",
                     "have", String.valueOf(have), "need", String.valueOf(need));
-            lore.addAll(caseManager.getPlugin().getMessages().getList("gui.open.no-keys-lore",
+            lore.addAll(caseManager.getPlugin().getGuiConfig().list("gui.open.no-keys-lore", List.of(
+                            "&cНедостаточно ключей", "{keys-balance}", "&7Получите ключ и попробуйте снова."),
                     "have", String.valueOf(have), "need", String.valueOf(need), "keys-balance", balance));
             player.sendMessage(caseManager.getPlugin().getMessages().get("not-enough-keys",
                     "have", String.valueOf(have), "need", String.valueOf(need)));
         } else {
-            title = caseManager.getPlugin().getMessages().getOr("gui.buy.no-levels", "gui-buy-no-levels");
+            title = caseManager.getPlugin().getGuiConfig().text("gui.buy.no-levels", "&cУ вас недостаточно уровней");
         }
         inventory.setItem(definition.guiLayout().openSlot(), pane(Material.BARRIER, title, lore));
         player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.24f, 1.0f);

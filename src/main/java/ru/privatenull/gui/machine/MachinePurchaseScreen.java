@@ -42,7 +42,7 @@ final class MachinePurchaseScreen {
         inventory.setItem(SLOT_XP_BUY, toggle(definition));
         inventory.setItem(SLOT_XP_LEVELS, levels(definition));
         inventory.setItem(SLOT_BACK, items.backButton(definition));
-        player.openInventory(inventory);
+        caseManager.getPlugin().getGuiOpenAnimations().open(player, inventory);
         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.18f, 1.25f);
     }
 

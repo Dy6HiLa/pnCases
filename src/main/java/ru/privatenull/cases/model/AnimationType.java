@@ -39,6 +39,16 @@ public enum AnimationType {
             "§x§F§F§8§4§4§4§lОсада разбойников",
             "§7Четыре разбойника окружают бочку,\n§7по очереди ломают её топорами,\n§7а из осколков появляется награда.",
             Material.IRON_AXE
+    ),
+    AQUARIUM(
+            "&#4FB6FF&lВодяная капсула",
+            "&7Кейс превращается в стеклянную капсулу с сердцем моря.\n&7Из воды плавно появляется награда.",
+            Material.HEART_OF_THE_SEA
+    ),
+    MOB_HUNT(
+            "&#E05252&lВыбор моба",
+            "&7Зомби и скелеты стоят вокруг кейса.\n&7Выбери одного моба и ударь его — остальные\n&7погибнут, а из выбранного выпадет награда.",
+            Material.ROTTEN_FLESH
     );
 
     private final String displayName;
@@ -51,7 +61,9 @@ public enum AnimationType {
         this.icon = icon;
     }
 
-    public String displayName() { return displayName; }
+    public String displayName() {
+        return this == MOB_HUNT ? "&#E05252&lОхота на стражей" : displayName;
+    }
     public String description() { return description; }
     public Material icon() { return icon; }
 }

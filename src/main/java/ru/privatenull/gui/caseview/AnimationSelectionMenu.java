@@ -9,10 +9,12 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import ru.privatenull.cases.CaseManager;
+import ru.privatenull.cases.animation.AnimationWarnings;
 import ru.privatenull.cases.model.AnimationType;
 import ru.privatenull.cases.model.CaseDefinition;
-import ru.privatenull.util.ColorUtil;
+import ru.privatenull.pnlibrary.text.ColorUtil;
 import ru.privatenull.util.EnchantmentCompat;
+import ru.privatenull.util.GuiItemFlags;
 import ru.privatenull.util.InventoryViewCompat;
 import ru.privatenull.util.ServerCompatibility;
 import ru.privatenull.util.SoundCompat;
@@ -21,12 +23,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 
 final class AnimationSelectionMenu {
 
-    private static final int BACK_SLOT = 22;
-    private static final int[] ANIMATION_SLOTS = {10, 11, 12, 13, 14, 15, 16};
+    private static final int BACK_SLOT = 40;
+    private static final int[] ANIMATION_SLOTS = {11, 12, 13, 20, 21, 22, 29, 30, 31};
 
     private final CaseManager caseManager;
 
@@ -38,12 +39,8 @@ final class AnimationSelectionMenu {
         CaseDefinition definition = caseManager.getCaseByName(caseName);
         Inventory inventory = Bukkit.createInventory(
                 new AnimationSelectHolder(caseName),
-                27,
-                caseManager.getPlugin().getGuiConfig().text(
-                        "animation-select.title",
-                        "&8Выбор анимации",
-                        replacements(definition)
-                )
+                45,
+                ColorUtil.colorize("&#82DCFFВыбор анимации")
         );
         ItemStack filler = pane(Material.GRAY_STAINED_GLASS_PANE, " ", Collections.emptyList());
         for (int slot = 0; slot < inventory.getSize(); slot++) inventory.setItem(slot, filler);
@@ -54,7 +51,7 @@ final class AnimationSelectionMenu {
             inventory.setItem(ANIMATION_SLOTS[index], animationItem(definition, types[index], types[index] == selected));
         }
         inventory.setItem(BACK_SLOT, backItem(definition));
-        player.openInventory(inventory);
+        caseManager.getPlugin().getGuiOpenAnimations().open(player, inventory);
         player.playSound(player.getLocation(), Sound.BLOCK_BARREL_OPEN, 0.28f, 1.15f);
     }
 
@@ -90,6 +87,7 @@ final class AnimationSelectionMenu {
                 "animation-changed",
                 "animation", chosen.displayName()
         ));
+        AnimationWarnings.warnIfMobBased(caseManager.getPlugin(), player, chosen);
     }
 
     private ItemStack backItem(CaseDefinition definition) {
@@ -102,6 +100,7 @@ final class AnimationSelectionMenu {
         meta.setLore(caseManager.getPlugin().getGuiConfig().list("animation-select.back.lore", List.of(
                 "", "&#A0EFA1 «Навигация»", " &7- &fВернуться к кейсу", ""
         ), replacements));
+        GuiItemFlags.hideAttributes(meta);
         item.setItemMeta(meta);
         return item;
     }
@@ -115,16 +114,16 @@ final class AnimationSelectionMenu {
         String[] replacements = replacements(
                 definition,
                 "prefix", prefix,
-                "animation", type.displayName(),
-                "description", type.description().replace('\n', ' '),
+                "animation", animationTitle(type),
+                "description", shortDescription(type),
                 "status", selected ? "&#55C874Выбрана сейчас" : "&fНажмите, чтобы выбрать"
         );
         List<String> lore = defaultLore(type, selected);
-        String path = "animation-select.animations." + type.name().toLowerCase(Locale.ROOT).replace('_', '-');
-        String configPath = caseManager.getPlugin().getGuiConfig().contains(path) ? path : "animation-select.item";
+        String configPath = "animation-select.selection-card-v2";
         meta.setDisplayName(caseManager.getPlugin().getGuiConfig().text(configPath + ".name",
                 "{prefix}{animation}", replacements));
         meta.setLore(caseManager.getPlugin().getGuiConfig().list(configPath + ".lore", lore, replacements));
+        GuiItemFlags.hideAttributes(meta);
         if (selected) {
             var unbreaking = EnchantmentCompat.unbreaking();
             if (unbreaking != null) meta.addEnchant(unbreaking, 1, true);
@@ -135,18 +134,25 @@ final class AnimationSelectionMenu {
     }
 
     private List<String> defaultLore(AnimationType type, boolean selected) {
-        List<String> lore = new ArrayList<>();
-        lore.add("");
-        lore.add("&#A0EFA1 «Анимация»");
-        lore.add(" &7- &fНазвание: " + type.displayName());
-        lore.add("");
-        lore.add("&#C096AB «Описание»");
-        for (String line : type.description().split("\\n")) lore.add(" &7- " + color(line));
-        lore.add("");
-        lore.add("&#A0EFA1 «Статус»");
-        lore.add(selected ? " &7- &#55C874Выбрана сейчас" : " &7- &fНажмите, чтобы выбрать");
-        lore.add("");
-        return lore;
+        return List.of(
+                "",
+                "&#C096AB «Как выглядит»",
+                " &7- &f" + shortDescription(type),
+                "",
+                "&#A0EFA1 «Статус»",
+                selected ? " &7- &#55C874Выбрана сейчас" : " &7- &#FFD75AНажмите, чтобы выбрать",
+                ""
+        );
+    }
+
+    private String shortDescription(AnimationType type) {
+        String description = type.description();
+        if (description == null || description.isBlank()) return "Анимация открытия кейса.";
+        return description.split("\\R", 2)[0];
+    }
+
+    private String animationTitle(AnimationType type) {
+        return type.displayName();
     }
 
     private void playSelectSound(Player player, AnimationType type) {
@@ -167,6 +173,10 @@ final class AnimationSelectionMenu {
             case PILLAGER_RAID -> {
                 SoundCompat.play(player, new String[]{"ENTITY_PILLAGER_AMBIENT", "ENTITY_VINDICATOR_AMBIENT"}, 0.13f, 0.85f);
                 player.playSound(player.getLocation(), Sound.BLOCK_WOOD_PLACE, 0.12f, 0.75f);
+            }
+            case MOB_HUNT -> {
+                player.playSound(player.getLocation(), Sound.ENTITY_ZOMBIE_AMBIENT, 0.16f, 0.85f);
+                player.playSound(player.getLocation(), Sound.ENTITY_SKELETON_AMBIENT, 0.14f, 1.10f);
             }
         }
     }
@@ -202,6 +212,7 @@ final class AnimationSelectionMenu {
         if (meta != null) {
             meta.setDisplayName(color(name));
             meta.setLore(lore.stream().map(this::color).toList());
+            GuiItemFlags.hideAttributes(meta);
             item.setItemMeta(meta);
         }
         return item;

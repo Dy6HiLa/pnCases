@@ -22,7 +22,7 @@ import ru.privatenull.cases.view.CaseView;
 import ru.privatenull.PnCasesPlugin;
 import ru.privatenull.storage.OpenHistoryStorage;
 import ru.privatenull.storage.PlayerPrefsStorage;
-import ru.privatenull.util.ColorUtil;
+import ru.privatenull.pnlibrary.text.ColorUtil;
 import ru.privatenull.util.ServerCompatibility;
 
 import java.util.*;
@@ -110,6 +110,25 @@ public class CaseManager {
     public List<String> getConfiguredCaseNames() {
         return configRepository.configuredNames(getCaseNames());
     }
+
+    public List<String> getBaseTemplateNames() {
+        return List.of("money", "items", "playerpoints", "luckperms").stream()
+                .filter(this::caseExists)
+                .toList();
+    }
+
+    public String getCaseTemplate(String caseName) {
+        ConfigurationSection section = getCaseSection(caseName);
+        return section == null ? "custom" : section.getString("template", "custom");
+    }
+
+    public boolean applyCaseTemplate(String caseName, String templateName) {
+        if (!configRepository.applyTemplate(caseName, templateName)) {
+            return false;
+        }
+        reloadFromConfig();
+        return getCaseByName(caseName) != null;
+    }
     public List<String> getKeyNames()  { return new ArrayList<>(keyNames.keySet()); }
     public boolean keyExists(String keyId) {
         return keyId != null && keyNames.containsKey(keyId.toLowerCase(Locale.ROOT));
@@ -126,13 +145,21 @@ public class CaseManager {
     }
 
     public boolean updateCaseConfig(String caseName, Consumer<ConfigurationSection> updater) {
+        return updateCaseConfig(caseName, updater, true, true);
+    }
+
+    public boolean updateCaseConfig(
+            String caseName,
+            Consumer<ConfigurationSection> updater,
+            boolean refreshHologram,
+            boolean refreshShowcase
+    ) {
         if (caseName == null || caseName.isBlank() || updater == null) {
             return false;
         }
 
         if (!configRepository.update(caseName, updater)) return false;
-        reloadFromConfig();
-        return getCaseByName(caseName) != null;
+        return refreshCaseFromConfig(caseName, refreshHologram, refreshShowcase);
     }
 
     public boolean caseExists(String caseName) {
@@ -141,8 +168,25 @@ public class CaseManager {
 
     public CreateCaseResult createCustomCase(String caseName) {
         CaseConfigRepository.CreateResult result = configRepository.create(caseName);
-        if (result == CaseConfigRepository.CreateResult.CREATED) reloadFromConfig();
+        if (result == CaseConfigRepository.CreateResult.CREATED) {
+            createDefaultKey(caseName);
+            reloadFromConfig();
+        }
         return CreateCaseResult.valueOf(result.name());
+    }
+
+    private void createDefaultKey(String caseName) {
+        String keyId = CaseConfigRepository.normalizeName(caseName) + "_key";
+        ConfigurationSection keys = plugin.getConfig().getConfigurationSection("keys");
+        if (keys == null) {
+            keys = plugin.getConfig().createSection("keys");
+        }
+        if (keys.isConfigurationSection(keyId)) {
+            return;
+        }
+        ConfigurationSection key = keys.createSection(keyId);
+        key.set("name", "&fКлюч: " + caseName);
+        plugin.saveConfig();
     }
 
     public CaseDefinition getCaseByBlock(Block block) {
@@ -288,6 +332,51 @@ public class CaseManager {
         if (holograms != null) holograms.syncCases(casesByName.values());
         idleParticles.syncCases(casesByName.values());
         plugin.getLogger().info("Loaded cases: " + casesByName.size() + ", active blocks: " + caseByBlock.size() + ", keys: " + keyNames.size());
+    }
+
+    /**
+     * Applies an edit made through the machine GUI without rebuilding visuals of
+     * unrelated cases.  A full reload is reserved for /pncases reload and world
+     * discovery, where rebuilding the complete registry is intentional.
+     */
+    private boolean refreshCaseFromConfig(String caseName, boolean refreshHologram, boolean refreshShowcase) {
+        String normalized = CaseConfigRepository.normalizeName(caseName);
+        CaseConfigRepository.Source source = configRepository.loadSources().stream()
+                .filter(candidate -> normalized.equals(candidate.name()))
+                .findFirst()
+                .orElse(null);
+        if (source == null || source.section() == null) {
+            return false;
+        }
+
+        CaseDefinition previous = casesByName.get(normalized);
+        CaseDefinition updated = definitionLoader.load(source.name(), source.section());
+
+        if (previous != null) {
+            for (Location location : previous.blockLocations()) {
+                caseByBlock.remove(BlockKey.of(location));
+            }
+        }
+        casesByName.put(updated.name(), updated);
+        caseSections.put(updated.name(), source.section());
+        for (Location location : updated.blockLocations()) {
+            caseByBlock.put(BlockKey.of(location), updated.name());
+        }
+
+        if (refreshHologram) {
+            var holograms = plugin.getHolograms();
+            if (holograms != null) {
+                holograms.refreshCase(previous, updated);
+            }
+        }
+        if (refreshShowcase) {
+            idleParticles.refreshCase(previous, updated);
+        }
+        return true;
+    }
+
+    public void onWorldUnload(World world) {
+        idleParticles.removeWorldDisplays(world);
     }
 
     public ItemStack buildGuiOpenItem(Player p, CaseDefinition def) {

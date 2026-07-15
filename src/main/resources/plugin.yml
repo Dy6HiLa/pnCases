@@ -5,7 +5,7 @@ api-version: "1.16"
 authors: [privatenull]
 website: https://github.com/Dy6HiLa/pnCases
 description: pnCases - plugin for creating cases and keys
-softdepend: [LuckPerms, FancyHolograms, DecentHolograms, Vault, PlayerPoints]
+softdepend: [LuckPerms, FancyHolograms, DecentHolograms, Vault, PlayerPoints, ProtocolLib]
 commands:
   pncases:
     description: privatenull developer plugin

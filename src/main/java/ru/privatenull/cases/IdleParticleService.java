@@ -4,6 +4,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.World;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import ru.privatenull.cases.model.CaseDefinition;
@@ -37,26 +38,11 @@ public final class IdleParticleService {
 
     public void syncCases(Collection<CaseDefinition> definitions) {
         removeDisplays();
+        removeOrphanedDisplays();
         entries.clear();
 
         for (CaseDefinition definition : definitions) {
-            IdleParticleSettings settings = definition.idleParticles();
-            if (settings == null || !settings.enabled()) {
-                continue;
-            }
-
-            ItemStack displayItem = displayItem(definition);
-            for (Location location : definition.blockLocations()) {
-                if (location != null && location.getWorld() != null) {
-                    entries.add(new Entry(
-                            entryKey(location),
-                            definition.name(),
-                            location.clone(),
-                            settings,
-                            displayItem.clone()
-                    ));
-                }
-            }
+            addEntries(definition);
         }
 
         if (entries.isEmpty()) {
@@ -73,7 +59,43 @@ public final class IdleParticleService {
     public void shutdown() {
         entries.clear();
         removeDisplays();
+        removeOrphanedDisplays();
         stop();
+    }
+
+    /** Updates the showcase of just one case after a Machine GUI edit. */
+    public void refreshCase(CaseDefinition previous, CaseDefinition updated) {
+        String previousName = previous == null ? null : previous.name();
+        String updatedName = updated == null ? null : updated.name();
+        if (previousName != null) {
+            removeCaseEntries(previousName);
+        }
+        if (updatedName != null && !updatedName.equals(previousName)) {
+            removeCaseEntries(updatedName);
+        }
+        if (updated != null) {
+            addEntries(updated);
+        }
+
+        if (entries.isEmpty()) {
+            stop();
+        } else if (task == null || task.isCancelled()) {
+            tick = 0L;
+            task = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, 1L, 1L);
+        }
+    }
+
+    /** Drops cached entities before their world disappears, preventing stale references on a later load. */
+    public void removeWorldDisplays(World world) {
+        if (world == null) {
+            return;
+        }
+        for (Entry entry : new ArrayList<>(entries)) {
+            Location location = entry.blockLocation();
+            if (location.getWorld() != null && location.getWorld().getUID().equals(world.getUID())) {
+                removeDisplay(entry.key());
+            }
+        }
     }
 
     private void stop() {
@@ -321,6 +343,39 @@ public final class IdleParticleService {
             safeRemove(display);
         }
         displays.clear();
+    }
+
+    private void removeCaseEntries(String caseName) {
+        for (Entry entry : new ArrayList<>(entries)) {
+            if (entry.caseName().equals(caseName)) {
+                removeDisplay(entry.key());
+                entries.remove(entry);
+            }
+        }
+    }
+
+    private void addEntries(CaseDefinition definition) {
+        IdleParticleSettings settings = definition.idleParticles();
+        if (settings == null || !settings.enabled()) {
+            return;
+        }
+
+        ItemStack displayItem = displayItem(definition);
+        for (Location location : definition.blockLocations()) {
+            if (location != null && location.getWorld() != null) {
+                entries.add(new Entry(entryKey(location), definition.name(), location.clone(), settings, displayItem.clone()));
+            }
+        }
+    }
+
+    private void removeOrphanedDisplays() {
+        for (World world : plugin.getServer().getWorlds()) {
+            for (Entity entity : world.getEntities()) {
+                if (entity.getScoreboardTags().contains(DISPLAY_TAG)) {
+                    entity.remove();
+                }
+            }
+        }
     }
 
     private void removeDisplay(String key) {

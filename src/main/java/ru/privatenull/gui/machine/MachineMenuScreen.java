@@ -35,14 +35,14 @@ final class MachineMenuScreen {
         inventory.setItem(4, items.configuredButton(
                 "machine.menu.header", Material.CRAFTING_TABLE,
                 "&x&4&2&9&F&9&1Раздел: Меню кейса", List.of(
-                        "", "&7Размер, название, кнопки, декор и история.",
-                        "&7Предмет из нижнего инвентаря можно взять на курсор",
-                        "&7и нажать им по нужной кнопке.", ""), definition));
+                        "", "&6«Оформление»",
+                        "&f- Размер и заголовок игрового меню",
+                        "&f- Раскладка, декор и пустая история", "",
+                        "&8Положите предмет на курсор и нажмите нужную иконку."), definition));
         inventory.setItem(SLOT_GUI_SIZE, size(definition));
         inventory.setItem(SLOT_GUI_TITLE, title(definition));
-        inventory.setItem(SLOT_CASE_DISPLAY_NAME, displayName(definition));
         inventory.setItem(SLOT_LAYOUT, items.configuredButton(
-                "machine.menu.layout", Material.CRAFTING_TABLE,
+                "machine.menu.layout", Material.MAP,
                 "&x&4&2&9&F&9&1Расставить слоты", List.of(
                         "", "&7Открывает сетку меню кейса.",
                         "&7ЛКМ/ПКМ меняют роль слота.",
@@ -66,7 +66,7 @@ final class MachineMenuScreen {
                 List.of("", "&7Открывает обычное меню кейса.", "", "&7ЛКМ &8— &fпосмотреть"),
                 definition));
         inventory.setItem(SLOT_BACK, items.backButton(definition));
-        player.openInventory(inventory);
+        caseManager.getPlugin().getGuiOpenAnimations().open(player, inventory);
         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.18f, 1.25f);
     }
 
@@ -90,12 +90,4 @@ final class MachineMenuScreen {
                 "value", definition.guiTitle());
     }
 
-    private ItemStack displayName(CaseDefinition definition) {
-        return items.configuredButton("machine.menu.case-name", Material.NAME_TAG,
-                "&x&4&2&9&F&9&1Название кейса", List.of(
-                        "", "&7Сейчас:", "&f" + definition.displayName(), "",
-                        "&7Это имя видно в панели и сообщениях.",
-                        "&7ЛКМ &8— &fнаписать новое название в чат"), definition,
-                "value", definition.displayName());
-    }
 }

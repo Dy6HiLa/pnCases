@@ -7,7 +7,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import ru.privatenull.cases.CaseManager;
 import ru.privatenull.cases.model.CaseDefinition;
-import ru.privatenull.util.ColorUtil;
+import ru.privatenull.pnlibrary.text.ColorUtil;
 import ru.privatenull.util.EnchantmentCompat;
 
 import java.util.ArrayList;
@@ -68,6 +68,7 @@ final class MachineItemFactory {
                 "item", readableItemName(item));
         meta.setDisplayName(caseManager.getPlugin().getGuiConfig().text(path + ".name", title, replacements));
         meta.setLore(caseManager.getPlugin().getGuiConfig().list(path + ".lore", lore, replacements));
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
         item.setItemMeta(meta);
         return item;
     }
@@ -101,6 +102,10 @@ final class MachineItemFactory {
                         replacements(definition, extra)),
                 caseManager.getPlugin().getGuiConfig().list(path + ".lore", lore,
                         replacements(definition, extra)));
+    }
+
+    ItemStack builtInButton(Material material, String name, List<String> lore) {
+        return button(material, name, lore);
     }
 
     ItemStack backButton(CaseDefinition definition) {
@@ -161,6 +166,7 @@ final class MachineItemFactory {
         if (meta == null) return item;
         meta.setDisplayName(color(name));
         meta.setLore(lore.stream().map(MachineItemFactory::color).toList());
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
         item.setItemMeta(meta);
         return item;
     }

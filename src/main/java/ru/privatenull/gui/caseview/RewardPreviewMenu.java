@@ -10,7 +10,7 @@ import ru.privatenull.cases.CaseManager;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.cases.model.Reward;
 import ru.privatenull.cases.model.CaseGuiLayoutRules;
-import ru.privatenull.util.ColorUtil;
+import ru.privatenull.pnlibrary.text.ColorUtil;
 import ru.privatenull.util.EnchantmentCompat;
 import ru.privatenull.util.SoundCompat;
 
@@ -111,7 +111,11 @@ public final class RewardPreviewMenu {
                     definition, safePage, pages));
         }
 
-        player.openInventory(inventory);
+        if (pageChange) {
+            player.openInventory(inventory);
+        } else {
+            caseManager.getPlugin().getGuiOpenAnimations().open(player, inventory);
+        }
         playSound(player, pageChange ? "page" : "open",
                 pageChange ? "UI_BUTTON_CLICK" : "BLOCK_BARREL_OPEN",
                 pageChange ? 0.18f : 0.22f,
@@ -156,6 +160,9 @@ public final class RewardPreviewMenu {
     private ItemStack buildConfiguredItem(String path, Material fallbackMaterial, String fallbackName,
                                           List<String> fallbackLore, String... replacements) {
         Material material = configuredMaterial(path + ".material", fallbackMaterial);
+        if (material.isAir()) {
+            return new ItemStack(Material.AIR);
+        }
         int amount = Math.max(1, Math.min(material.getMaxStackSize(),
                 caseManager.getPlugin().getGuiConfig().integer(path + ".amount", 1)));
         ItemStack item = new ItemStack(material, amount);
@@ -223,7 +230,7 @@ public final class RewardPreviewMenu {
             normalized = normalized.substring("MINECRAFT:".length());
         }
         Material material = Material.matchMaterial(normalized);
-        return material == null || material.isAir() ? fallback : material;
+        return material == null ? fallback : material;
     }
 
     private void playSound(Player player, String key, String fallbackName, float fallbackVolume, float fallbackPitch) {

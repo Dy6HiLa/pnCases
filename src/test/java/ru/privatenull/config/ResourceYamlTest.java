@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class ResourceYamlTest {
 
@@ -27,6 +28,17 @@ class ResourceYamlTest {
             assertNotNull(input, "Missing resource: " + resource);
             String yaml = new String(input.readAllBytes(), StandardCharsets.UTF_8);
             new YamlConfiguration().loadFromString(yaml);
+        }
+    }
+
+    @org.junit.jupiter.api.Test
+    void guiHistoryEmptyItemHasConfigurableLore() throws Exception {
+        try (InputStream input = getClass().getClassLoader().getResourceAsStream("gui.yml")) {
+            assertNotNull(input, "Missing resource: gui.yml");
+            YamlConfiguration gui = new YamlConfiguration();
+            gui.loadFromString(new String(input.readAllBytes(), StandardCharsets.UTF_8));
+            assertFalse(gui.getStringList("case.history.empty.lore").isEmpty(),
+                    "case.history.empty.lore must remain in gui.yml");
         }
     }
 }

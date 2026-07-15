@@ -27,7 +27,7 @@ public final class CasesCommandCompleter implements TabCompleter {
         }
 
         String subcommand = args[0].toLowerCase(Locale.ROOT);
-        if ((subcommand.equals("delcase") || subcommand.equals("machine")) && args.length == 2) {
+        if ((subcommand.equals("setcase") || subcommand.equals("delcase") || subcommand.equals("machine")) && args.length == 2) {
             return filter(caseManager.getConfiguredCaseNames(), args[1]);
         }
         if (subcommand.equals("givekey") || subcommand.equals("takekey")) {

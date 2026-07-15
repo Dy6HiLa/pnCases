@@ -44,7 +44,7 @@ final class MachineHologramScreen {
         inventory.setItem(SLOT_HOLOGRAM_HEIGHT, height(definition));
         inventory.setItem(SLOT_HOLOGRAM_LINES, lines(definition));
         inventory.setItem(SLOT_BACK, items.backButton(definition));
-        player.openInventory(inventory);
+        caseManager.getPlugin().getGuiOpenAnimations().open(player, inventory);
         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.18f, 1.25f);
     }
 

@@ -4,6 +4,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.world.WorldLoadEvent;
+import org.bukkit.event.world.WorldUnloadEvent;
 import ru.privatenull.PnCasesPlugin;
 import ru.privatenull.cases.CaseManager;
 import ru.privatenull.cases.model.Reward;
@@ -43,6 +44,11 @@ public final class RuntimeListener implements Listener {
     @EventHandler
     public void onWorldLoad(WorldLoadEvent event) {
         plugin.getServer().getScheduler().runTaskLater(plugin, caseManager::reloadFromConfig, 20L);
+    }
+
+    @EventHandler
+    public void onWorldUnload(WorldUnloadEvent event) {
+        caseManager.onWorldUnload(event.getWorld());
     }
 
     @EventHandler

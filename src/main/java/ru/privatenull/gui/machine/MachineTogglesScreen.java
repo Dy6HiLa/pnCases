@@ -81,7 +81,7 @@ final class MachineTogglesScreen {
                         "&7Цена покупки ключа за уровни опыта.", "",
                         "&7ЛКМ &8— &fоткрыть подробные настройки"), definition));
         inventory.setItem(SLOT_BACK, items.backButton(definition));
-        player.openInventory(inventory);
+        caseManager.getPlugin().getGuiOpenAnimations().open(player, inventory);
         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.18f, 1.25f);
     }
 

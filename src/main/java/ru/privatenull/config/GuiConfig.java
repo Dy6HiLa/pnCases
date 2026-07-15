@@ -9,12 +9,13 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import ru.privatenull.util.ColorUtil;
+import ru.privatenull.pnlibrary.text.ColorUtil;
 
 public final class GuiConfig {
 
     private final JavaPlugin plugin;
     private final File file;
+    private final YamlConfiguration machineDesign = MachineGuiDesign.load();
     private YamlConfiguration cfg;
 
     public GuiConfig(JavaPlugin plugin) {
@@ -35,6 +36,8 @@ public final class GuiConfig {
         )) {
             YamlConfiguration defaults = YamlConfiguration.loadConfiguration(reader);
             cfg.setDefaults(defaults);
+            migrateLegacyMessagesGui();
+            removeLegacyMachineSection();
             copyMissingDefaults(defaults);
         } catch (IOException | NullPointerException ex) {
             plugin.getLogger().warning("Не удалось загрузить defaults для gui.yml: " + ex.getMessage());
@@ -42,12 +45,19 @@ public final class GuiConfig {
     }
 
     public String text(String path, String fallback, String... replacements) {
+        if (isMachinePath(path)) {
+            return color(replace(machineDesign.getString(path, fallback == null ? "" : fallback), replacements));
+        }
         String raw = cfg.getString(path, fallback == null ? "" : fallback);
         return color(replace(raw, replacements));
     }
 
     public List<String> list(String path, List<String> fallback, String... replacements) {
-        List<String> rawLines = cfg.isList(path)
+        List<String> rawLines = isMachinePath(path)
+                ? machineDesign.isList(path)
+                    ? machineDesign.getStringList(path)
+                    : fallback == null ? List.of() : fallback
+                : cfg.isList(path)
                 ? cfg.getStringList(path)
                 : fallback == null ? List.of() : fallback;
         if (path.startsWith("machine.")) {
@@ -59,13 +69,17 @@ public final class GuiConfig {
             if (path.startsWith("machine.")) {
                 formatted = normalizeMachineLore(formatted);
             }
-            result.add(color(formatted));
+            for (String line : formatted.split("\\R", -1)) {
+                result.add(color(line));
+            }
         }
         return result;
     }
 
     public boolean contains(String path) {
-        return cfg != null && cfg.contains(path, true);
+        return isMachinePath(path)
+                ? machineDesign.contains(path, true)
+                : cfg != null && cfg.contains(path, true);
     }
 
     public String raw(String path, String fallback) {
@@ -117,7 +131,7 @@ public final class GuiConfig {
 
     private List<String> decorateMachineLore(String path, List<String> rawLines) {
         if (!path.startsWith("machine.")
-                || !cfg.getBoolean("machine.lore-style.enabled", true)) {
+                || !machineDesign.getBoolean("machine.lore-style.enabled", true)) {
             return rawLines;
         }
 
@@ -128,7 +142,7 @@ public final class GuiConfig {
 
         String section = parts[1];
         String basePath = "machine.lore-style.sections." + section;
-        String color = normalizeMachineSectionColor(cfg.getString(basePath + ".color", defaultSectionColor(section)));
+        String color = normalizeMachineSectionColor(machineDesign.getString(basePath + ".color", defaultSectionColor(section)));
         if (color == null || color.isBlank()) {
             return rawLines;
         }
@@ -149,7 +163,7 @@ public final class GuiConfig {
                     || plain.contains("Предмет на курсоре");
             if (actionLine && !actionAdded) {
                 addSeparator(decorated);
-                decorated.add(cfg.getString("machine.lore-style.action-color", "&6") + " «Действие»");
+                decorated.add(machineDesign.getString("machine.lore-style.action-color", "&6") + " «Действие»");
                 actionAdded = true;
             }
             decorated.add(line);
@@ -250,6 +264,54 @@ public final class GuiConfig {
             cfg.save(file);
         } catch (IOException ex) {
             plugin.getLogger().warning("Не удалось обновить gui.yml новыми настройками: " + ex.getMessage());
+        }
+    }
+
+    private void removeLegacyMachineSection() {
+        if (!cfg.contains("machine")) {
+            return;
+        }
+        cfg.set("machine", null);
+        try {
+            cfg.save(file);
+        } catch (IOException ex) {
+            plugin.getLogger().warning("Не удалось удалить устаревший раздел machine из gui.yml: " + ex.getMessage());
+        }
+    }
+
+    private static boolean isMachinePath(String path) {
+        return path != null && (path.equals("machine") || path.startsWith("machine."));
+    }
+
+    private void migrateLegacyMessagesGui() {
+        File messagesFile = new File(plugin.getDataFolder(), "messages.yml");
+        if (!messagesFile.isFile()) {
+            return;
+        }
+
+        YamlConfiguration messages = YamlConfiguration.loadConfiguration(messagesFile);
+        org.bukkit.configuration.ConfigurationSection legacy = messages.getConfigurationSection("gui");
+        if (legacy == null) {
+            return;
+        }
+
+        for (String relativePath : legacy.getKeys(true)) {
+            if (legacy.isConfigurationSection(relativePath)) {
+                continue;
+            }
+            String targetPath = "gui." + relativePath;
+            if (!cfg.contains(targetPath, true)) {
+                cfg.set(targetPath, legacy.get(relativePath));
+            }
+        }
+        messages.set("gui", null);
+
+        try {
+            cfg.save(file);
+            messages.save(messagesFile);
+            plugin.getLogger().info("Раздел gui перенесён из messages.yml в gui.yml.");
+        } catch (IOException ex) {
+            plugin.getLogger().warning("Не удалось перенести раздел gui из messages.yml: " + ex.getMessage());
         }
     }
 }

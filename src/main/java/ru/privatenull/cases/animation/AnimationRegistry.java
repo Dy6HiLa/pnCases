@@ -44,6 +44,10 @@ public class AnimationRegistry {
         animations.put(AnimationType.PILLAGER_RAID, modern
                 ? createModern(plugin, "ru.privatenull.cases.animation.PillagerRaidAnimation", AnimationType.PILLAGER_RAID)
                 : new LegacyCaseAnimation(plugin, AnimationType.PILLAGER_RAID));
+        animations.put(AnimationType.AQUARIUM, modern
+                ? createModern(plugin, "ru.privatenull.cases.animation.AquariumAnimation", AnimationType.AQUARIUM)
+                : new LegacyCaseAnimation(plugin, AnimationType.AQUARIUM));
+        animations.put(AnimationType.MOB_HUNT, new MobHuntAnimation(plugin));
     }
 
     public CaseAnimation get(AnimationType type) {

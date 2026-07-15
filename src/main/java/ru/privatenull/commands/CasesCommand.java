@@ -12,7 +12,7 @@ import ru.privatenull.PnCasesPlugin;
 import ru.privatenull.cases.CaseManager;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.gui.machine.MachineGuiListener;
-import ru.privatenull.update.UpdateChecker;
+import ru.privatenull.pnlibrary.update.UpdateChecker;
 
 import java.util.Locale;
 import java.util.UUID;
@@ -66,9 +66,10 @@ public final class CasesCommand implements CommandExecutor {
         plugin.reloadRuntimeConfig();
         sender.sendMessage(plugin.getMessages().get("config-reloaded"));
         if (validation.hasProblems()) {
-            sender.sendMessage("§e[pnCases] Проверка config.yml: §cошибок " + validation.errors()
-                    + "§e, предупреждений §6" + validation.warnings()
-                    + "§e. Подробности находятся в консоли сервера.");
+            sender.sendMessage(plugin.getMessages().get("config-validation-result",
+                    "errors", String.valueOf(validation.errors()),
+                    "warnings", String.valueOf(validation.warnings()),
+                    "patches", String.valueOf(validation.patches())));
         }
         return true;
     }
@@ -197,7 +198,7 @@ public final class CasesCommand implements CommandExecutor {
                 ? caseManager.getCaseByName(normalize(args[1]))
                 : caseAtTarget(player, 6);
         if (definition == null) {
-            player.sendMessage("§c[pnCases] Посмотри на блок кейса или используй §f/pncases machine <кейс>§c.");
+            player.sendMessage(plugin.getMessages().get("machine-look-at-case"));
             return true;
         }
         machineGui.openMain(player, definition.name());
@@ -220,22 +221,18 @@ public final class CasesCommand implements CommandExecutor {
             player.sendMessage(plugin.getMessages().get("setcase-look-at-block"));
             return true;
         }
-        if (!ensureCaseExists(player, caseName)) return true;
+        if (!caseManager.caseExists(caseName)) {
+            player.sendMessage(plugin.getMessages().get("setcase-not-found", "case", caseName));
+            return true;
+        }
 
         caseManager.bindCaseToBlock(caseName, target);
         player.sendMessage(plugin.getMessages().get("setcase-success",
                 "case", caseName, "world", target.getWorld().getName(),
                 "x", String.valueOf(target.getX()), "y", String.valueOf(target.getY()),
                 "z", String.valueOf(target.getZ())));
+        player.sendMessage(plugin.getMessages().get("setcase-machine-hint", "case", caseName));
         return true;
-    }
-
-    private boolean ensureCaseExists(CommandSender sender, String caseName) {
-        if (caseManager.caseExists(caseName)) return true;
-        CaseManager.CreateCaseResult result = caseManager.createCustomCase(caseName);
-        if (result == CaseManager.CreateCaseResult.ALREADY_EXISTS) return true;
-        sendCreateResult(sender, caseName, result);
-        return result == CaseManager.CreateCaseResult.CREATED;
     }
 
     private void sendCreateResult(CommandSender sender, String caseName, CaseManager.CreateCaseResult result) {

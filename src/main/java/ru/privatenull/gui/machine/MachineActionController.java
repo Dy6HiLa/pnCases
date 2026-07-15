@@ -6,11 +6,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import ru.privatenull.cases.CaseManager;
+import ru.privatenull.cases.animation.AnimationWarnings;
 import ru.privatenull.cases.model.AnimationType;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.cases.model.IdleParticleSettings;
 import ru.privatenull.cases.model.CaseGuiLayoutRules;
-import ru.privatenull.util.ColorUtil;
 import ru.privatenull.util.ServerCompatibility;
 
 import static ru.privatenull.config.ConfigSections.section;
@@ -64,7 +64,7 @@ final class MachineActionController {
 
     void handle(MachineGuiHolder.Type type, Player player, InventoryClickEvent event, CaseDefinition definition, int slot) {
         switch (type) {
-            case MAIN -> handleMain(player, definition, slot);
+            case MAIN -> handleMain(player, event, definition, slot);
             case ANIMATION -> handleAnimation(player, event, definition, slot);
             case LAYOUT -> layoutEditor.handleClick(player, event, definition, slot);
             case HOLOGRAM -> handleHologram(player, event, definition, slot);
@@ -75,10 +75,12 @@ final class MachineActionController {
         }
     }
 
-    private void handleMain(Player player, CaseDefinition definition, int slot) {
+    private void handleMain(Player player, InventoryClickEvent event, CaseDefinition definition, int slot) {
         if (slot == SLOT_MAIN_CLOSE) {
             player.closeInventory();
             player.playSound(player.getLocation(), Sound.BLOCK_BARREL_CLOSE, 0.2f, 0.95f);
+        } else if (slot == 4) {
+            switchTemplate(player, definition, event.isRightClick());
         } else if (slot == SLOT_MAIN_ANIMATION) {
             animationScreen.open(player, definition.name());
         } else if (slot == SLOT_MAIN_MENU) {
@@ -91,9 +93,25 @@ final class MachineActionController {
             showcaseScreen.open(player, definition.name());
         } else if (slot == SLOT_MAIN_PURCHASE) {
             purchaseScreen.open(player, definition.name());
-        } else if (slot == SLOT_MAIN_PREVIEW) {
-            openCasePreview(player, definition);
         }
+    }
+
+    private void switchTemplate(Player player, CaseDefinition definition, boolean backwards) {
+        java.util.List<String> templates = caseManager.getBaseTemplateNames();
+        if (templates.isEmpty()) return;
+        String current = caseManager.getCaseTemplate(definition.name());
+        int index = templates.indexOf(current);
+        int next = backwards
+                ? (index - 1 + templates.size()) % templates.size()
+                : (index + 1 + templates.size()) % templates.size();
+        if (index < 0) next = backwards ? templates.size() - 1 : 0;
+        String template = templates.get(next);
+        if (!caseManager.applyCaseTemplate(definition.name(), template)) {
+            player.sendMessage(caseManager.getPlugin().getMessages().get("machine-save-failed"));
+            return;
+        }
+        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.2f, 1.3f);
+        mainScreen.open(player, definition.name());
     }
 
     private void handleToggles(Player player, CaseDefinition definition, int slot) {
@@ -125,32 +143,18 @@ final class MachineActionController {
 
         if (slot == SLOT_ANIMATION_MODE) {
             if (ServerCompatibility.useMinecraft1165AnimationMode()) {
-                player.sendMessage(ColorUtil.colorize("&#429F91[pnCases] &fНа Minecraft 1.16.5 доступен только &eКруг фортуны&f."));
+                player.sendMessage(caseManager.getPlugin().getMessages().get("animation-legacy-only"));
                 return;
             }
             AnimationType selected = animationScreen.nextMode(definition.fixedAnimation(), event.isRightClick());
-            update(player, definition, root -> section(root, "animation").set(
+            configEditor.updateAnimation(player, definition.name(), root -> section(root, "animation").set(
                     "fixed", selected == null ? null : selected.name()
             ));
-            animationScreen.open(player, definition.name());
+            AnimationWarnings.warnIfMobBased(caseManager.getPlugin(), player, selected);
+            animationScreen.refreshMode(player, caseManager.getCaseByName(definition.name()));
             return;
         }
-        if (slot == SLOT_ANIMATION_DURATION) {
-            int next = boundedStep(definition.durationTicks(), event, 5, 20, 20, 300);
-            update(player, definition, root -> section(root, "animation").set("duration_ticks", next));
-        } else if (slot == SLOT_ANIMATION_CYCLE) {
-            int next = boundedStep(definition.cycleEveryTicks(), event, 1, 5, 1, 40);
-            update(player, definition, root -> section(root, "animation").set("cycle_every_ticks", next));
-        } else if (slot == SLOT_ANIMATION_RISE) {
-            double next = boundedStep(definition.riseBlocks(), event, 0.1, 0.5, 0.0, 8.0, 1);
-            update(player, definition, root -> section(root, "animation").set("rise_blocks", next));
-        } else if (slot == SLOT_ANIMATION_SPIN) {
-            double next = boundedStep(definition.spinDegreesPerTick(), event, 1.0, 10.0, 0.0, 180.0, 1);
-            update(player, definition, root -> section(root, "animation").set("spin_degrees_per_tick", next));
-        } else {
-            return;
-        }
-        animationScreen.open(player, definition.name());
+        // Only ready-made animation modes are exposed in the GUI.
     }
 
     private void handleHologram(Player player, InventoryClickEvent event, CaseDefinition definition, int slot) {
@@ -191,18 +195,6 @@ final class MachineActionController {
         } else if (slot == SLOT_PARTICLES_THEME) {
             IdleParticleSettings.Theme next = nextEnum(settings.theme(), IdleParticleSettings.Theme.values(), event.isRightClick());
             update(player, definition, root -> section(root, "idle-particles").set("theme", next.name()));
-        } else if (slot == SLOT_PARTICLES_RADIUS) {
-            double next = boundedStep(settings.radius(), event, 0.1, 0.5, 0.25, 2.50, 1);
-            update(player, definition, root -> section(root, "idle-particles").set("radius", next));
-        } else if (slot == SLOT_PARTICLES_HEIGHT) {
-            double next = boundedStep(settings.height(), event, 0.1, 0.5, 0.30, 3.00, 1);
-            update(player, definition, root -> section(root, "idle-particles").set("height", next));
-        } else if (slot == SLOT_PARTICLES_SPEED) {
-            double next = boundedStep(settings.speed(), event, 0.02, 0.10, 0.02, 0.80, 2);
-            update(player, definition, root -> section(root, "idle-particles").set("speed", next));
-        } else if (slot == SLOT_PARTICLES_INTERVAL) {
-            int next = boundedStep(settings.intervalTicks(), event, 1, 4, 2, 40);
-            update(player, definition, root -> section(root, "idle-particles").set("interval_ticks", next));
         } else {
             return;
         }
@@ -220,8 +212,6 @@ final class MachineActionController {
             menuScreen.open(player, definition.name());
         } else if (slot == SLOT_GUI_TITLE) {
             textEditor.start(player, definition, MachineTextField.GUI_TITLE);
-        } else if (slot == SLOT_CASE_DISPLAY_NAME) {
-            textEditor.start(player, definition, MachineTextField.CASE_DISPLAY_NAME);
         } else if (slot == SLOT_LAYOUT) {
             layoutEditor.open(player, definition.name());
         } else if (slot == SLOT_PREVIEW_CASE) {

@@ -15,8 +15,9 @@ import ru.privatenull.cases.model.CaseGuiLayout;
 import ru.privatenull.cases.reward.RewardPresentationService;
 import ru.privatenull.cases.view.CaseView;
 import ru.privatenull.storage.OpenHistoryStorage;
-import ru.privatenull.util.ColorUtil;
+import ru.privatenull.pnlibrary.text.ColorUtil;
 import ru.privatenull.util.ServerCompatibility;
+import ru.privatenull.util.GuiItemFlags;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -61,6 +62,7 @@ public final class CaseMenuService implements CaseView {
 
         lore.addAll(extraLore(definition, have, need, buyExp));
         meta.setLore(lore);
+        GuiItemFlags.hideAttributes(meta);
         item.setItemMeta(meta);
         return item;
     }
@@ -89,6 +91,7 @@ public final class CaseMenuService implements CaseView {
                 "&7Нажмите, чтобы выбрать другую",
                 ""
         ), replacements));
+        GuiItemFlags.hideAttributes(meta);
         item.setItemMeta(meta);
         return item;
     }
@@ -117,6 +120,7 @@ public final class CaseMenuService implements CaseView {
                 "",
                 "&#429F91▸ &fНажмите, чтобы открыть"
         ), replacements));
+        GuiItemFlags.hideAttributes(meta);
         item.setItemMeta(meta);
         return item;
     }
@@ -141,7 +145,7 @@ public final class CaseMenuService implements CaseView {
                 color(definition.guiTitle())
         );
         fill(inventory, player, definition);
-        player.openInventory(inventory);
+        plugin.getGuiOpenAnimations().open(player, inventory);
     }
 
     private List<String> extraLore(CaseDefinition definition, int have, int need, int buyExp) {
@@ -149,25 +153,24 @@ public final class CaseMenuService implements CaseView {
         String keyName = keyId.isBlank() ? "" : caseManager.getKeyDisplayName(keyId);
         String keysBalance = definition.costType() == CaseDefinition.CostType.KEY
                 ? plugin.getGuiConfig().text("case.button.keys-balance",
-                plugin.getMessages().getOr("gui.case-button.keys-balance", "gui-keys-balance",
+                plugin.getGuiConfig().text("gui.case-button.keys-balance", "&7Ключи: &f{have}&7/&f{need}",
                         "have", String.valueOf(have), "need", String.valueOf(need),
                         "key", keyId, "key_name", keyName, "key-name", keyName),
                 "have", String.valueOf(have), "need", String.valueOf(need),
                 "key", keyId, "key_name", keyName, "key-name", keyName)
                 : "";
         String buyHint = plugin.getGuiConfig().text("case.button.buy-xp-hint",
-                plugin.getMessages().getOr("gui.case-button.buy-xp-hint", "gui-buy-xp-hint",
+                plugin.getGuiConfig().text("gui.case-button.buy-xp-hint", "&7ЛКМ &8— &fкупить ключ за опыт: &8({levels} lvl)",
                         "levels", String.valueOf(buyExp)),
                 "levels", String.valueOf(buyExp));
         String previewLeftHint = plugin.getGuiConfig().text("case.button.preview-left-hint",
-                plugin.getMessages().getOr("gui.case-button.preview-left-hint", "gui.case-button.buy-xp-disabled"));
+                plugin.getGuiConfig().text("gui.case-button.preview-left-hint", "&7ЛКМ &8— &bпосмотреть содержимое"));
         String openHint = plugin.getGuiConfig().text("case.button.open-hint",
-                plugin.getMessages().getOr("gui.case-button.open-hint", "gui-open-hint"));
+                plugin.getGuiConfig().text("gui.case-button.open-hint", "&7ПКМ &8— &aоткрыть кейс"));
         String previewHint = buyExp > 0
                 ? plugin.getGuiConfig().text("case.button.preview-hint",
-                plugin.getMessages().getOr("gui.case-button.preview-hint", "gui.case-button.preview-hint"))
+                plugin.getGuiConfig().text("gui.case-button.preview-hint", "&7СКМ &8— &bпосмотреть содержимое"))
                 : "";
-        if (previewHint.startsWith("§c[missing:")) previewHint = color("&7СКМ &8— &bпосмотреть содержимое");
 
         String[] replacements = {
                 "case", color(definition.displayName()), "case_id", definition.name(), "case-id", definition.name(),
@@ -178,7 +181,8 @@ public final class CaseMenuService implements CaseView {
                 "left-click", buyExp > 0 ? buyHint : previewLeftHint, "open-hint", openHint,
                 "right-click", openHint, "preview-hint", previewHint, "middle-click", previewHint
         };
-        List<String> fallback = plugin.getMessages().getList("gui.case-button.extra-lore", replacements);
+        List<String> fallback = plugin.getGuiConfig().list("gui.case-button.extra-lore", List.of(
+                "", "{keys-balance}", "", "{left-click}", "{right-click}", "{middle-click}"), replacements);
         List<String> lines = plugin.getGuiConfig().list("case.button.extra-lore", fallback, replacements);
         trimTrailingEmptyLines(lines);
         return lines;
@@ -188,6 +192,7 @@ public final class CaseMenuService implements CaseView {
         ItemStack pane = layout.decorItem() == null
                 ? new ItemStack(Material.GRAY_STAINED_GLASS_PANE)
                 : layout.decorItem().clone();
+        hideAttributes(pane);
         for (int slot : layout.decorSlots()) {
             if (slot >= 0 && slot < inventory.getSize()) inventory.setItem(slot, pane.clone());
         }
@@ -218,6 +223,7 @@ public final class CaseMenuService implements CaseView {
                 "", "&#A0EFA1 «Детали открытия»", " &7- &fИгрок: &#FBCA08{player}",
                 " &7- &fНаграда: {reward}", "", "&#C096AB «Время»", " &7- &f{time}", ""
         ), replacements));
+        GuiItemFlags.hideAttributes(meta);
         item.setItemMeta(meta);
         return item;
     }
@@ -239,18 +245,31 @@ public final class CaseMenuService implements CaseView {
         ItemStack configured = definition.guiLayout().emptyHistoryItem();
         ItemStack item = configured == null ? new ItemStack(Material.BARRIER) : configured.clone();
         ItemMeta meta = item.getItemMeta();
-        if (meta == null || meta.hasDisplayName() || meta.hasLore()) return item;
+        if (meta == null) return item;
 
         String[] replacements = {
                 "case", color(definition.displayName()), "case_id", definition.name(), "case-id", definition.name()
         };
-        meta.setDisplayName(plugin.getGuiConfig().text("case.history.empty.name", "&8История пуста", replacements));
-        meta.setLore(plugin.getGuiConfig().list("case.history.empty.lore", List.of(
-                "", "&#A0EFA1 «История кейса»", " &7- &fПоследние открытия",
-                " &7- &fбудут отображаться здесь", ""
-        ), replacements));
+        if (plugin.getGuiConfig().contains("case.history.empty.name") || !meta.hasDisplayName()) {
+            meta.setDisplayName(plugin.getGuiConfig().text("case.history.empty.name", "&8История пуста", replacements));
+        }
+        if (plugin.getGuiConfig().contains("case.history.empty.lore") || !meta.hasLore()) {
+            meta.setLore(plugin.getGuiConfig().list("case.history.empty.lore", List.of(
+                    "", "&#A0EFA1 «История кейса»", " &7- &fПоследние открытия",
+                    " &7- &fбудут отображаться здесь", ""
+            ), replacements));
+        }
         item.setItemMeta(meta);
+        hideAttributes(item);
         return item;
+    }
+
+    private void hideAttributes(ItemStack item) {
+        if (item == null) return;
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return;
+        GuiItemFlags.hideAttributes(meta);
+        item.setItemMeta(meta);
     }
 
     private String formatTime(long epochSeconds) {

@@ -15,11 +15,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.9/pnCases-1.4.9.jar">
-    <img src="https://img.shields.io/badge/Скачать-1.4.9-429F91?style=for-the-badge&labelColor=17241F" alt="Скачать pnCases 1.4.9">
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.5.0/pnCases-1.5.0.jar">
+    <img src="https://img.shields.io/badge/Скачать-1.5.0-429F91?style=for-the-badge&labelColor=17241F" alt="Скачать pnCases 1.5.0">
   </a>
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.4.9">
-    <img src="https://img.shields.io/badge/Changelog-1.4.9-D8DF9D?style=for-the-badge&labelColor=17241F" alt="Changelog pnCases 1.4.9">
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/tag/v1.5.0">
+    <img src="https://img.shields.io/badge/Changelog-1.5.0-D8DF9D?style=for-the-badge&labelColor=17241F" alt="Changelog pnCases 1.5.0">
   </a>
   <a href="LICENSE">
     <img src="https://img.shields.io/badge/License-MIT-429F91?style=for-the-badge&labelColor=17241F" alt="Лицензия MIT">
@@ -29,7 +29,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Paper%20%2F%20Purpur-1.16.5--1.21.11-429F91?style=flat-square" alt="Paper и Purpur 1.16.5–1.21.11">
   <img src="https://img.shields.io/badge/Java-17%2B-D8DF9D?style=flat-square" alt="Java 17+">
-  <img src="https://img.shields.io/badge/Хранилище-SQLite-429F91?style=flat-square" alt="SQLite">
+  <img src="https://img.shields.io/badge/Хранилище-SQLite%20%2F%20MySQL%20%2F%20MongoDB-429F91?style=flat-square" alt="SQLite, MySQL и MongoDB">
 </p>
 
 <p align="center">
@@ -101,10 +101,10 @@
   </tr>
   <tr>
     <td width="50%" valign="top">
-      <h3>💾 SQLite</h3>
+      <h3>💾 Хранилища</h3>
       <p>
-        История, выбор анимации и остальные данные
-        безопасно хранятся в базе данных.
+        История, ключи, выбор анимации и остальные данные хранятся
+        в SQLite, MySQL или MongoDB.
       </p>
     </td>
     <td width="50%" valign="top">
@@ -119,11 +119,11 @@
 
 <hr>
 
-<h2>🚀 pnCases 1.4.9</h2>
+<h2>🚀 pnCases 1.5.0</h2>
 
 <p>
-  <strong>pnCases 1.4.9</strong> — обновление настройки содержимого кейсов.
-  Окно наград и редкости теперь можно полностью оформить под свой сервер.
+  <strong>pnCases 1.5.0</strong> — большое обновление Machine GUI,
+  анимаций открытия и хранения данных.
 </p>
 
 <table>
@@ -132,7 +132,7 @@
       <strong>Версия плагина</strong>
     </td>
     <td>
-      <code>1.4.9</code>
+      <code>1.5.0</code>
     </td>
   </tr>
   <tr>
@@ -161,13 +161,13 @@
   </tr>
 </table>
 
-<h3>Что нового в 1.4.9</h3>
+<h3>Что нового в 1.5.0</h3>
 
 <ul>
-  <li>Полностью настраиваемое окно «Содержимое кейса»: размер, слоты наград, декор, кнопки, звуки, названия и описание предметов.</li>
-  <li>Собственные редкости наград с любым названием, цветом, символом, иконкой, свечением и Custom Model Data.</li>
-  <li>Выбор режима открытия собран в одну кнопку: ЛКМ переключает вперёд, ПКМ — назад.</li>
-  <li>Перестроена внутренняя структура плагина, чтобы настройки кейсов, награды, меню, голограммы и обновления работали независимо и предсказуемо.</li>
+  <li>Переработан Machine GUI: компактные разделы, динамическое обновление без мигания, безопасное закрытие меню при выключении плагина.</li>
+  <li>Добавлена анимация «Водяная капсула»: стеклянная капсула, сердце моря, водные частицы, кристаллы призмарина и плавный выход награды.</li>
+  <li>Добавлены типы кейсов, создание кейса сразу с типом <code>money</code> и автоматический ключ для нового кейса.</li>
+  <li>Поддерживаются SQLite, MySQL и MongoDB; текст принимает MiniMessage, <code>&amp;</code>/<code>§</code>-цвета и HEX: <code>&amp;#429F91</code>.</li>
 </ul>
 
 <h3>Что было добавлено в 1.4.7</h3>
@@ -218,8 +218,8 @@
 <ol>
   <li>
     Скачайте
-    <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.9/pnCases-1.4.9.jar">
-      <code>pnCases-1.4.9.jar</code>
+    <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.5.0/pnCases-1.5.0.jar">
+      <code>pnCases-1.5.0.jar</code>
     </a>.
   </li>
   <li>Переместите JAR-файл в папку <code>plugins/</code>.</li>
@@ -624,6 +624,19 @@ plugins/pnCases/
   Старые YAML-файлы с данными автоматически переносятся в SQLite.
 </p>
 
+<h3>База данных и форматирование</h3>
+
+<p>
+  В <code>config.yml</code> можно выбрать SQLite для локального сервера, MySQL для общей базы
+  или MongoDB. Подключение, пул JDBC и миграции обрабатываются pnLibrary.
+</p>
+
+<p>
+  Все названия, lore, сообщения и голограммы поддерживают MiniMessage
+  (<code>&lt;gradient:#4FB6FF:#429F91&gt;Текст&lt;/gradient&gt;</code>), обычные цвета
+  <code>&amp;a</code> / <code>§a</code> и HEX <code>&amp;#429F91</code>.
+</p>
+
 <hr>
 
 <h2>📚 Документация</h2>
@@ -673,7 +686,7 @@ plugins/pnCases/
 </p>
 
 <p align="center">
-  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.4.9/pnCases-1.4.9.jar">
+  <a href="https://github.com/Dy6HiLa/pnCases/releases/download/v1.5.0/pnCases-1.5.0.jar">
     Скачать последнюю версию
   </a>
   ·

@@ -69,6 +69,16 @@ public final class HologramService {
         }
     }
 
+    /** Rebuilds holograms for one edited case only. */
+    public void refreshCase(CaseDefinition previous, CaseDefinition updated) {
+        if (previous != null) {
+            hideCase(previous);
+        }
+        if (updated != null) {
+            showCase(updated);
+        }
+    }
+
     public void hideCase(CaseDefinition def) {
         reloadProvider();
         if (def == null) return;

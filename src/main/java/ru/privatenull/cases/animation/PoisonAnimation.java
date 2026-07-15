@@ -117,7 +117,7 @@ public class PoisonAnimation extends CaseAnimation {
                 if (!(byEntity.getDamager() instanceof Player damager)) return;
 
                 if (!damager.getUniqueId().equals(ownerId)) {
-                    damager.sendMessage("§cТы не можешь бить этот куб.");
+                    damager.sendMessage(plugin.getMessages().get("poison-cube-protected"));
                     return;
                 }
 

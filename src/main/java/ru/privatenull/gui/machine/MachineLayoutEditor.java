@@ -10,7 +10,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import ru.privatenull.cases.CaseManager;
 import ru.privatenull.cases.model.CaseDefinition;
-import ru.privatenull.util.ColorUtil;
 import ru.privatenull.util.InventoryViewCompat;
 
 import java.util.ArrayList;
@@ -48,7 +47,7 @@ final class MachineLayoutEditor {
                         "machine.titles.layout", "&8Разметка меню кейса", items.replacements(definition))
         );
         fill(inventory, definition);
-        player.openInventory(inventory);
+        caseManager.getPlugin().getGuiOpenAnimations().open(player, inventory);
         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.18f, 1.15f);
     }
 
@@ -62,8 +61,8 @@ final class MachineLayoutEditor {
 
         SlotRole next = state.stepRole(current, event.isRightClick());
         if ((current == SlotRole.OPEN || current == SlotRole.ANIMATION) && next != current) {
-            player.sendMessage(color("&c[pnCases] Слот " + current.displayName
-                    + " нельзя удалить. Перенеси его на другой слот."));
+            player.sendMessage(caseManager.getPlugin().getMessages().get(
+                    "machine-layout-required-slot", "slot", current.displayName));
             player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.18f, 1.0f);
             return;
         }
@@ -217,7 +216,4 @@ final class MachineLayoutEditor {
         return clone;
     }
 
-    private static String color(String value) {
-        return ColorUtil.colorize(value);
-    }
 }

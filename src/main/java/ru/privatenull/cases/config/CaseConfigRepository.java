@@ -70,6 +70,29 @@ public final class CaseConfigRepository {
         return save(writable);
     }
 
+    public boolean applyTemplate(String caseName, String templateName) {
+        String normalizedCase = normalizeName(caseName);
+        String normalizedTemplate = normalizeName(templateName);
+        Writable target = writable(normalizedCase, false);
+        Source template = loadSources().stream()
+                .filter(source -> normalizedTemplate.equals(source.name()))
+                .findFirst()
+                .orElse(null);
+        if (target == null || target.section() == null || template == null || template.section() == null) {
+            return false;
+        }
+
+        Object boundBlock = target.section().get("block");
+        Object boundBlocks = target.section().get("blocks");
+        clearSection(target.section());
+        copySection(template.section(), target.section());
+        target.section().set("id", normalizedCase);
+        target.section().set("template", normalizedTemplate);
+        target.section().set("block", boundBlock);
+        target.section().set("blocks", boundBlocks);
+        return save(target);
+    }
+
     public CreateResult create(String caseName) {
         if (!isValidId(caseName)) return CreateResult.INVALID_ID;
         String normalized = normalizeName(caseName);
@@ -285,9 +308,18 @@ public final class CaseConfigRepository {
         }
     }
 
+    private static void clearSection(ConfigurationSection section) {
+        for (String key : new ArrayList<>(section.getKeys(false))) {
+            section.set(key, null);
+        }
+    }
+
     private static void writeNewCaseDefaults(ConfigurationSection root, String caseName) {
         String visibleName = "&x&4&2&9&F&9&1Новый кейс &8| &f" + caseName;
         root.set("id", caseName);
+        // Every case created through the command starts as the money variant.
+        // The Machine GUI can then switch it to another base variant if needed.
+        root.set("template", "money");
         root.set("display-name", visibleName);
 
         ConfigurationSection hologram = root.createSection("hologram");
@@ -336,8 +368,9 @@ public final class CaseConfigRepository {
         openItem.set("lore", List.of("", "&7Новый кейс готов к настройке.", ""));
 
         ConfigurationSection cost = root.createSection("cost");
-        cost.set("type", "NONE");
-        cost.set("amount", 0);
+        cost.set("type", "KEY");
+        cost.set("key", caseName + "_key");
+        cost.set("amount", 1);
         cost.set("buy_xp_enabled", false);
         cost.set("buy_xp_levels", 0);
 

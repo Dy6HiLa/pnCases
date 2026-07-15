@@ -10,7 +10,6 @@ import ru.privatenull.cases.CaseManager;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.cases.model.IdleParticleSettings;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static ru.privatenull.gui.machine.MachineSlots.*;
@@ -47,24 +46,8 @@ final class MachineShowcaseScreen {
         inventory.setItem(SLOT_PARTICLES_ITEM, displayItem(definition, settings));
         inventory.setItem(SLOT_PARTICLES_STYLE, style(definition, settings));
         inventory.setItem(SLOT_PARTICLES_THEME, theme(definition, settings));
-        inventory.setItem(SLOT_PARTICLES_RADIUS, number(definition,
-                "machine.showcase.radius", Material.ENDER_PEARL,
-                "&x&4&2&9&F&9&1Радиус", settings.radius(), "блока",
-                List.of("&7ЛКМ &8— &f+0.1", "&7ПКМ &8— &f-0.1", "&7Shift &8— &fшаг 0.5")));
-        inventory.setItem(SLOT_PARTICLES_HEIGHT, number(definition,
-                "machine.showcase.height", Material.FEATHER,
-                "&x&4&2&9&F&9&1Высота", settings.height(), "блока",
-                List.of("&7ЛКМ &8— &f+0.1", "&7ПКМ &8— &f-0.1", "&7Shift &8— &fшаг 0.5")));
-        inventory.setItem(SLOT_PARTICLES_SPEED, number(definition,
-                "machine.showcase.speed", Material.REPEATER,
-                "&x&4&2&9&F&9&1Скорость", settings.speed(), "",
-                List.of("&7ЛКМ &8— &fбыстрее", "&7ПКМ &8— &fмедленнее", "&7Shift &8— &fкрупный шаг")));
-        inventory.setItem(SLOT_PARTICLES_INTERVAL, number(definition,
-                "machine.showcase.interval", Material.COMPARATOR,
-                "&x&4&2&9&F&9&1Частота", settings.intervalTicks(), "тиков",
-                List.of("&7ЛКМ &8— &fреже", "&7ПКМ &8— &fчаще", "&7Shift &8— &fшаг 4 тика")));
         inventory.setItem(SLOT_BACK, items.backButton(definition));
-        player.openInventory(inventory);
+        caseManager.getPlugin().getGuiOpenAnimations().open(player, inventory);
         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.18f, 1.25f);
     }
 
@@ -123,14 +106,4 @@ final class MachineShowcaseScreen {
                 "value", settings.theme().displayName());
     }
 
-    private ItemStack number(CaseDefinition definition, String path, Material material, String name,
-                             Number value, String unit, List<String> controls) {
-        List<String> lore = new ArrayList<>();
-        lore.add("");
-        lore.add("&7Сейчас: &f" + value + (unit == null || unit.isBlank() ? "" : " " + unit));
-        lore.add("");
-        lore.addAll(controls);
-        return items.configuredButton(path, material, name, lore, definition,
-                "value", String.valueOf(value), "unit", unit == null ? "" : unit);
-    }
 }

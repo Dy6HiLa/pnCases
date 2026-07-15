@@ -8,7 +8,6 @@ import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import ru.privatenull.cases.CaseManager;
 import ru.privatenull.cases.model.CaseDefinition;
-import ru.privatenull.util.ColorUtil;
 
 public final class MachineGuiListener implements Listener {
 
@@ -70,7 +69,8 @@ public final class MachineGuiListener implements Listener {
         CaseDefinition definition = caseManager.getCaseByName(holder.caseName());
         if (definition == null) {
             player.closeInventory();
-            player.sendMessage(ColorUtil.colorize("&c[pnCases] Кейс больше не загружен: &f" + holder.caseName()));
+            player.sendMessage(caseManager.getPlugin().getMessages().get(
+                    "machine-case-unloaded", "case", holder.caseName()));
             return;
         }
         actions.handle(holder.type(), player, event, definition, slot);

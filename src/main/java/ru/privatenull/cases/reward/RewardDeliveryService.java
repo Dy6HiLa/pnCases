@@ -8,7 +8,7 @@ import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.cases.model.Reward;
 import ru.privatenull.PnCasesPlugin;
 import ru.privatenull.storage.OpenHistoryStorage;
-import ru.privatenull.util.ColorUtil;
+import ru.privatenull.pnlibrary.text.ColorUtil;
 
 import java.util.List;
 import java.util.Map;
