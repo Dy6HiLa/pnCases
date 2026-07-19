@@ -125,6 +125,7 @@ public final class RewardPresentationService {
             case PLAYERPOINTS -> MaterialCompat.first("AMETHYST_SHARD", "EMERALD");
             case LUCKPERMS -> Material.NETHER_STAR;
             case ITEM -> Material.CHEST;
+            case PERSONAL -> Material.COMMAND_BLOCK;
         };
         String typePath = "preview.types." + reward.type().name().toLowerCase(Locale.ROOT) + ".material";
         Material material = configuredMaterial(plugin.getGuiConfig().raw(typePath, ""), fallbackMaterial);
@@ -139,6 +140,7 @@ public final class RewardPresentationService {
                     case PLAYERPOINTS -> "&b" + formatPlayerPointsAmount(reward.playerPointsAmount());
                     case LUCKPERMS -> "&dПривилегия";
                     case ITEM -> "&fНаграда";
+                    case PERSONAL -> "&dЛичная награда";
                 };
             }
             meta.setDisplayName(color(name));
@@ -178,6 +180,7 @@ public final class RewardPresentationService {
             case PLAYERPOINTS -> "&b" + formatPlayerPointsAmount(reward.playerPointsAmount());
             case LUCKPERMS -> "&dПривилегия";
             case ITEM -> "&fНаграда";
+            case PERSONAL -> "&dЛичная награда";
         };
     }
 
@@ -259,6 +262,7 @@ public final class RewardPresentationService {
             case VAULT -> List.of("", "&6 «Награда»", "&f- Монеты: &a{amount}", "");
             case PLAYERPOINTS -> List.of("", "&6 «Награда»", "&f- Поинты: &b{amount}", "");
             case LUCKPERMS -> List.of("", "&6 «Награда»", "&f- Срок: &d{duration}", "");
+            case PERSONAL -> List.of("", "&6 «Награда»", "&f- Команда будет выполнена для игрока", "");
         };
     }
 
@@ -367,6 +371,7 @@ public final class RewardPresentationService {
             case LUCKPERMS -> "Привилегия";
             case VAULT -> "Деньги";
             case PLAYERPOINTS -> "Поинты";
+            case PERSONAL -> "Личная";
         };
     }
 

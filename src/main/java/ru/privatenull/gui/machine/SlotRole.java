@@ -5,7 +5,6 @@ enum SlotRole {
     DECOR("Декор", "&7"),
     HISTORY("История", "&e"),
     OPEN("Открытие кейса", "&a"),
-    PREVIEW("Предпросмотр наград", "&d"),
     ANIMATION("Кнопка анимации", "&b");
 
     final String displayName;
@@ -21,8 +20,7 @@ enum SlotRole {
             case EMPTY -> DECOR;
             case DECOR -> HISTORY;
             case HISTORY -> OPEN;
-            case OPEN -> PREVIEW;
-            case PREVIEW -> ANIMATION;
+            case OPEN -> ANIMATION;
             case ANIMATION -> EMPTY;
         };
     }
@@ -30,8 +28,7 @@ enum SlotRole {
     SlotRole previous() {
         return switch (this) {
             case EMPTY -> ANIMATION;
-            case ANIMATION -> PREVIEW;
-            case PREVIEW -> OPEN;
+            case ANIMATION -> OPEN;
             case OPEN -> HISTORY;
             case HISTORY -> DECOR;
             case DECOR -> EMPTY;

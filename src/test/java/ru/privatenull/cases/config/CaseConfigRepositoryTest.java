@@ -14,40 +14,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class CaseConfigRepositoryTest {
 
     @Test
-    void templateSwitchOnlyChangesCanonicalTypeAndRewards() {
+    void newCaseHasItsOwnKeyAndMinimalAnimationSettings() {
         YamlConfiguration target = new YamlConfiguration();
-        target.set("id", "custom_case");
-        target.set("template", "items");
-        target.set("display-name", "Custom RGB title");
-        target.set("blocks", List.of(Map.of("world", "world", "x", 1, "y", 64, "z", 2)));
-        target.set("cost.type", "KEY");
-        target.set("cost.key", "custom_key");
-        target.set("gui.title", "Custom GUI");
-        target.set("hologram.lines", List.of("Custom hologram"));
-        target.set("idle-particles.style", "CUSTOM_STYLE");
-        target.set("animation.fixed", "AQUARIUM");
-        target.set("animation.duration_ticks", 123);
-        target.set("rewards", List.of(Map.of("type", "ITEM", "chance", 100)));
+        CaseConfigRepository.writeNewCaseDefaults(target, "donate");
 
-        List<?> moneyRewards = List.of(Map.of(
-                "type", "VAULT",
-                "chance", 100,
-                "vault", Map.of("amount", 500)
-        ));
-        CaseConfigRepository.applyTemplateValues(target, "custom_case", "money", moneyRewards);
-
-        assertEquals("custom_case", target.getString("id"));
-        assertEquals("money", target.getString("template"));
-        assertEquals("Custom RGB title", target.getString("display-name"));
-        assertEquals("custom_key", target.getString("cost.key"));
-        assertEquals("Custom GUI", target.getString("gui.title"));
-        assertEquals(List.of("Custom hologram"), target.getStringList("hologram.lines"));
-        assertEquals("CUSTOM_STYLE", target.getString("idle-particles.style"));
-        assertEquals("AQUARIUM", target.getString("animation.fixed"));
-        assertEquals(123, target.getInt("animation.duration_ticks"));
-        assertEquals("world", target.getMapList("blocks").get(0).get("world"));
-        assertEquals("VAULT", target.getMapList("rewards").get(0).get("type"));
-        assertEquals(500, nested(target, "rewards", "vault").get("amount"));
+        assertEquals("donate", target.getString("id"));
+        assertTrue(target.contains("blocks"));
+        assertFalse(target.contains("template"));
+        assertEquals("KEY", target.getString("cost.type"));
+        assertEquals("donate", target.getString("cost.key"));
+        assertFalse(target.contains("animation.duration_ticks"));
+        assertFalse(target.contains("animation.cycle_every_ticks"));
+        assertFalse(target.contains("animation.rise_blocks"));
+        assertFalse(target.contains("animation.spin_degrees_per_tick"));
+        assertEquals("ITEM", target.getMapList("rewards").get(0).get("type"));
     }
 
     @Test
@@ -55,6 +35,12 @@ class CaseConfigRepositoryTest {
         assertEquals("money", CaseConfigRepository.fileId("Money.yml"));
         assertEquals("custom_case", CaseConfigRepository.fileId("custom_case.YML"));
         assertTrue(CaseConfigRepository.isValidId(CaseConfigRepository.fileId("safe-case.yml")));
+    }
+
+    @Test
+    void generatedGuiTitleFollowsCaseDisplayName() {
+        assertEquals("&dДонат", CaseDefinitionLoader.resolveGuiTitle("&dДонат", "{display-name}"));
+        assertEquals("&8Магазин", CaseDefinitionLoader.resolveGuiTitle("&dДонат", "&8Магазин"));
     }
 
     @Test
@@ -126,27 +112,4 @@ class CaseConfigRepositoryTest {
         assertEquals("ITEM", yaml.getMapList("rewards").get(0).get("type"));
     }
 
-    @Test
-    void missingOrInvalidMoneyTemplateUsesVaultRewards() {
-        List<?> missingFallback = CaseConfigRepository.moneyRewardsOrFallback(null);
-        Map<?, ?> missingReward = (Map<?, ?>) missingFallback.get(0);
-        assertEquals("VAULT", missingReward.get("type"));
-        assertEquals(100, ((Map<?, ?>) missingReward.get("vault")).get("amount"));
-
-        List<?> itemFallback = CaseConfigRepository.moneyRewardsOrFallback(List.of(
-                Map.of("type", "ITEM", "chance", 100, "item", Map.of("material", "DIAMOND"))
-        ));
-        assertEquals("VAULT", ((Map<?, ?>) itemFallback.get(0)).get("type"));
-
-        List<?> configuredVault = List.of(Map.of(
-                "type", "VAULT", "chance", 100, "vault", Map.of("amount", 750)
-        ));
-        Map<?, ?> copiedReward = (Map<?, ?>) CaseConfigRepository.moneyRewardsOrFallback(configuredVault).get(0);
-        assertEquals(750, ((Map<?, ?>) copiedReward.get("vault")).get("amount"));
-    }
-
-    private Map<?, ?> nested(ConfigurationSection section, String listPath, String nestedKey) {
-        Object nested = section.getMapList(listPath).get(0).get(nestedKey);
-        return (Map<?, ?>) nested;
-    }
 }

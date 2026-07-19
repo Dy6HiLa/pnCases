@@ -51,19 +51,19 @@ final class MachineMainScreen {
     void fill(Inventory inventory, CaseDefinition definition) {
         items.fill(inventory, items.pane(Material.BLACK_STAINED_GLASS_PANE, " ", List.of()));
         inventory.setItem(4, items.builtInButton(Material.CHEST,
-                "&x&4&2&9&F&9&1Настройка кейса",
+                "&x&4&2&9&F&9&1Информация о кейсе",
                 List.of(
                         "",
                         "&6«Основное»",
                         "&f- Кейс: &e" + caseName(definition),
                         "&f- ID: &e" + definition.name(),
-                        "&f- Тип: &a" + caseManager.getCaseTemplate(definition.name()),
+                        "&f- Настраивается отдельно от других кейсов",
                         "",
-                        "&6«Действие»",
-                        "&f- ЛКМ &7— сменить тип",
-                        "&f- ПКМ &7— предыдущий тип",
+                        "&6«Подсказка»",
+                        "&fНаграды, цена и оформление",
+                        "&fзадаются в конфиге этого кейса.",
                         "",
-                        "&8При смене типа привязанные блоки сохраняются."
+                        "&8Изменения в других кейсах не затрагиваются."
                 )));
 
         inventory.setItem(SLOT_MAIN_ANIMATION, items.sectionButton(
@@ -124,8 +124,7 @@ final class MachineMainScreen {
      * the Machine screen in sync with the name configured under keys.<id>.name.
      */
     private String caseName(CaseDefinition definition) {
-        String keyName = caseManager.getKeyDisplayName(definition.costKeyId());
-        return keyName == null || keyName.isBlank() ? definition.displayName() : keyName;
+        return definition.displayName();
     }
 
     private static String status(boolean enabled, String enabledText, String disabledText) {

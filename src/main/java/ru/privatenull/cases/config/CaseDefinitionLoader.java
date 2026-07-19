@@ -4,12 +4,14 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import ru.privatenull.cases.model.AnimationType;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.cases.model.CaseGuiLayout;
 import ru.privatenull.cases.model.IdleParticleSettings;
 import ru.privatenull.cases.model.Reward;
 import ru.privatenull.cases.reward.RewardPresentationService;
+import ru.privatenull.pnlibrary.text.ColorUtil;
 import ru.privatenull.util.ItemFactory;
 
 import java.util.ArrayList;
@@ -42,9 +44,11 @@ public final class CaseDefinitionLoader {
         List<Location> blocks = blockCodec.readLoadedLocations(section);
 
         ConfigurationSection gui = section.getConfigurationSection("gui");
-        String title = gui == null ? "&8Case" : gui.getString("title", "&8Case");
-        ItemStack openButton = ItemFactory.fromSection(gui == null ? null : gui.getConfigurationSection("open-item"));
+        String title = resolveGuiTitle(displayName, gui == null ? null : gui.getString("title"));
+        ConfigurationSection openItemSection = gui == null ? null : gui.getConfigurationSection("open-item");
+        ItemStack openButton = ItemFactory.fromSection(openItemSection);
         if (openButton == null) openButton = new ItemStack(Material.CHEST);
+        applyDisplayNameToken(openButton, openItemSection, displayName);
         CaseGuiLayout layout = viewParser.parseLayout(gui);
         IdleParticleSettings idleParticles = viewParser.parseIdleParticles(section.getConfigurationSection("idle-particles"));
 
@@ -72,6 +76,26 @@ public final class CaseDefinitionLoader {
                 animation.items(),
                 rewards
         );
+    }
+
+    static String resolveGuiTitle(String displayName, String configuredTitle) {
+        if (configuredTitle == null || configuredTitle.isBlank() || configuredTitle.equals("{display-name}")) {
+            return displayName;
+        }
+        return configuredTitle;
+    }
+
+    private static void applyDisplayNameToken(
+            ItemStack item,
+            ConfigurationSection configuredItem,
+            String displayName
+    ) {
+        if (item == null || configuredItem == null
+                || !"{display-name}".equals(configuredItem.getString("name"))) return;
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return;
+        meta.setDisplayName(ColorUtil.colorize(displayName));
+        item.setItemMeta(meta);
     }
 
     private Cost parseCost(ConfigurationSection section) {
@@ -132,14 +156,7 @@ public final class CaseDefinitionLoader {
     }
 
     private String humanizeCaseName(String caseName) {
-        String normalized = caseName == null ? "" : caseName.toLowerCase(Locale.ROOT);
-        return switch (normalized) {
-            case "items" -> "&bКейс с ресурсами";
-            case "money" -> "&6Кейс с монетами";
-            case "playerpoints", "points" -> "&bКейс с поинтами";
-            case "luckperms", "donate" -> "&6Донат кейс";
-            default -> caseName == null || caseName.isBlank() ? "&fКейс" : "&f" + caseName.replace('_', ' ');
-        };
+        return caseName == null || caseName.isBlank() ? "&fКейс" : "&f" + caseName.replace('_', ' ');
     }
 
     private record Cost(CaseDefinition.CostType type, int amount, String keyId, int buyXpLevels) {

@@ -14,6 +14,7 @@ import ru.privatenull.pnlibrary.text.ColorUtil;
 import ru.privatenull.util.EnchantmentCompat;
 import ru.privatenull.util.GuiItemFlags;
 import ru.privatenull.util.InventoryViewCompat;
+import ru.privatenull.util.SkullUtil;
 import ru.privatenull.util.SoundCompat;
 
 import java.util.ArrayList;
@@ -35,6 +36,10 @@ public final class RewardPreviewMenu {
     private static final int DEFAULT_PREVIOUS_SLOT = 45;
     private static final int DEFAULT_BACK_SLOT = 49;
     private static final int DEFAULT_NEXT_SLOT = 53;
+    private static final String BACK_TEXTURE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNjllYTFkODYyNDdmNGFmMzUxZWQxODY2YmNhNmEzMDQwYTA2YzY4MTc3Yzc4ZTQyMzE2YTEwOThlNjBmYjdkMyJ9fX0=";
+    private static final String NEXT_TEXTURE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvODI3MWE0NzEwNDQ5NWUzNTdjM2U4ZTgwZjUxMWE5ZjEwMmIwNzAwY2E5Yjg4ZTg4Yjc5NWQzM2ZmMjAxMDVlYiJ9fX0=";
+    private static final String DISABLED_TEXTURE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMjc1NDgzNjJhMjRjMGZhODQ1M2U0ZDkzZTY4YzU5NjlkZGJkZTU3YmY2NjY2YzAzMTljMWVkMWU4NGQ4OTA2NSJ9fX0=";
+    private static final String CONTENTS_TEXTURE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYzY3ZDVkMzdjZDY0Y2UzZmI1NzM3N2QyNWQ2MTUyYWE0YWMyZTM3OTU0MjQ4ZDVkOTFmODhmYmQ3OTFmNDc2NiJ9fX0=";
 
     private final CaseManager caseManager;
 
@@ -99,19 +104,22 @@ public final class RewardPreviewMenu {
         }
 
         inventory.setItem(layout.infoSlot(), buildInfoItem(definition, safePage, pages, rewards.size()));
-        inventory.setItem(layout.backSlot(), buildButton("preview.buttons.back", Material.ARROW,
-                "&eНазад", List.of("", "&6 «Действие»", "&f- ЛКМ - вернуться к кейсу", ""),
-                definition, safePage, pages));
+        inventory.setItem(layout.backSlot(), navigationButton(BACK_TEXTURE, "&#429F91← &fНазад к кейсу",
+                List.of("", "&8Вернуться к настройке кейса", "", "&#429F91▸ &fЛКМ &8— &7вернуться")));
 
         if (safePage > 0) {
-            inventory.setItem(layout.previousSlot(), buildButton("preview.buttons.previous", Material.SPECTRAL_ARROW,
-                    "&eПредыдущая страница", List.of("", "&f- Страница: &e{prev_page}&7/&e{pages}", ""),
-                    definition, safePage, pages));
+            inventory.setItem(layout.previousSlot(), navigationButton(BACK_TEXTURE, "&#429F91← &fПредыдущая страница",
+                    List.of("", "&8Страница: &f" + safePage + "&8/&f" + pages, "", "&#429F91▸ &fЛКМ &8— &7перейти")));
+        } else {
+            inventory.setItem(layout.previousSlot(), navigationButton(DISABLED_TEXTURE, "&8Предыдущей страницы нет",
+                    List.of("", "&7Вы уже на первой странице.", "")));
         }
         if (safePage + 1 < pages) {
-            inventory.setItem(layout.nextSlot(), buildButton("preview.buttons.next", Material.SPECTRAL_ARROW,
-                    "&eСледующая страница", List.of("", "&f- Страница: &e{next_page}&7/&e{pages}", ""),
-                    definition, safePage, pages));
+            inventory.setItem(layout.nextSlot(), navigationButton(NEXT_TEXTURE, "&#429F91→ &fСледующая страница",
+                    List.of("", "&8Страница: &f" + (safePage + 2) + "&8/&f" + pages, "", "&#429F91▸ &fЛКМ &8— &7перейти")));
+        } else {
+            inventory.setItem(layout.nextSlot(), navigationButton(DISABLED_TEXTURE, "&8Следующей страницы нет",
+                    List.of("", "&7Это последняя страница.", "")));
         }
 
         if (pageChange) {
@@ -160,21 +168,18 @@ public final class RewardPreviewMenu {
     }
 
     private ItemStack buildInfoItem(CaseDefinition definition, int page, int pages, int rewardCount) {
-        String[] replacements = replacements(definition, page, pages,
-                "rewards", String.valueOf(rewardCount));
-        return buildConfiguredItem("preview.info", Material.COMPASS, "&eСодержимое кейса", List.of(
-                "",
-                "&6 «Основное»",
-                "&f- Кейс: &e{case}",
-                "&f- Наград: &e{rewards}",
-                "&f- Страница: &e{page}&7/&e{pages}",
-                ""
-        ), replacements);
+        return navigationButton(CONTENTS_TEXTURE, "&#429F91Содержимое кейса", List.of());
     }
 
-    private ItemStack buildButton(String path, Material material, String name, List<String> lore,
-                                  CaseDefinition definition, int page, int pages) {
-        return buildConfiguredItem(path, material, name, lore, replacements(definition, page, pages));
+    private ItemStack navigationButton(String texture, String name, List<String> lore) {
+        ItemStack item = SkullUtil.fromBase64(texture, name);
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return item;
+        meta.setDisplayName(ColorUtil.colorize(name));
+        meta.setLore(lore.isEmpty() ? null : lore.stream().map(ColorUtil::colorize).toList());
+        GuiItemFlags.hideAttributes(meta);
+        item.setItemMeta(meta);
+        return item;
     }
 
     private ItemStack buildConfiguredItem(String path, Material fallbackMaterial, String fallbackName,

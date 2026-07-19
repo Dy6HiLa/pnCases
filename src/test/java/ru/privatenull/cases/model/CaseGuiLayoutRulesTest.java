@@ -12,6 +12,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class CaseGuiLayoutRulesTest {
 
     @Test
+    void allowsAnimationButtonToBeDisabledWithNegativeSlot() {
+        CaseGuiLayoutRules.ResolvedSlots slots = CaseGuiLayoutRules.resolveSlots(
+                54,
+                22, CaseGuiLayout.DEFAULT_OPEN_SLOT,
+                -1, CaseGuiLayout.DEFAULT_ANIMATION_SLOT,
+                List.of(), List.of()
+        );
+
+        assertEquals(-1, slots.animationSlot());
+    }
+
+    @Test
     void normalizesRowsAndSlots() {
         assertEquals(9, CaseGuiLayoutRules.normalizeSize(1));
         assertEquals(54, CaseGuiLayoutRules.normalizeSize(6));
@@ -43,7 +55,6 @@ class CaseGuiLayoutRulesTest {
                     inventorySize,
                     4, CaseGuiLayout.DEFAULT_OPEN_SLOT,
                     4, CaseGuiLayout.DEFAULT_ANIMATION_SLOT,
-                    4, CaseGuiLayout.DEFAULT_PREVIEW_SLOT,
                     List.of(0, 1, 2, 3, 4, 5, 6, 7, 8, 53),
                     List.of(0, 1, 2, 3, 4, 5, 6, 7, 8, 53)
             );
@@ -51,7 +62,6 @@ class CaseGuiLayoutRulesTest {
             List<Integer> all = new java.util.ArrayList<>();
             all.add(slots.openSlot());
             all.add(slots.animationSlot());
-            all.add(slots.previewSlot());
             all.addAll(slots.historySlots());
             all.addAll(slots.decorSlots());
 
@@ -67,14 +77,12 @@ class CaseGuiLayoutRulesTest {
                 54,
                 22, 22,
                 49, 49,
-                50, 50,
-                List.of(22, 45, 49, 50, 51),
-                List.of(0, 22, 45, 49, 50, 51)
+                List.of(22, 45, 49, 51),
+                List.of(0, 22, 45, 49, 51)
         );
 
         assertEquals(22, slots.openSlot());
         assertEquals(49, slots.animationSlot());
-        assertEquals(50, slots.previewSlot());
         assertEquals(List.of(45, 51), slots.historySlots());
         assertEquals(List.of(0), slots.decorSlots());
     }

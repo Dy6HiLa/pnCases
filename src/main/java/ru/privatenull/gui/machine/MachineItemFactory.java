@@ -10,6 +10,7 @@ import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.pnlibrary.text.ColorUtil;
 import ru.privatenull.util.EnchantmentCompat;
 import ru.privatenull.util.GuiItemFlags;
+import ru.privatenull.util.SkullUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +18,8 @@ import java.util.List;
 import static ru.privatenull.util.ItemNames.readableItemName;
 
 final class MachineItemFactory {
+
+    private static final String BACK_TEXTURE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNjllYTFkODYyNDdmNGFmMzUxZWQxODY2YmNhNmEzMDQwYTA2YzY4MTc3Yzc4ZTQyMzE2YTEwOThlNjBmYjdkMyJ9fX0=";
 
     private final CaseManager caseManager;
     private final MachineCaseState state;
@@ -110,8 +113,8 @@ final class MachineItemFactory {
     }
 
     ItemStack backButton(CaseDefinition definition) {
-        return configuredButton("machine.buttons.back", Material.ARROW, "&fНазад",
-                List.of("", "&7ЛКМ &8— &fв главное меню"), definition);
+        return button(SkullUtil.fromBase64(BACK_TEXTURE, "&#429F91← &fНазад"),
+                "&#429F91← &fНазад", List.of("", "&8Вернуться в главное меню настройки", "", "&#429F91▸ &fЛКМ &8— &7вернуться"));
     }
 
     String[] replacements(CaseDefinition definition, String... extra) {

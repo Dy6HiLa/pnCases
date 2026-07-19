@@ -28,7 +28,6 @@ final class CaseViewConfigParser {
 
         int openSlot = integer(gui, defaults.openSlot(), "open_slot", "open-slot", "open_item_slot", "open-item-slot");
         int animationSlot = integer(gui, defaults.animationSlot(), "animation_slot", "animation-slot");
-        int previewSlot = integer(gui, defaults.previewSlot(), "preview_slot", "preview-slot", "rewards_slot", "rewards-slot");
 
         ConfigurationSection decor = gui.getConfigurationSection("decor");
         ConfigurationSection history = gui.getConfigurationSection("history");
@@ -36,7 +35,6 @@ final class CaseViewConfigParser {
                 size,
                 openSlot, defaults.openSlot(),
                 animationSlot, defaults.animationSlot(),
-                previewSlot, defaults.previewSlot(),
                 readSlots(history, defaults.historySlots(), "slots"),
                 readSlots(decor, defaults.decorSlots(), "slots")
         );
@@ -44,12 +42,10 @@ final class CaseViewConfigParser {
                 size,
                 slots.openSlot(),
                 slots.animationSlot(),
-                slots.previewSlot(),
                 slots.historySlots(),
                 slots.decorSlots(),
                 readItem(decor, "item", null, Material.GRAY_STAINED_GLASS_PANE, " "),
                 readItem(gui, "animation-item", null, null, null),
-                readItem(gui, "preview-item", null, null, null),
                 readItem(history, "empty-item", null, Material.BARRIER, "&8История пуста")
         );
     }

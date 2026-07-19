@@ -3,6 +3,7 @@ package ru.privatenull.gui.caseview;
 import org.bukkit.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -98,13 +99,6 @@ public final class CaseMenuService implements CaseView {
 
     @Override
     public ItemStack buildPreviewButton(CaseDefinition definition) {
-        if (definition.guiLayout().previewItem() != null) {
-            ItemStack configured = definition.guiLayout().previewItem().clone();
-            configured.setAmount(1);
-            hideAttributes(configured);
-            return configured;
-        }
-
         ItemStack item = new ItemStack(Material.ENDER_EYE);
         ItemMeta meta = item.getItemMeta();
         if (meta == null) return item;
@@ -136,10 +130,11 @@ public final class CaseMenuService implements CaseView {
         CaseGuiLayout layout = definition.guiLayout();
         fillDecor(inventory, layout);
         fillHistory(inventory, definition);
-        if (definition.fixedAnimation() == null && !ServerCompatibility.useMinecraft1165AnimationMode()) {
+        if (layout.animationSlot() >= 0
+                && definition.fixedAnimation() == null
+                && !ServerCompatibility.useMinecraft1165AnimationMode()) {
             inventory.setItem(layout.animationSlot(), buildAnimationButton(player, definition));
         }
-        inventory.setItem(layout.previewSlot(), buildPreviewButton(definition));
         // Opening is the highest-priority action. Keep it last as an additional
         // safety net for CaseGuiLayout instances built outside the YAML parser.
         inventory.setItem(layout.openSlot(), buildOpenButton(player, definition));
@@ -158,7 +153,11 @@ public final class CaseMenuService implements CaseView {
 
     private List<String> extraLore(CaseDefinition definition, int have, int need, int buyExp) {
         String keyId = definition.costKeyId() == null ? "" : definition.costKeyId();
-        String keyName = keyId.isBlank() ? "" : caseManager.getKeyDisplayName(keyId);
+        String keyName = keyId.isBlank()
+                ? ""
+                : keyId.equals(definition.name())
+                ? color(definition.displayName())
+                : caseManager.getKeyDisplayName(keyId);
         String keysBalance = definition.costType() == CaseDefinition.CostType.KEY
                 ? plugin.getGuiConfig().text("case.button.keys-balance",
                 plugin.getGuiConfig().text("gui.case-button.keys-balance", "&7Ключи: &f{have}&7/&f{need}",
@@ -171,14 +170,12 @@ public final class CaseMenuService implements CaseView {
                 plugin.getGuiConfig().text("gui.case-button.buy-xp-hint", "&7ЛКМ &8— &fкупить ключ за опыт: &8({levels} lvl)",
                         "levels", String.valueOf(buyExp)),
                 "levels", String.valueOf(buyExp));
-        String previewLeftHint = plugin.getGuiConfig().text("case.button.preview-left-hint",
-                plugin.getGuiConfig().text("gui.case-button.preview-left-hint", "&7ЛКМ &8— &bпосмотреть содержимое"));
         String openHint = plugin.getGuiConfig().text("case.button.open-hint",
                 plugin.getGuiConfig().text("gui.case-button.open-hint", "&7ПКМ &8— &aоткрыть кейс"));
-        String previewHint = buyExp > 0
-                ? plugin.getGuiConfig().text("case.button.preview-hint",
-                plugin.getGuiConfig().text("gui.case-button.preview-hint", "&7СКМ &8— &bпосмотреть содержимое"))
-                : "";
+        String previewLeftHint = plugin.getGuiConfig().text("case.button.preview-left-hint",
+                plugin.getGuiConfig().text("gui.case-button.preview-left-hint", "&7ЛКМ &8— &bпосмотреть содержимое"))
+                ;
+        String previewHint = "";
 
         String[] replacements = {
                 "case", color(definition.displayName()), "case_id", definition.name(), "case-id", definition.name(),
@@ -191,8 +188,28 @@ public final class CaseMenuService implements CaseView {
         };
         List<String> fallback = plugin.getGuiConfig().list("gui.case-button.extra-lore", List.of(
                 "", "{keys-balance}", "", "{left-click}", "{right-click}", "{middle-click}"), replacements);
-        List<String> lines = plugin.getGuiConfig().list("case.button.extra-lore", fallback, replacements);
+        List<String> lines = caseExtraLore(definition, fallback, replacements);
         trimTrailingEmptyLines(lines);
+        return lines;
+    }
+
+    private List<String> caseExtraLore(CaseDefinition definition, List<String> fallback, String[] replacements) {
+        ConfigurationSection caseSection = caseManager.getCaseSection(definition.name());
+        ConfigurationSection openItem = caseSection == null ? null : caseSection.getConfigurationSection("gui.open-item");
+        if (openItem == null || !openItem.isList("extra-lore")) {
+            return plugin.getGuiConfig().list("case.button.extra-lore", fallback, replacements);
+        }
+
+        List<String> lines = new ArrayList<>();
+        for (String raw : openItem.getStringList("extra-lore")) {
+            String formatted = raw == null ? "" : raw;
+            for (int i = 0; i < replacements.length; i += 2) {
+                formatted = formatted.replace("{" + replacements[i] + "}", replacements[i + 1]);
+            }
+            for (String line : formatted.split("\\R", -1)) {
+                lines.add(color(line));
+            }
+        }
         return lines;
     }
 

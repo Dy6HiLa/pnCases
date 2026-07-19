@@ -6,7 +6,7 @@ import java.util.Locale;
 
 public class Reward {
 
-    public enum Type { ITEM, LUCKPERMS, VAULT, PLAYERPOINTS }
+    public enum Type { ITEM, LUCKPERMS, VAULT, PLAYERPOINTS, PERSONAL }
 
     public enum Rarity {
         COMMON("Обычная", "§7"),
@@ -67,6 +67,7 @@ public class Reward {
     private final String lpDuration;
     private final double vaultAmount;
     private final int playerPointsAmount;
+    private final String command;
     private final String message;
     private final String displayName;
     private final Rarity rarity;
@@ -110,7 +111,7 @@ public class Reward {
             Rarity rarity
     ) {
         this(chance, type, item, lpGroup, lpNode, lpDuration, vaultAmount, playerPointsAmount,
-                message, displayName, rarity, rarity == null ? null : rarity.name(), item);
+                message, displayName, rarity, rarity == null ? null : rarity.name(), item, null);
     }
 
     public Reward(
@@ -127,7 +128,7 @@ public class Reward {
             String rarityId
     ) {
         this(chance, type, item, lpGroup, lpNode, lpDuration, vaultAmount, playerPointsAmount,
-                message, displayName, Rarity.parse(rarityId, chance), rarityId, item);
+                message, displayName, Rarity.parse(rarityId, chance), rarityId, item, null);
     }
 
     public Reward(
@@ -145,7 +146,26 @@ public class Reward {
             ItemStack visualItem
     ) {
         this(chance, type, item, lpGroup, lpNode, lpDuration, vaultAmount, playerPointsAmount,
-                message, displayName, Rarity.parse(rarityId, chance), rarityId, visualItem);
+                message, displayName, rarityId, visualItem, null);
+    }
+
+    public Reward(
+            int chance,
+            Type type,
+            ItemStack item,
+            String lpGroup,
+            String lpNode,
+            String lpDuration,
+            double vaultAmount,
+            int playerPointsAmount,
+            String message,
+            String displayName,
+            String rarityId,
+            ItemStack visualItem,
+            String command
+    ) {
+        this(chance, type, item, lpGroup, lpNode, lpDuration, vaultAmount, playerPointsAmount,
+                message, displayName, Rarity.parse(rarityId, chance), rarityId, visualItem, command);
     }
 
     private Reward(
@@ -161,7 +181,8 @@ public class Reward {
             String displayName,
             Rarity rarity,
             String rarityId,
-            ItemStack visualItem
+            ItemStack visualItem,
+            String command
     ) {
         this.chance = chance;
         this.type = type;
@@ -172,6 +193,7 @@ public class Reward {
         this.lpDuration = lpDuration;
         this.vaultAmount = vaultAmount;
         this.playerPointsAmount = playerPointsAmount;
+        this.command = command;
         this.message = message;
         this.displayName = displayName;
         this.rarity = rarity == null ? Rarity.fromChance(chance) : rarity;
@@ -201,6 +223,7 @@ public class Reward {
     public String lpDuration() { return lpDuration; }
     public double vaultAmount() { return vaultAmount; }
     public int playerPointsAmount() { return playerPointsAmount; }
+    public String command() { return command; }
     public String message() { return message; }
     public String displayName() { return displayName; }
     public Rarity rarity() { return rarity; }

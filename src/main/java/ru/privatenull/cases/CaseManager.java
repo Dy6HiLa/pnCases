@@ -9,6 +9,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.Vector;
 import ru.privatenull.cases.animation.AnimationRegistry;
 import ru.privatenull.cases.animation.CaseAnimation;
 import ru.privatenull.cases.model.AnimationType;
@@ -40,6 +41,8 @@ import java.util.logging.Level;
 public class CaseManager {
 
     private static final long ANIMATION_WATCHDOG_TICKS = 20L * 120L;
+    private static final double SPECTATOR_REPEL_RADIUS = 5.0D;
+    private static final double OPENER_REPEL_RADIUS = 3.0D;
 
     public enum UnbindCaseResult {
         REMOVED,
@@ -63,6 +66,13 @@ public class CaseManager {
         ALREADY_EXISTS,
         INVALID_ID,
         SAVE_FAILED,
+        RELOAD_FAILED
+    }
+
+    public enum DeleteCaseResult {
+        DELETED,
+        NOT_FOUND,
+        DELETE_FAILED,
         RELOAD_FAILED
     }
 
@@ -91,6 +101,7 @@ public class CaseManager {
     private final OpenHistoryStorage openHistoryStorage;
     private final PendingRewardStorage pendingRewards;
     private final PlayerPrefsStorage playerPrefs;
+    private final BukkitTask openingBarrierTask;
     private volatile boolean shuttingDown;
 
     public CaseManager(PnCasesPlugin plugin) {
@@ -106,6 +117,8 @@ public class CaseManager {
         this.playerPrefs = new PlayerPrefsStorage(plugin.getDatabase());
         this.rewardDelivery = new RewardDeliveryService(plugin, openHistoryStorage, rewardPresentation);
         this.rewardSelector = new RewardSelector();
+        this.openingBarrierTask = plugin.getServer().getScheduler().runTaskTimer(
+                plugin, this::repelPlayersFromActiveCases, 1L, 2L);
     }
 
     public PnCasesPlugin getPlugin() { return plugin; }
@@ -122,6 +135,7 @@ public class CaseManager {
 
     public void shutdown() {
         shuttingDown = true;
+        openingBarrierTask.cancel();
         animationRegistry.shutdownAll();
         for (ActiveOpening opening : new ArrayList<>(activeOpenings.values())) {
             completeOpening(opening, false, null);
@@ -139,27 +153,44 @@ public class CaseManager {
     }
 
     public List<String> getCaseNames() { return new ArrayList<>(casesByName.keySet()); }
+
+    private void repelPlayersFromActiveCases() {
+        if (activeOpenings.isEmpty()) return;
+        for (ActiveOpening opening : activeOpenings.values()) {
+            if (opening.completed.get() || opening.caseBlockLocation == null) continue;
+            World world = Bukkit.getWorld(opening.worldId);
+            if (world == null) continue;
+
+            Location center = opening.caseBlockLocation.clone().add(0.5D, 0.0D, 0.5D);
+            for (Player target : world.getPlayers()) {
+                if (!target.isOnline() || target.isDead()) continue;
+                double radius = target.getUniqueId().equals(opening.playerId)
+                        ? OPENER_REPEL_RADIUS : SPECTATOR_REPEL_RADIUS;
+                repelIfTooClose(target, center, radius);
+            }
+        }
+    }
+
+    private void repelIfTooClose(Player player, Location center, double radius) {
+        Location location = player.getLocation();
+        double dx = location.getX() - center.getX();
+        double dz = location.getZ() - center.getZ();
+        if (dx * dx + dz * dz >= radius * radius) return;
+
+        Vector outward = new Vector(dx, 0.0D, dz);
+        if (outward.lengthSquared() < 0.0001D) {
+            outward = player.getLocation().getDirection().multiply(-1.0D);
+            outward.setY(0.0D);
+        }
+        if (outward.lengthSquared() < 0.0001D) outward = new Vector(1.0D, 0.0D, 0.0D);
+        outward.normalize().multiply(0.75D).setY(0.12D);
+        player.setVelocity(outward);
+        player.setFallDistance(0.0F);
+    }
     public List<String> getConfiguredCaseNames() {
         return configRepository.configuredNames(getCaseNames());
     }
 
-    public List<String> getBaseTemplateNames() {
-        return List.of("money", "items", "playerpoints", "luckperms").stream()
-                .filter(this::caseExists)
-                .toList();
-    }
-
-    public String getCaseTemplate(String caseName) {
-        ConfigurationSection section = getCaseSection(caseName);
-        return section == null ? "custom" : section.getString("template", "custom");
-    }
-
-    public boolean applyCaseTemplate(String caseName, String templateName) {
-        if (!configRepository.applyTemplate(caseName, templateName)) {
-            return false;
-        }
-        return refreshCaseFromConfig(caseName, false, false);
-    }
     public List<String> getKeyNames()  { return new ArrayList<>(keyNames.keySet()); }
     public boolean keyExists(String keyId) {
         return keyId != null && keyNames.containsKey(keyId.toLowerCase(Locale.ROOT));
@@ -201,20 +232,37 @@ public class CaseManager {
         if (!CaseConfigRepository.isValidId(caseName)) return CreateCaseResult.INVALID_ID;
         if (configRepository.exists(caseName)) return CreateCaseResult.ALREADY_EXISTS;
 
-        DefaultKeyChange keyChange = createDefaultKey(caseName);
+        DefaultKeyChange keyChange = createDefaultKey(
+                caseName,
+                CaseConfigRepository.defaultDisplayName(caseName)
+        );
         if (!keyChange.success()) return CreateCaseResult.SAVE_FAILED;
 
         CaseConfigRepository.CreateResult result = configRepository.create(caseName);
         if (result == CaseConfigRepository.CreateResult.CREATED) {
             return reloadFromConfig() ? CreateCaseResult.CREATED : CreateCaseResult.RELOAD_FAILED;
-        } else if (keyChange.created()) {
+        }
+        if (keyChange.created()) {
             rollbackDefaultKey(caseName);
         }
         return CreateCaseResult.valueOf(result.name());
     }
 
-    private DefaultKeyChange createDefaultKey(String caseName) {
-        String keyId = CaseConfigRepository.normalizeName(caseName) + "_key";
+    public DeleteCaseResult deleteCase(String caseName) {
+        String normalized = CaseConfigRepository.normalizeName(caseName);
+        if (!CaseConfigRepository.isValidId(normalized) || !configRepository.exists(normalized)) {
+            return DeleteCaseResult.NOT_FOUND;
+        }
+        if (!configRepository.delete(normalized)) {
+            return DeleteCaseResult.DELETE_FAILED;
+        }
+
+        removeDefaultKey(normalized);
+        return reloadFromConfig() ? DeleteCaseResult.DELETED : DeleteCaseResult.RELOAD_FAILED;
+    }
+
+    private DefaultKeyChange createDefaultKey(String caseName, String displayName) {
+        String keyId = CaseConfigRepository.normalizeName(caseName);
         ConfigurationSection keys = plugin.getConfig().getConfigurationSection("keys");
         boolean createdKeysSection = keys == null;
         if (keys == null) {
@@ -224,7 +272,7 @@ public class CaseManager {
             return new DefaultKeyChange(true, false);
         }
         ConfigurationSection key = keys.createSection(keyId);
-        key.set("name", "&fКлюч: " + caseName);
+        key.set("name", displayName);
         if (configRepository.saveMainConfig()) {
             return new DefaultKeyChange(true, true);
         }
@@ -235,12 +283,23 @@ public class CaseManager {
     }
 
     private void rollbackDefaultKey(String caseName) {
-        String keyId = CaseConfigRepository.normalizeName(caseName) + "_key";
+        String keyId = CaseConfigRepository.normalizeName(caseName);
         ConfigurationSection keys = plugin.getConfig().getConfigurationSection("keys");
         if (keys == null || !keys.contains(keyId)) return;
         keys.set(keyId, null);
         if (!configRepository.saveMainConfig()) {
             plugin.getLogger().severe("Не удалось откатить ключ '" + keyId + "' после ошибки создания кейса.");
+        }
+    }
+
+    private void removeDefaultKey(String caseName) {
+        ConfigurationSection keys = plugin.getConfig().getConfigurationSection("keys");
+        if (keys == null) return;
+        String keyId = CaseConfigRepository.normalizeName(caseName);
+        if (!keys.contains(keyId)) return;
+        keys.set(keyId, null);
+        if (!configRepository.saveMainConfig()) {
+            plugin.getLogger().warning("Кейс '" + caseName + "' удалён, но ключ '" + keyId + "' не удалось удалить из config.yml.");
         }
     }
 
@@ -1039,14 +1098,7 @@ public class CaseManager {
     }
 
     private String humanizeKeyName(String keyId) {
-        String normalized = keyId == null ? "" : keyId.toLowerCase(Locale.ROOT);
-        return switch (normalized) {
-            case "items_key", "resources_key", "tools_key" -> "&bКлюч с ресурсами";
-            case "money_key" -> "&6Ключ с монетами";
-            case "points_key", "playerpoints_key" -> "&bКлюч с поинтами";
-            case "donate_key", "luckperms_key" -> "&6Донат ключ";
-            default -> keyId == null || keyId.isBlank() ? "" : "&f" + keyId.replace('_', ' ');
-        };
+        return keyId == null || keyId.isBlank() ? "" : "&f" + keyId.replace('_', ' ');
     }
 
     public boolean isOpening(UUID playerId) { return openingPlayers.contains(playerId); }

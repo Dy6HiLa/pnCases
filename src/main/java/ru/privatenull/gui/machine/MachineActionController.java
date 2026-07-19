@@ -78,8 +78,6 @@ final class MachineActionController {
         if (slot == SLOT_MAIN_CLOSE) {
             player.closeInventory();
             player.playSound(player.getLocation(), Sound.BLOCK_BARREL_CLOSE, 0.2f, 0.95f);
-        } else if (slot == 4) {
-            switchTemplate(player, definition, event.isRightClick());
         } else if (slot == SLOT_MAIN_ANIMATION) {
             animationScreen.open(player, definition.name());
         } else if (slot == SLOT_MAIN_MENU) {
@@ -93,24 +91,6 @@ final class MachineActionController {
         } else if (slot == SLOT_MAIN_PURCHASE) {
             purchaseScreen.open(player, definition.name());
         }
-    }
-
-    private void switchTemplate(Player player, CaseDefinition definition, boolean backwards) {
-        java.util.List<String> templates = caseManager.getBaseTemplateNames();
-        if (templates.isEmpty()) return;
-        String current = caseManager.getCaseTemplate(definition.name());
-        int index = templates.indexOf(current);
-        int next = backwards
-                ? (index - 1 + templates.size()) % templates.size()
-                : (index + 1 + templates.size()) % templates.size();
-        if (index < 0) next = backwards ? templates.size() - 1 : 0;
-        String template = templates.get(next);
-        if (!caseManager.applyCaseTemplate(definition.name(), template)) {
-            player.sendMessage(caseManager.getPlugin().getMessages().get("machine-save-failed"));
-            return;
-        }
-        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.2f, 1.3f);
-        mainScreen.open(player, definition.name());
     }
 
     private void handleToggles(Player player, CaseDefinition definition, int slot) {

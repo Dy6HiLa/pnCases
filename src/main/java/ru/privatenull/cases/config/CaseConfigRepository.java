@@ -6,7 +6,6 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import ru.privatenull.PnCasesPlugin;
 import ru.privatenull.cases.model.AnimationType;
-import ru.privatenull.cases.model.Reward;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,13 +34,6 @@ public final class CaseConfigRepository {
         INVALID_ID,
         SAVE_FAILED
     }
-
-    private static final List<String> DEFAULT_RESOURCES = List.of(
-            "cases/money.yml",
-            "cases/playerpoints.yml",
-            "cases/items.yml",
-            "cases/luckperms.yml"
-    );
 
     private final PnCasesPlugin plugin;
 
@@ -98,22 +90,6 @@ public final class CaseConfigRepository {
         return false;
     }
 
-    public boolean applyTemplate(String caseName, String templateName) {
-        String normalizedCase = normalizeName(caseName);
-        String normalizedTemplate = normalizeName(templateName);
-        if (!isValidId(normalizedCase) || !isValidId(normalizedTemplate)) {
-            return false;
-        }
-        Source template = findSource(normalizedTemplate);
-        if (template == null || template.section() == null || !template.section().isList("rewards")) {
-            return false;
-        }
-
-        List<?> rewards = deepCopyList(template.section().getList("rewards", List.of()));
-        return update(normalizedCase,
-                target -> applyTemplateValues(target, normalizedCase, normalizedTemplate, rewards));
-    }
-
     public CreateResult create(String caseName) {
         if (!isValidId(caseName)) return CreateResult.INVALID_ID;
         String normalized = normalizeName(caseName);
@@ -128,21 +104,7 @@ public final class CaseConfigRepository {
         File target = file(normalized);
         YamlConfiguration yaml = new YamlConfiguration();
         writeNewCaseDefaults(yaml, normalized);
-        applyMoneyTypeDefaults(yaml);
         return saveYamlAtomically(yaml, target) ? CreateResult.CREATED : CreateResult.SAVE_FAILED;
-    }
-
-    private void applyMoneyTypeDefaults(ConfigurationSection target) {
-        Source money = findSource("money");
-        ConfigurationSection source = money == null ? null : money.section();
-        List<?> configuredRewards = source == null ? null : source.getList("rewards");
-        target.set("rewards", moneyRewardsOrFallback(configuredRewards));
-
-        ConfigurationSection sourceAnimation = source == null ? null : source.getConfigurationSection("animation");
-        List<?> animationItems = sourceAnimation == null ? null : sourceAnimation.getList("items");
-        if (animationItems != null && !animationItems.isEmpty()) {
-            target.set("animation.items", deepCopyList(animationItems));
-        }
     }
 
     public List<Source> loadSources() {
@@ -302,25 +264,6 @@ public final class CaseConfigRepository {
         return !pathExists && embeddedCasesExist;
     }
 
-    static List<?> moneyRewardsOrFallback(List<?> configuredRewards) {
-        if (configuredRewards != null && !configuredRewards.isEmpty()) {
-            boolean validVaultRewards = configuredRewards.stream().allMatch(raw -> {
-                if (!(raw instanceof Map<?, ?> reward)) return false;
-                Object rawType = reward.containsKey("type") ? reward.get("type") : "ITEM";
-                return RewardConfigValues.inferType(String.valueOf(rawType), reward) == Reward.Type.VAULT;
-            });
-            if (validVaultRewards) return deepCopyList(configuredRewards);
-        }
-        return List.of(Map.of(
-                "chance", 100,
-                "rarity", "COMMON",
-                "type", "VAULT",
-                "visual", Map.of("material", "GOLD_INGOT", "name", "&6Монеты"),
-                "vault", Map.of("amount", 100),
-                "message", "&aВы получили &6{reward}&a!"
-        ));
-    }
-
     public boolean save(Writable writable) {
         if (writable == null) return false;
         if (writable.fileBacked()) {
@@ -333,14 +276,35 @@ public final class CaseConfigRepository {
         return saveYamlAtomically(plugin.getConfig(), new File(plugin.getDataFolder(), "config.yml"));
     }
 
+    public boolean delete(String caseName) {
+        Writable writable = writable(caseName, false);
+        if (writable == null || writable.section() == null) return false;
+
+        if (writable.fileBacked()) {
+            try {
+                return Files.deleteIfExists(writable.file().toPath());
+            } catch (IOException ex) {
+                plugin.getLogger().severe("Не удалось удалить конфиг кейса '" + normalizeName(caseName) + "': " + ex.getMessage());
+                return false;
+            }
+        }
+
+        ConfigurationSection cases = plugin.getConfig().getConfigurationSection("cases");
+        if (cases == null) return false;
+        String normalized = normalizeName(caseName);
+        Object snapshot = cases.get(normalized);
+        cases.set(normalized, null);
+        if (saveMainConfig()) return true;
+        cases.set(normalized, snapshot);
+        return false;
+    }
+
     public void exportMainCasesIfMissing() {
         if (!plugin.getConfig().getBoolean("case-files.auto-export", true)) return;
         File directory = directory();
         ConfigurationSection root = plugin.getConfig().getConfigurationSection("cases");
         if (!ensureDirectory(directory)) return;
         if (root == null || root.getKeys(false).isEmpty()) {
-            File[] existing = directory.listFiles((file, name) -> name.toLowerCase(Locale.ROOT).endsWith(".yml"));
-            if (existing == null || existing.length == 0) saveBundledCases();
             return;
         }
 
@@ -497,24 +461,6 @@ public final class CaseConfigRepository {
                 && snapshotSection(source).equals(snapshotSection(target));
     }
 
-    private void saveBundledCases() {
-        int saved = 0;
-        for (String resource : DEFAULT_RESOURCES) {
-            if (plugin.getResource(resource) == null) continue;
-            File target = new File(plugin.getDataFolder(), resource);
-            if (target.exists()) continue;
-            try {
-                plugin.saveResource(resource, false);
-                saved++;
-            } catch (IllegalArgumentException ex) {
-                plugin.getLogger().warning("Не удалось распаковать пример кейса " + resource + ": " + ex.getMessage());
-            }
-        }
-        if (saved > 0) {
-            plugin.getLogger().info("Созданы отдельные конфиги кейсов: plugins/pnCases/cases/*.yml (" + saved + ").");
-        }
-    }
-
     private File directory() {
         return new File(plugin.getDataFolder(), "cases");
     }
@@ -543,17 +489,6 @@ public final class CaseConfigRepository {
             if (section.contains(key)) return section.getString(key);
         }
         return null;
-    }
-
-    static void applyTemplateValues(
-            ConfigurationSection target,
-            String caseName,
-            String templateName,
-            List<?> rewards
-    ) {
-        target.set("id", normalizeName(caseName));
-        target.set("template", normalizeName(templateName));
-        target.set("rewards", deepCopyList(rewards));
     }
 
     private static void copySection(ConfigurationSection source, ConfigurationSection target) {
@@ -675,12 +610,14 @@ public final class CaseConfigRepository {
         return value;
     }
 
-    private static void writeNewCaseDefaults(ConfigurationSection root, String caseName) {
-        String visibleName = "&x&4&2&9&F&9&1Новый кейс &8| &f" + caseName;
+    public static String defaultDisplayName(String caseName) {
+        return "&x&4&2&9&F&9&1Новый кейс &8| &f" + caseName;
+    }
+
+    static void writeNewCaseDefaults(ConfigurationSection root, String caseName) {
+        String visibleName = defaultDisplayName(caseName);
+        root.set("blocks", List.of());
         root.set("id", caseName);
-        // Every case created through the command starts as the money variant.
-        // The Machine GUI can then switch it to another base variant if needed.
-        root.set("template", "money");
         root.set("display-name", visibleName);
 
         ConfigurationSection hologram = root.createSection("hologram");
@@ -704,7 +641,7 @@ public final class CaseConfigRepository {
         showcaseItem.set("name", visibleName);
 
         ConfigurationSection gui = root.createSection("gui");
-        gui.set("title", "&8" + caseName);
+        gui.set("title", "{display-name}");
         gui.set("size", 54);
         gui.set("open_slot", 22);
         gui.set("animation_slot", 49);
@@ -725,22 +662,25 @@ public final class CaseConfigRepository {
         animationItem.set("lore", List.of("&7Настройка открытия в Machine GUI."));
         ConfigurationSection openItem = gui.createSection("open-item");
         openItem.set("material", "CHEST");
-        openItem.set("name", visibleName);
+        openItem.set("name", "{display-name}");
         openItem.set("lore", List.of("", "&7Новый кейс готов к настройке.", ""));
+        openItem.set("extra-lore", List.of(
+                "",
+                "&7Ключи: &f{have}&7/&f{need} &8({key_name}&8)",
+                "",
+                "{left-click}",
+                "{right-click}"
+        ));
 
         ConfigurationSection cost = root.createSection("cost");
         cost.set("type", "KEY");
-        cost.set("key", caseName + "_key");
+        cost.set("key", caseName);
         cost.set("amount", 1);
         cost.set("buy_xp_enabled", false);
         cost.set("buy_xp_levels", 0);
 
         ConfigurationSection animation = root.createSection("animation");
         animation.set("fixed", AnimationType.FORTUNE_RING.name());
-        animation.set("duration_ticks", 80);
-        animation.set("cycle_every_ticks", 3);
-        animation.set("rise_blocks", 1.2D);
-        animation.set("spin_degrees_per_tick", 18);
         animation.set("items", List.of(
                 Map.of("material", "GOLD_INGOT", "name", "&6Золото"),
                 Map.of("material", "DIAMOND", "name", "&bАлмаз"),
@@ -749,9 +689,8 @@ public final class CaseConfigRepository {
         root.set("rewards", List.of(Map.of(
                 "chance", 100,
                 "rarity", "COMMON",
-                "type", "VAULT",
-                "visual", Map.of("material", "GOLD_INGOT", "name", "&6Монеты"),
-                "vault", Map.of("amount", 100),
+                "type", "ITEM",
+                "item", Map.of("material", "CHEST", "amount", 1, "name", "&fНаграда кейса"),
                 "message", "&aВы получили &6{reward}&a!"
         )));
     }

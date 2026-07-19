@@ -193,9 +193,8 @@ public final class ConfigValidator {
             }
         }
 
-        if (!found && !hasBundledCaseFiles(plugin)) {
-            errors.add("Секция cases отсутствует и plugins/pnCases/cases/*.yml не найдены. Плагин не загрузит ни одного кейса.");
-        }
+        // A new installation intentionally has no cases. Administrators create
+        // standalone configs with /pncases createcase <name>.
     }
 
     private static void warnIdMismatch(String path, String canonicalId, ConfigurationSection section, List<String> warnings) {
@@ -276,13 +275,6 @@ public final class ConfigValidator {
         } catch (RuntimeException ignored) {
             return null;
         }
-    }
-
-    private static boolean hasBundledCaseFiles(JavaPlugin plugin) {
-        return plugin.getResource("cases/money.yml") != null
-                || plugin.getResource("cases/playerpoints.yml") != null
-                || plugin.getResource("cases/items.yml") != null
-                || plugin.getResource("cases/luckperms.yml") != null;
     }
 
     private static void validateBlock(String path, ConfigurationSection section, List<String> warnings) {
@@ -456,7 +448,7 @@ public final class ConfigValidator {
             Reward.Type rewardType = inferType(rawType, map);
             String type = rewardType == null ? null : rewardType.name();
             if (type == null) {
-                errors.add(rewardPath + ".type = '" + rawType + "' неизвестен. Доступно: ITEM, LUCKPERMS, VAULT, PLAYERPOINTS.");
+                errors.add(rewardPath + ".type = '" + rawType + "' неизвестен. Доступно: ITEM, LUCKPERMS, VAULT, PLAYERPOINTS, PERSONAL.");
                 continue;
             }
             if (!rawType.equalsIgnoreCase(type)) {
@@ -481,6 +473,13 @@ public final class ConfigValidator {
                 case "PLAYERPOINTS" -> {
                     validateVisualReward(rewardPath, map, warnings);
                     validatePlayerPointsReward(rewardPath, map, warnings, errors);
+                }
+                case "PERSONAL" -> {
+                    validateVisualReward(rewardPath, map, warnings);
+                    Object command = map.get("command");
+                    if (command == null || String.valueOf(command).isBlank()) {
+                        errors.add(rewardPath + ".command обязателен для type: PERSONAL.");
+                    }
                 }
                 default -> {
                 }

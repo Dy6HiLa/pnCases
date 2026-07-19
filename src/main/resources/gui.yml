@@ -3,6 +3,7 @@ case:
     keys-balance: "&7Ключи: &f{have}&7/&f{need} &8({key_name}&8)"
     buy-xp-hint: "&7ЛКМ &8— &fкупить ключ за опыт: &8({levels} lvl)"
     preview-left-hint: "&7ЛКМ &8— &bпосмотреть содержимое"
+    open-left-hint: "&7ЛКМ &8— &aоткрыть кейс"
     open-hint: "&7ПКМ &8— &aоткрыть кейс"
     preview-hint: "&7СКМ &8— &bпосмотреть содержимое"
     extra-lore:
@@ -10,7 +11,6 @@ case:
       - "{keys-balance}"
       - "{left-click}"
       - "{right-click}"
-      - "{middle-click}"
 
   preview-button:
     name: "&x&4&2&9&F&9&1▸ &fСодержимое кейса"
@@ -261,49 +261,6 @@ preview:
       symbol: "★"
       description: "Группа или право LuckPerms"
       material: NETHER_STAR
-  buttons:
-    back:
-      material: ARROW
-      amount: 1
-      custom-model-data: 0
-      glow: false
-      hide-attributes: true
-      name: "&eНазад"
-      lore:
-        - ""
-        - "&6 «Действие»"
-        - "&f- ЛКМ - вернуться к кейсу"
-        - ""
-    previous:
-      material: SPECTRAL_ARROW
-      amount: 1
-      custom-model-data: 0
-      glow: false
-      hide-attributes: true
-      name: "&eПредыдущая страница"
-      lore:
-        - ""
-        - "&6 «Основное»"
-        - "&f- Страница: &e{prev_page}&7/&e{pages}"
-        - ""
-        - "&6 «Действие»"
-        - "&f- ЛКМ - открыть страницу"
-        - ""
-    next:
-      material: SPECTRAL_ARROW
-      amount: 1
-      custom-model-data: 0
-      glow: false
-      hide-attributes: true
-      name: "&eСледующая страница"
-      lore:
-        - ""
-        - "&6 «Основное»"
-        - "&f- Страница: &e{next_page}&7/&e{pages}"
-        - ""
-        - "&6 «Действие»"
-        - "&f- ЛКМ - открыть страницу"
-        - ""
 
 animation-select:
   title: "&8Выбор анимации"

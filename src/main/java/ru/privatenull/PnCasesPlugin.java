@@ -14,8 +14,8 @@ import ru.privatenull.integrations.PlayerPointsProvider;
 import ru.privatenull.integrations.VaultEconomyProvider;
 import ru.privatenull.gui.machine.MachineGuiListener;
 import ru.privatenull.gui.machine.MachineGuiHolder;
-import ru.privatenull.gui.GuiUpdateService;
-import ru.privatenull.gui.GuiOpenAnimationService;
+import ru.privatenull.pnlibrary.gui.GuiUpdateService;
+import ru.privatenull.pnlibrary.gui.GuiOpenAnimationService;
 import ru.privatenull.listeners.CaseBlockListener;
 import ru.privatenull.gui.caseview.CaseGuiListener;
 import ru.privatenull.gui.caseview.CaseGuiHolder;
@@ -24,7 +24,7 @@ import ru.privatenull.gui.caseview.AnimationSelectHolder;
 import ru.privatenull.listeners.RuntimeListener;
 import ru.privatenull.pnlibrary.lifecycle.PluginBanner;
 import ru.privatenull.pnlibrary.database.DatabaseSettings;
-import ru.privatenull.pnlibrary.database.JdbcSettings;
+import ru.privatenull.pnlibrary.database.jdbcsettings;
 import ru.privatenull.pnlibrary.database.MongoSettings;
 import ru.privatenull.pnlibrary.update.UpdateChecker;
 import ru.privatenull.pnlibrary.update.UpdateSettings;
@@ -80,7 +80,7 @@ public final class PnCasesPlugin extends JavaPlugin {
 
         messages = new MessagesConfig(this);
         guiConfig = new GuiConfig(this);
-        guiUpdates = new GuiUpdateService(this);
+        guiUpdates = new GuiUpdateService();
         guiOpenAnimations = new GuiOpenAnimationService(this);
         holograms = new HologramService(this);
 

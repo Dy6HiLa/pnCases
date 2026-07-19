@@ -24,6 +24,7 @@ public final class RewardConfigValues {
             case "LUCKPERMS" -> Reward.Type.LUCKPERMS;
             case "VAULT", "MONEY", "ECONOMY", "ECO" -> Reward.Type.VAULT;
             case "PLAYERPOINTS", "POINTS", "PLAYER_POINTS", "PLAYER-POINTS" -> Reward.Type.PLAYERPOINTS;
+            case "PERSONAL", "COMMAND", "CUSTOM" -> Reward.Type.PERSONAL;
             default -> null;
         };
     }

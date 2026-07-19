@@ -21,8 +21,7 @@ final class MachineCaseState {
     SlotRole roleAt(CaseDefinition definition, int slot) {
         CaseGuiLayout layout = definition.guiLayout();
         if (slot == layout.openSlot()) return SlotRole.OPEN;
-        if (slot == layout.previewSlot()) return SlotRole.PREVIEW;
-        if (slot == layout.animationSlot()) return SlotRole.ANIMATION;
+        if (layout.animationSlot() >= 0 && slot == layout.animationSlot()) return SlotRole.ANIMATION;
         if (layout.historySlots().contains(slot)) return SlotRole.HISTORY;
         if (layout.decorSlots().contains(slot)) return SlotRole.DECOR;
         return SlotRole.EMPTY;

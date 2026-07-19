@@ -36,6 +36,7 @@ public final class RewardDeliveryService {
             case LUCKPERMS -> deliverLuckPerms(player, reward, rewardLabel);
             case VAULT -> deliverVault(player, reward, rewardLabel);
             case PLAYERPOINTS -> deliverPlayerPoints(player, reward, rewardLabel);
+            case PERSONAL -> deliverPersonal(player, reward, rewardLabel);
         };
         if (!delivered) return false;
 
@@ -137,6 +138,21 @@ public final class RewardDeliveryService {
         sendRewardMessage(player, reward, rewardLabel, "", amount,
                 "reward.playerpoints", "reward-playerpoints");
         player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.30f, 1.45f);
+        return true;
+    }
+
+    private boolean deliverPersonal(Player player, Reward reward, String rewardLabel) {
+        String command = reward.command();
+        if (command == null || command.isBlank()) return false;
+        command = command.trim().replaceFirst("^/", "")
+                .replace("{player}", player.getName())
+                .replace("{uuid}", player.getUniqueId().toString());
+        if (!Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command)) {
+            plugin.getLogger().warning("Не удалось выполнить PERSONAL-награду для " + player.getName() + ": " + command);
+            return false;
+        }
+        sendRewardMessage(player, reward, rewardLabel, "", "", "reward-default");
+        player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.30f, 1.3f);
         return true;
     }
 

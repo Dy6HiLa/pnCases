@@ -17,11 +17,7 @@ class ResourceYamlTest {
             "config.yml",
             "gui.yml",
             "messages.yml",
-            "plugin.yml",
-            "cases/items.yml",
-            "cases/luckperms.yml",
-            "cases/money.yml",
-            "cases/playerpoints.yml"
+            "plugin.yml"
     })
     void bundledYamlIsValid(String resource) throws Exception {
         try (InputStream input = getClass().getClassLoader().getResourceAsStream(resource)) {

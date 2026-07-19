@@ -66,6 +66,7 @@ final class RewardConfigParser {
             case LUCKPERMS -> parseLuckPerms(map);
             case VAULT -> parseVault(map);
             case PLAYERPOINTS -> parsePlayerPoints(map);
+            case PERSONAL -> parsePersonal(map);
         };
         if (!isValid(chance, type, parsed)) return null;
 
@@ -81,7 +82,8 @@ final class RewardConfigParser {
                 message,
                 parsed.displayName(),
                 rarityId,
-                parsed.visualItem()
+                parsed.visualItem(),
+                parsed.command()
         );
     }
 
@@ -101,7 +103,7 @@ final class RewardConfigParser {
         ItemStack visual = visualItem(map, displayName);
         if (item == null) item = visual;
         if (visual == null) visual = item;
-        return new ParsedReward(item, visual, null, null, null, 0.0, 0, displayName);
+        return new ParsedReward(item, visual, null, null, null, 0.0, 0, displayName, null);
     }
 
     private ParsedReward parseLuckPerms(Map<?, ?> map) {
@@ -118,7 +120,7 @@ final class RewardConfigParser {
         }
         ItemStack visual = visualItem(map, displayName);
         displayName = visualName(visual, displayName == null ? "&dПривилегия" : displayName);
-        return new ParsedReward(null, visual, group, node, duration, 0.0, 0, displayName);
+        return new ParsedReward(null, visual, group, node, duration, 0.0, 0, displayName, null);
     }
 
     private ParsedReward parseVault(Map<?, ?> map) {
@@ -126,7 +128,7 @@ final class RewardConfigParser {
         double amount = decimal(firstPresent(vault, map, "amount", "money", "value"), 0.0);
         String displayName = "&a" + presentation.formatVaultAmount(amount);
         ItemStack visual = visualItem(map, displayName);
-        return new ParsedReward(null, visual, null, null, null, amount, 0, visualName(visual, displayName));
+        return new ParsedReward(null, visual, null, null, null, amount, 0, visualName(visual, displayName), null);
     }
 
     private ParsedReward parsePlayerPoints(Map<?, ?> map) {
@@ -134,7 +136,15 @@ final class RewardConfigParser {
         int amount = Math.max(0, integer(firstPresent(points, map, "amount", "points", "value"), 0));
         String displayName = "&b" + presentation.formatPlayerPointsAmount(amount);
         ItemStack visual = visualItem(map, displayName);
-        return new ParsedReward(null, visual, null, null, null, 0.0, amount, visualName(visual, displayName));
+        return new ParsedReward(null, visual, null, null, null, 0.0, amount, visualName(visual, displayName), null);
+    }
+
+    private ParsedReward parsePersonal(Map<?, ?> map) {
+        String command = value(map.get("command"));
+        String displayName = value(firstPresent(map, "display_name", "display-name", "displayName", "name"));
+        ItemStack visual = visualItem(map, displayName);
+        displayName = visualName(visual, displayName == null ? "&dЛичная награда" : displayName);
+        return new ParsedReward(null, visual, null, null, null, 0.0, 0, displayName, command);
     }
 
     private ItemStack visualItem(Map<?, ?> reward, String displayName) {
@@ -181,6 +191,7 @@ final class RewardConfigParser {
             case VAULT -> parsed.vaultAmount() > 0.0;
             case PLAYERPOINTS -> parsed.playerPointsAmount() > 0;
             case LUCKPERMS -> notBlank(parsed.group()) || notBlank(parsed.node());
+            case PERSONAL -> notBlank(parsed.command());
         };
     }
 
@@ -200,7 +211,8 @@ final class RewardConfigParser {
             String duration,
             double vaultAmount,
             int playerPointsAmount,
-            String displayName
+            String displayName,
+            String command
     ) {
     }
 }

@@ -8,16 +8,22 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.HoverEvent;
 import ru.privatenull.PnCasesPlugin;
 import ru.privatenull.cases.CaseManager;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.gui.machine.MachineGuiListener;
 import ru.privatenull.pnlibrary.update.UpdateChecker;
+import ru.privatenull.pnlibrary.text.ColorUtil;
 
 import java.util.Locale;
 import java.util.UUID;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 public final class CasesCommand implements CommandExecutor {
+
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
     private final PnCasesPlugin plugin;
     private final CaseManager caseManager;
@@ -175,12 +181,11 @@ public final class CasesCommand implements CommandExecutor {
             return true;
         }
         String caseName = normalize(args[1]);
-        switch (caseManager.unbindCaseFromBlock(caseName)) {
-            case REMOVED -> sender.sendMessage(plugin.getMessages().get("delcase-success", "case", caseName));
-            case NOT_BOUND -> sender.sendMessage(plugin.getMessages().get("delcase-not-bound", "case", caseName));
+        switch (caseManager.deleteCase(caseName)) {
+            case DELETED -> sender.sendMessage(plugin.getMessages().get("delcase-success", "case", caseName));
             case NOT_FOUND -> sender.sendMessage(plugin.getMessages().get("delcase-not-found", "case", caseName));
-            case SAVE_FAILED -> sender.sendMessage(plugin.getMessages().get("delcase-save-failed", "case", caseName));
-            case REFRESH_FAILED -> sender.sendMessage(plugin.getMessages().get("delcase-refresh-failed", "case", caseName));
+            case DELETE_FAILED -> sender.sendMessage(plugin.getMessages().get("delcase-save-failed", "case", caseName));
+            case RELOAD_FAILED -> sender.sendMessage(plugin.getMessages().get("delcase-refresh-failed", "case", caseName));
         }
         return true;
     }
@@ -262,14 +267,31 @@ public final class CasesCommand implements CommandExecutor {
     private void sendCommandMenu(CommandSender sender) {
         String current = plugin.getDescription().getVersion();
         MenuUpdateInfo update = menuUpdateInfo(current);
-        plugin.getMessages().getList("command-menu",
-                "version", current,
-                "discord", plugin.getSupportDiscord(),
-                "support", plugin.getSupportDiscord(),
-                "update", update.status(),
-                "latest", update.latest(),
-                "download", update.download()
-        ).forEach(sender::sendMessage);
+        String prefix = plugin.getMessages().get("prefix");
+        String information = "&fПанель администратора\n\n"
+                + "&#429F91▸ &fВерсия: &#D8DF9D" + current + "\n"
+                + "&#429F91▸ &fСерверы: &#D8DF9D1.16.5 - 1.21.11\n"
+                + "&#429F91▸ &fОбновление: " + update.status() + "\n"
+                + "&#429F91▸ &fПоддержка: &#D8DF9D" + plugin.getSupportDiscord();
+
+        sender.sendMessage(menuComponent("&#429F91&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+        sender.sendMessage(menuComponent(prefix + " &8| &fПанель администратора &8(наведите для информации)")
+                .hoverEvent(HoverEvent.showText(menuComponent(information))));
+        sender.sendMessage(menuComponent(""));
+        sender.sendMessage(menuComponent("&#429F91Команды"));
+        sender.sendMessage(menuComponent("&#429F91▸ &#D8DF9D/pncases &8— &7показать это меню"));
+        sender.sendMessage(menuComponent("&#429F91▸ &#D8DF9D/pncases reload &8— &7перезагрузить настройки"));
+        sender.sendMessage(menuComponent("&#429F91▸ &#D8DF9D/pncases machine <кейс> &8— &7настроить кейс через GUI"));
+        sender.sendMessage(menuComponent("&#429F91▸ &#D8DF9D/pncases createcase <id> &8— &7создать новый кейс"));
+        sender.sendMessage(menuComponent("&#429F91▸ &#D8DF9D/pncases setcase <кейс> &8— &7поставить кейс на блок"));
+        sender.sendMessage(menuComponent("&#429F91▸ &#D8DF9D/pncases delcase <кейс> &8— &7удалить кейс"));
+        sender.sendMessage(menuComponent("&#429F91▸ &#D8DF9D/pncases givekey <игрок> <ключ> <кол-во> &8— &7выдать ключи"));
+        sender.sendMessage(menuComponent("&#429F91▸ &#D8DF9D/pncases takekey <игрок> <ключ> <кол-во> &8— &7забрать ключи"));
+        sender.sendMessage(menuComponent("&#429F91&m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"));
+    }
+
+    private static Component menuComponent(String text) {
+        return LEGACY.deserialize(ColorUtil.colorize(text));
     }
 
     private MenuUpdateInfo menuUpdateInfo(String current) {

@@ -16,6 +16,7 @@ import ru.privatenull.cases.CaseManager;
 import ru.privatenull.cases.model.CaseDefinition;
 import ru.privatenull.pnlibrary.text.ColorUtil;
 import ru.privatenull.util.InventoryViewCompat;
+import ru.privatenull.util.SkullUtil;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -26,6 +27,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class CaseGuiListener implements Listener {
+
+    private static final String NO_KEYS_TEXTURE = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMzc1YjM2YzM5NDVmZGFhMGM3NDA4MTg1MzFhOGY0NWJhY2QyNjk2Y2UyYWI4NWE5ZWE0NTI5MGFjY2YxODBjYyJ9fX0=";
 
     private final CaseManager caseManager;
     private final RewardPreviewMenu rewardPreviewMenu;
@@ -68,11 +71,9 @@ public final class CaseGuiListener implements Listener {
             openOrBuy(player, event, holder, definition);
             return;
         }
-        if (slot == definition.guiLayout().previewSlot()) {
-            rewardPreviewMenu.open(player, holder.caseName(), 0);
-            return;
-        }
-        if (slot == definition.guiLayout().animationSlot() && definition.fixedAnimation() == null) {
+        if (definition.guiLayout().animationSlot() >= 0
+                && slot == definition.guiLayout().animationSlot()
+                && definition.fixedAnimation() == null) {
             animationMenu.open(player, holder.caseName());
         }
     }
@@ -164,20 +165,19 @@ public final class CaseGuiListener implements Listener {
         String title;
         List<String> lore = new ArrayList<>();
         if (!wantsBuy || buyLevels <= 0) {
-            title = caseManager.getPlugin().getGuiConfig().text("gui.open.no-keys", "&cНедостаточно ключей",
-                    "have", String.valueOf(have), "need", String.valueOf(need));
-            String balance = caseManager.getPlugin().getGuiConfig().text(
-                    "gui.case-button.keys-balance", "&7Ключи: &f{have}&7/&f{need}",
-                    "have", String.valueOf(have), "need", String.valueOf(need));
-            lore.addAll(caseManager.getPlugin().getGuiConfig().list("gui.open.no-keys-lore", List.of(
-                            "&cНедостаточно ключей", "{keys-balance}", "&7Получите ключ и попробуйте снова."),
-                    "have", String.valueOf(have), "need", String.valueOf(need), "keys-balance", balance));
+            title = "&#FF5A64Недостаточно ключей";
+            lore.addAll(List.of(
+                    "",
+                    "&8Ключи: &f" + have + "&8/&f" + need,
+                    "",
+                    "&7Получите ключ и попробуйте снова."
+            ));
             player.sendMessage(caseManager.getPlugin().getMessages().get("not-enough-keys",
                     "have", String.valueOf(have), "need", String.valueOf(need)));
         } else {
             title = caseManager.getPlugin().getGuiConfig().text("gui.buy.no-levels", "&cУ вас недостаточно уровней");
         }
-        inventory.setItem(definition.guiLayout().openSlot(), pane(Material.BARRIER, title, lore));
+        inventory.setItem(definition.guiLayout().openSlot(), texturedPane(NO_KEYS_TEXTURE, title, lore));
         player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.24f, 1.0f);
     }
 
@@ -203,6 +203,17 @@ public final class CaseGuiListener implements Listener {
 
     private static ItemStack pane(Material material, String name, List<String> lore) {
         ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ColorUtil.colorize(name));
+            meta.setLore(lore.stream().map(ColorUtil::colorize).toList());
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private static ItemStack texturedPane(String texture, String name, List<String> lore) {
+        ItemStack item = SkullUtil.fromBase64(texture, name);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ColorUtil.colorize(name));

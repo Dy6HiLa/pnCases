@@ -9,19 +9,16 @@ public record CaseGuiLayout(
         int size,
         int openSlot,
         int animationSlot,
-        int previewSlot,
         List<Integer> historySlots,
         List<Integer> decorSlots,
         ItemStack decorItem,
         ItemStack animationItem,
-        ItemStack previewItem,
         ItemStack emptyHistoryItem
 ) {
 
     public static final int DEFAULT_SIZE = 54;
     public static final int DEFAULT_OPEN_SLOT = 22;
     public static final int DEFAULT_ANIMATION_SLOT = 49;
-    public static final int DEFAULT_PREVIEW_SLOT = 50;
 
     public static final List<Integer> DEFAULT_HISTORY_SLOTS = List.of(45, 46, 47, 48, 51, 52, 53);
     public static final List<Integer> DEFAULT_DECOR_SLOTS = List.of(
@@ -37,11 +34,9 @@ public record CaseGuiLayout(
                 DEFAULT_SIZE,
                 DEFAULT_OPEN_SLOT,
                 DEFAULT_ANIMATION_SLOT,
-                DEFAULT_PREVIEW_SLOT,
                 DEFAULT_HISTORY_SLOTS,
                 DEFAULT_DECOR_SLOTS,
                 new ItemStack(Material.GRAY_STAINED_GLASS_PANE),
-                null,
                 null,
                 new ItemStack(Material.BARRIER)
         );
